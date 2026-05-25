@@ -20,7 +20,7 @@
   --damara-red-500: #f04452;
 
   /* ── 시맨틱 (앱 면·텍스트·액션) ───────────────────── */
-  --damara-bg-canvas: var(--damara-grey-50);
+  --damara-bg-canvas: #f6f8fc;
   --damara-bg-surface: var(--damara-grey-100);
   --damara-bg-control: var(--damara-grey-100);
   --damara-bg-elevated: #ffffff;

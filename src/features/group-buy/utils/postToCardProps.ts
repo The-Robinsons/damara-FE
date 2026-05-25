@@ -24,9 +24,8 @@ function mapStatus(raw: string | undefined): GroupBuyCardProps["status"] {
 
 /** API post 객체 → GroupBuyCard props */
 export function mapApiPostToGroupBuyCard(post: Record<string, unknown>, onClick?: () => void): GroupBuyCardProps {
-  const id = Number(post.id ?? 0);
   return {
-    id,
+    id: String(post.id ?? ""),
     title: String(post.title ?? ""),
     price: `${Math.floor(Number(post.price ?? 0)).toLocaleString()}원`,
     image: getFirstImage(post),
@@ -42,5 +41,6 @@ export function mapApiPostToGroupBuyCard(post: Record<string, unknown>, onClick?
     tags: post.tags as string[] | undefined,
     remainingQuantity: post.remainingQuantity != null ? Number(post.remainingQuantity) : null,
     isReceiptVerified: post.isReceiptVerified as boolean | null | undefined,
+    isFavorite: post.isFavorite as boolean | null | undefined,
   };
 }

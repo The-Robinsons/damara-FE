@@ -1,0 +1,170 @@
+/*
+ * Damara global motion layer.
+ * Keep it subtle: quick page entrance, tactile press feedback, and soft focus.
+ */
+:root {
+  --damara-motion-fast: 120ms;
+  --damara-motion-base: 180ms;
+  --damara-motion-page: 340ms;
+  --damara-motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  --damara-motion-spring: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  overscroll-behavior-y: none;
+}
+
+[data-page] {
+  animation: damara-page-enter var(--damara-motion-page) var(--damara-motion-spring) both;
+  transform-origin: 50% 18%;
+}
+
+[data-page] main > section,
+[data-page] main > article,
+[data-page] main > nav,
+[data-page] main > ul,
+[data-page] main > div {
+  animation: damara-stack-enter 300ms var(--damara-motion-spring) both;
+}
+
+[data-page] main > :nth-child(1) {
+  animation-delay: 20ms;
+}
+
+[data-page] main > :nth-child(2) {
+  animation-delay: 55ms;
+}
+
+[data-page] main > :nth-child(3) {
+  animation-delay: 90ms;
+}
+
+[data-page] main > :nth-child(4) {
+  animation-delay: 125ms;
+}
+
+[data-page] main > :nth-child(n + 5) {
+  animation-delay: 150ms;
+}
+
+button,
+a,
+[role="button"],
+input,
+textarea,
+select {
+  transition:
+    background-color var(--damara-motion-base) var(--damara-motion-ease),
+    border-color var(--damara-motion-base) var(--damara-motion-ease),
+    box-shadow var(--damara-motion-base) var(--damara-motion-ease),
+    color var(--damara-motion-base) var(--damara-motion-ease),
+    opacity var(--damara-motion-base) var(--damara-motion-ease),
+    filter var(--damara-motion-base) var(--damara-motion-ease),
+    translate var(--damara-motion-fast) var(--damara-motion-ease),
+    scale var(--damara-motion-fast) var(--damara-motion-ease);
+}
+
+button:not(:disabled):active,
+a:active,
+[role="button"]:active {
+  translate: 0 1px;
+  scale: 0.985;
+  filter: brightness(0.985);
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgba(49, 130, 246, 0.36);
+  outline-offset: 3px;
+}
+
+article,
+[data-page] main > section,
+[data-page] main > div,
+[data-page] main li {
+  transition:
+    border-color var(--damara-motion-base) var(--damara-motion-ease),
+    box-shadow var(--damara-motion-base) var(--damara-motion-ease),
+    opacity var(--damara-motion-base) var(--damara-motion-ease),
+    translate var(--damara-motion-base) var(--damara-motion-ease),
+    scale var(--damara-motion-base) var(--damara-motion-ease);
+}
+
+article[role="button"]:active,
+[data-page] main li:has([role="button"]:active),
+[data-page] main section:has(> button:active) {
+  translate: 0 1px;
+  scale: 0.995;
+}
+
+input,
+textarea,
+select {
+  caret-color: var(--damara-brand, #3182f6);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  filter: brightness(1.01);
+}
+
+::selection {
+  background: rgba(49, 130, 246, 0.18);
+}
+
+@keyframes damara-page-enter {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+    scale: 0.995;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+@keyframes damara-stack-enter {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+
+  button:not(:disabled):active,
+  a:active,
+  [role="button"]:active {
+    translate: 0 0;
+    scale: 1;
+  }
+}

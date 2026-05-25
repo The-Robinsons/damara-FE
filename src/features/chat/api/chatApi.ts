@@ -1,4 +1,5 @@
 import axiosInstance from "../../../shared/api/axiosInstance";
+import type { ApiSendMessageInput } from "../../../shared/api/swaggerTypes";
 
 export const createChatRoom = (postId: string) =>
   axiosInstance.post(`/chat/rooms`, {
@@ -19,12 +20,7 @@ export const getChatRoomById = (id: string) =>
 export const deleteChatRoom = (id: string) =>
   axiosInstance.delete(`/chat/rooms/${id}`);
 
-export const sendMessage = (data: {
-  chatRoomId: string;
-  senderId: string;
-  content: string;
-  messageType?: string;
-}) =>
+export const sendMessage = (data: ApiSendMessageInput) =>
   axiosInstance.post(`/chat/messages`, {
     message: {
       chatRoomId: data.chatRoomId,

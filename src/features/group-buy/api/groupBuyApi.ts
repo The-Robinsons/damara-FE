@@ -1,41 +1,56 @@
 import axiosInstance from "../../../shared/api/axiosInstance";
+import type {
+  ApiCreatePostInput,
+  ApiGetPostsParams,
+  ApiPostCategory,
+  ApiPostSort,
+  ApiPostStatus,
+  ApiUpdatePostInput,
+} from "../../../shared/api/swaggerTypes";
 
-export const getPosts = (limit = 20, offset = 0, category?: string) =>
-  axiosInstance.get(`/posts`, {
-    params: { limit, offset, ...(category && category !== "all" && { category }) },
+export const getPosts = (
+  limitOrOptions: number | ApiGetPostsParams = 20,
+  offset = 0,
+  category?: ApiPostCategory | "all" | string,
+  userId?: string | null,
+  sort?: ApiPostSort,
+  status?: ApiPostStatus,
+  keyword?: string,
+  q?: string
+) => {
+  const options: ApiGetPostsParams =
+    typeof limitOrOptions === "object"
+      ? limitOrOptions
+      : { limit: limitOrOptions, offset, category, userId, sort, status, keyword, q };
+  const currentUserId = options.userId || undefined;
+
+  return axiosInstance.get(`/posts`, {
+    params: {
+      limit: options.limit ?? 20,
+      offset: options.offset ?? 0,
+      ...(options.category && options.category !== "all" && { category: options.category }),
+      ...(options.sort && { sort: options.sort }),
+      ...(options.status && { status: options.status }),
+      ...(options.keyword && { keyword: options.keyword }),
+      ...(options.q && { q: options.q }),
+      ...(currentUserId && { userId: currentUserId }),
+    },
+    ...(currentUserId ? { headers: { "x-user-id": currentUserId } } : {}),
+  });
+};
+
+export const getPostDetail = (id: string, userId?: string | null) =>
+  axiosInstance.get(`/posts/${id}`, {
+    ...(userId ? { params: { userId }, headers: { "x-user-id": userId } } : {}),
   });
 
-export const getPostDetail = (id: string) =>
-  axiosInstance.get(`/posts/${id}`);
-
-export const createPost = (data: {
-  authorId: string;
-  title: string;
-  content: string;
-  price: number;
-  minParticipants: number;
-  deadline: string;
-  pickupLocation: string;
-  images?: string[];
-  category?: string;
-}) =>
+export const createPost = (data: ApiCreatePostInput) =>
   axiosInstance.post(`/posts`, {
     post: data,
   });
 
-export const updatePost = (
-  id: string,
-  data: {
-    title?: string;
-    content?: string;
-    price?: number;
-    deadline?: string;
-    pickupLocation?: string;
-    images?: string[];
-    minParticipants?: number;
-    category?: string;
-  }
-) => axiosInstance.put(`/posts/${id}`, { post: data });
+export const updatePost = (id: string, data: ApiUpdatePostInput) =>
+  axiosInstance.put(`/posts/${id}`, { post: data });
 
 export const deletePost = (id: string) =>
   axiosInstance.delete(`/posts/${id}`);
@@ -66,20 +81,9 @@ export const getParticipatedPosts = (userId: string) =>
 
 export const updatePostStatus = (
   postId: string,
-  status: "open" | "closed" | "in_progress" | "completed",
+  status: ApiPostStatus,
   authorId: string
-) => {
-  const url = `/posts/${postId}/status`;
-  const body = { status, authorId };
-
-  console.log("========== 상태 변경 API 호출 ==========");
-  console.log("URL:", `${axiosInstance.defaults.baseURL}${url}`);
-  console.log("method: PATCH");
-  console.log("Request Body:", JSON.stringify(body, null, 2));
-  console.log("=========================================");
-
-  return axiosInstance.patch(url, body);
-};
+) => axiosInstance.patch(`/posts/${postId}/status`, { status, authorId });
 
 export const addFavorite = (postId: string, userId: string) =>
   axiosInstance.post(`/posts/${postId}/favorite`, { userId });
@@ -90,29 +94,7 @@ export const checkFavorite = (postId: string, userId: string) =>
 export const removeFavorite = (postId: string, userId: string) =>
   axiosInstance.delete(`/posts/${postId}/favorite/${userId}`);
 
-export const getFavoritePosts = async (userId: string) => {
-  const endpoints = [
-    `/posts/user/${userId}/favorites`,
-    `/users/${userId}/favorites`,
-    `/favorites/${userId}`,
-  ];
-
-  try {
-    return await axiosInstance.get(endpoints[0]);
-  } catch (err: any) {
-    if (err.response?.status !== 404) {
-      throw err;
-    }
-
-    for (let i = 1; i < endpoints.length; i++) {
-      try {
-        return await axiosInstance.get(endpoints[i]);
-      } catch (e: any) {
-        if (i === endpoints.length - 1) {
-          throw err;
-        }
-      }
-    }
-    throw err;
-  }
-};
+export const getFavoritePosts = (userId: string, limit = 20, offset = 0) =>
+  axiosInstance.get(`/users/${userId}/favorites`, {
+    params: { limit, offset },
+  });

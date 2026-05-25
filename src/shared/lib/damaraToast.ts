@@ -2,7 +2,6 @@ import { toast as sonnerToast } from "sonner";
 
 const DEFAULT_DURATION = 2400;
 
-/** 짧은 피드백 문구 (앱 전역에서 재사용) */
 export const damaraToastMessages = {
   favoriteAdded: "관심목록에 담았어요",
   favoriteRemoved: "관심목록에서 제거했어요",
@@ -22,7 +21,6 @@ function push(message: string, type: "default" | "error" = "default") {
   return sonnerToast.message(message, { duration: DEFAULT_DURATION });
 }
 
-/** 기본 피드백 (다크 토스트 스타일은 Toaster 전역 적용) */
 export const damaraToast = {
   show: (message: string) => push(message, "default"),
   error: (message: string) => push(message, "error"),

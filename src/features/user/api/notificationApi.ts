@@ -15,25 +15,32 @@ export const getNotifications = (
       offset: options?.offset ?? 0,
       unreadOnly: options?.unreadOnly ?? false,
     },
+    headers: { "x-user-id": userId },
   });
 };
 
 export const getUnreadCount = (userId: string) => {
   return axiosInstance.get("/notifications/unread-count", {
     params: { userId },
+    headers: { "x-user-id": userId },
   });
 };
 
 export const markAllAsRead = (userId: string) => {
-  return axiosInstance.patch("/notifications/read-all", { userId });
+  return axiosInstance.patch("/notifications/read-all", { userId }, {
+    headers: { "x-user-id": userId },
+  });
 };
 
 export const markAsRead = (notificationId: string, userId: string) => {
-  return axiosInstance.patch(`/notifications/${notificationId}/read`, { userId });
+  return axiosInstance.patch(`/notifications/${notificationId}/read`, { userId }, {
+    headers: { "x-user-id": userId },
+  });
 };
 
 export const deleteNotification = (notificationId: string, userId: string) => {
   return axiosInstance.delete(`/notifications/${notificationId}`, {
     params: { userId },
+    headers: { "x-user-id": userId },
   });
 };

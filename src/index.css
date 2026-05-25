@@ -370,7 +370,7 @@
   }
 
   body {
-  /* background-color: var(--background); */
+  background-color: #f6f8fc;
   color: var(--foreground);
   }
   

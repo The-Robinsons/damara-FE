@@ -1,144 +1,178 @@
-import React, { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { RotateCw, Search, Users } from "lucide-react";
+import { ImageIcon, RotateCw, Search, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { ROUTES } from "../../app/router/routes";
+import { getPosts } from "../../features/group-buy/api/groupBuyApi";
 import FavoriteHeartButton from "../../features/group-buy/components/FavoriteHeartButton";
 import EmptyState from "../../shared/components/damara/EmptyState";
+import { getImageUrl } from "../../shared/utils/imageUrl";
 import {
   BADGE_INFO_BG,
   BADGE_INFO_TEXT,
   BADGE_URGENT_BG,
   BADGE_URGENT_TEXT,
-  blue50,
   BRAND_PRIMARY,
-  green50,
   HOME_BORDER,
   HOME_CANVAS,
-  purple50,
   SCRIM_LIGHT,
   TEXT_META,
-  yellow50,
+  blue50,
+  green50,
+  grey100,
+  grey300,
+  grey400,
   grey500,
   grey900,
+  purple50,
+  yellow50,
 } from "../../shared/constants/homeTheme";
 import {
-  UI_BADGE_FS,
   UI_BADGE_FW,
-  UI_PAGE_PAD_X,
-  UI_R_BADGE,
   UI_IX_BUTTON,
   UI_IX_HOVER_GREY50,
+  UI_PAGE_PAD_X,
+  UI_R_BADGE,
 } from "../../shared/constants/damaraUISystem";
+import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 
-/** 홈과 동일 토큰 + 포인트 컬러 */
-const C_SEARCH_BG = "#ffffff";
-const C_CHIP_BORDER = HOME_BORDER;
+type FilterId = "all" | "food" | "daily" | "beauty" | "school";
 
-type FilterId = "all" | "food" | "daily" | "beauty" | "stationery";
-
-const FILTERS: { id: FilterId; label: string }[] = [
-  { id: "all", label: "전체" },
-  { id: "food", label: "🍴 먹거리" },
-  { id: "daily", label: "🧴 생활용품" },
-  { id: "beauty", label: "👜 뷰티·패션" },
-  { id: "stationery", label: "✏️ 학용품" },
-];
-
-type ProductRow = {
-  id: number;
-  title: string;
-  price: number;
-  current: number;
-  max: number;
-  categories: FilterId[];
-  thumbBg: string;
-  badge: "recruiting" | "closing";
+type ApiPost = {
+  id: string | number;
+  title?: string;
+  content?: string;
+  price?: string | number;
+  currentQuantity?: number;
+  minParticipants?: number;
+  status?: string;
+  deadline?: string;
+  pickupLocation?: string;
+  category?: string;
+  images?: Array<string | { imageUrl?: string; url?: string }>;
+  image?: string;
+  isFavorite?: boolean;
 };
 
-const FILTER_IDS = new Set<FilterId>(FILTERS.map((f) => f.id));
+const FILTERS: { id: FilterId; label: string; apiCategory?: string }[] = [
+  { id: "all", label: "전체" },
+  { id: "food", label: "먹거리", apiCategory: "food" },
+  { id: "daily", label: "생활용품", apiCategory: "daily" },
+  { id: "beauty", label: "뷰티·패션", apiCategory: "beauty" },
+  { id: "school", label: "학용품", apiCategory: "school" },
+];
+
+const FILTER_IDS = new Set<FilterId>(FILTERS.map((filter) => filter.id));
+const CATEGORY_ALIASES: Record<FilterId, string[]> = {
+  all: [],
+  food: ["food", "먹거리", "식품"],
+  daily: ["daily", "생활용품", "생활"],
+  beauty: ["beauty", "뷰티", "뷰티·패션", "패션"],
+  school: ["school", "stationery", "학용품", "문구"],
+};
+const THUMB_BG = [blue50, green50, yellow50, purple50, grey100];
 
 function parseCatParam(value: string | null): FilterId {
+  if (value === "stationery") return "school";
   if (value && FILTER_IDS.has(value as FilterId)) return value as FilterId;
   return "all";
 }
 
-const PRODUCTS: ProductRow[] = [
-  {
-    id: 101,
-    title: "해태 허니버터칩 60g x 4개",
-    price: 5200,
-    current: 12,
-    max: 20,
-    categories: ["all", "food"],
-    thumbBg: yellow50,
-    badge: "recruiting",
-  },
-  {
-    id: 102,
-    title: "비트 딥클린 액체세제 2.7L",
-    price: 7900,
-    current: 18,
-    max: 30,
-    categories: ["all", "daily"],
-    thumbBg: blue50,
-    badge: "recruiting",
-  },
-  {
-    id: 103,
-    title: "케라시스 데미지 클리닉 샴푸",
-    price: 6800,
-    current: 15,
-    max: 25,
-    categories: ["all", "beauty", "daily"],
-    thumbBg: purple50,
-    badge: "recruiting",
-  },
-  {
-    id: 104,
-    title: "캠퍼스 B5 노트 옐로우 5권",
-    price: 2900,
-    current: 9,
-    max: 20,
-    categories: ["all", "stationery"],
-    thumbBg: yellow50,
-    badge: "recruiting",
-  },
-  {
-    id: 105,
-    title: "케라시스 퍼퓸 샴푸 400ml",
-    price: 8500,
-    current: 22,
-    max: 25,
-    categories: ["all", "beauty"],
-    thumbBg: purple50,
-    badge: "closing",
-  },
-  {
-    id: 106,
-    title: "오리온 꼬북칩 콘스프맛 65g",
-    price: 3200,
-    current: 5,
-    max: 15,
-    categories: ["all", "food"],
-    thumbBg: green50,
-    badge: "recruiting",
-  },
-];
+function extractPosts(data: unknown): ApiPost[] {
+  if (Array.isArray(data)) return data as ApiPost[];
+  if (!data || typeof data !== "object") return [];
+  const record = data as Record<string, unknown>;
+  const candidates = [record.posts, record.items, record.data, record.value, record.rows];
+  const found = candidates.find(Array.isArray);
+  return found ? (found as ApiPost[]) : [];
+}
 
-function formatPrice(n: number): string {
-  return `${n.toLocaleString("ko-KR")}원`;
+function getFirstImage(post: ApiPost): string {
+  const firstImage = post.images?.[0];
+  return (
+    (typeof firstImage === "string" ? firstImage : undefined) ||
+    (typeof firstImage === "object" ? firstImage?.imageUrl || firstImage?.url : undefined) ||
+    post.image ||
+    ""
+  );
+}
+
+function formatPrice(value: string | number | undefined): string {
+  const numberValue = Number(value ?? 0);
+  if (!Number.isFinite(numberValue)) return "0원";
+  return `${Math.floor(numberValue).toLocaleString("ko-KR")}원`;
+}
+
+function getProgress(post: ApiPost): number {
+  const current = Number(post.currentQuantity ?? 0);
+  const max = Number(post.minParticipants ?? 0);
+  if (max <= 0) return 0;
+  return Math.min(current / max, 1);
+}
+
+function isClosed(post: ApiPost): boolean {
+  const status = String(post.status ?? "").toLowerCase();
+  const current = Number(post.currentQuantity ?? 0);
+  const max = Number(post.minParticipants ?? 0);
+  const deadlineMs = post.deadline ? new Date(post.deadline).getTime() : NaN;
+  return (
+    ["closed", "completed", "sold_out", "cancelled", "recruit_full"].includes(status) ||
+    (max > 0 && current >= max) ||
+    (Number.isFinite(deadlineMs) && deadlineMs < Date.now())
+  );
+}
+
+function formatDeadline(deadline?: string): string {
+  if (!deadline) return "마감일 미정";
+  const date = new Date(deadline);
+  if (Number.isNaN(date.getTime())) return "마감일 미정";
+  return `마감 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+}
+
+function matchesCategory(post: ApiPost, filter: FilterId): boolean {
+  if (filter === "all") return true;
+  const rawCategory = String(post.category ?? "").trim().toLowerCase();
+  return CATEGORY_ALIASES[filter].some((alias) => rawCategory === alias.toLowerCase());
 }
 
 export default function CategoryPage() {
   const nav = useNavigate();
   const location = useLocation();
-  const filter = useMemo(
-    () => parseCatParam(new URLSearchParams(location.search).get("cat")),
-    [location.search]
-  );
+  const filter = useMemo(() => parseCatParam(new URLSearchParams(location.search).get("cat")), [location.search]);
   const [search, setSearch] = useState("");
+  const [posts, setPosts] = useState<ApiPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchPosts = useCallback(
+    async (silent = false) => {
+      if (silent) setRefreshing(true);
+      else setLoading(true);
+      setError(null);
+
+      try {
+        const selectedFilter = FILTERS.find((item) => item.id === filter);
+        const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+        const res = await getPosts(50, 0, selectedFilter?.apiCategory, userId);
+        setPosts(extractPosts(res.data));
+        if (silent) toast.success("목록을 새로고침했어요.");
+      } catch (err) {
+        console.error(err);
+        setError("공구 목록을 불러오지 못했어요.");
+        if (silent) toast.error("새로고침에 실패했어요.");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [filter]
+  );
+
+  useEffect(() => {
+    void fetchPosts(false);
+  }, [fetchPosts]);
 
   const setFilterAndUrl = (id: FilterId) => {
     const nextSearch = id === "all" ? "" : `?cat=${encodeURIComponent(id)}`;
@@ -147,269 +181,220 @@ export default function CategoryPage() {
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return PRODUCTS.filter((p) => {
-      if (filter !== "all" && !p.categories.includes(filter)) return false;
+    return posts.filter((post) => {
+      if (!matchesCategory(post, filter)) return false;
       if (!q) return true;
-      return p.title.toLowerCase().includes(q);
+      return [post.title, post.content, post.pickupLocation, post.category]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q));
     });
-  }, [filter, search]);
+  }, [filter, posts, search]);
 
   return (
-    <div
-      data-page="카테고리"
-      style={{
-        minHeight: "100dvh",
-        width: "100%",
-        backgroundColor: HOME_CANVAS,
-        display: "flex",
-        flexDirection: "column",
-        overflowX: "hidden",
-      }}
-    >
-      <div
-        style={{
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: `8px ${UI_PAGE_PAD_X}px 6px`,
-          backgroundColor: "rgba(249, 250, 251, 0.94)",
-          borderBottom: `1px solid rgba(229, 232, 235, 0.56)`,
-          backdropFilter: "blur(18px)",
-          WebkitBackdropFilter: "blur(18px)",
-        }}
-      >
-        <h1
-          style={{
-            margin: 0,
-            fontSize: 20,
-            fontWeight: 850,
-            color: grey900,
-            lineHeight: "28px",
-            letterSpacing: "-0.025em",
-          }}
-        >
-          카테고리
-        </h1>
-        <button
-          type="button"
-          aria-label="새로고침"
-          onClick={() => toast.message("목록을 곧 새로고침해요.")}
-          style={{
-            width: 34,
-            height: 34,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            border: "none",
-            background: "#fff",
-            borderRadius: 999,
-            cursor: "pointer",
-            color: grey500,
-          }}
-        >
-          <RotateCw size={16} strokeWidth={2.1} />
-        </button>
-      </div>
+    <div data-page="카테고리" style={{ minHeight: "100dvh", width: "100%", backgroundColor: HOME_CANVAS, overflowX: "hidden" }}>
+      <section style={{ padding: `14px ${UI_PAGE_PAD_X}px 0` }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
+          <div>
+            <h1 style={{ margin: 0, color: grey900, fontSize: 21, lineHeight: "29px", fontWeight: 900, letterSpacing: 0 }}>
+              카테고리
+            </h1>
+            <p style={{ margin: "2px 0 0", color: TEXT_META, fontSize: 12, lineHeight: "17px", fontWeight: 650 }}>
+              실제 등록된 공구 {loading ? "" : `${visible.length}개`}
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="새로고침"
+            onClick={() => void fetchPosts(true)}
+            disabled={refreshing}
+            style={{
+              width: 34,
+              height: 34,
+              display: "grid",
+              placeItems: "center",
+              border: `1px solid ${HOME_BORDER}`,
+              background: "#fff",
+              borderRadius: 999,
+              cursor: refreshing ? "default" : "pointer",
+              color: grey500,
+              opacity: refreshing ? 0.5 : 1,
+              boxShadow: "0 1px 3px rgba(15,23,42,0.035)",
+            }}
+          >
+            <RotateCw size={16} strokeWidth={2.1} />
+          </button>
+        </div>
 
-      <div style={{ padding: `12px ${UI_PAGE_PAD_X}px 0`, flexShrink: 0 }}>
         <label
           className="flex items-center gap-2"
           style={{
-            height: 46,
-            padding: "0 15px",
-            borderRadius: 15,
+            height: 44,
+            marginTop: 12,
+            padding: "0 14px",
+            borderRadius: 14,
             border: `1px solid rgba(229, 232, 235, 0.92)`,
-            backgroundColor: C_SEARCH_BG,
+            backgroundColor: "#fff",
             boxSizing: "border-box",
             boxShadow: "0 1px 3px rgba(15, 23, 42, 0.035)",
           }}
         >
-          <Search size={18} strokeWidth={2} style={{ color: grey500, flexShrink: 0 }} aria-hidden />
+          <Search size={17} strokeWidth={2} style={{ color: grey500, flexShrink: 0 }} aria-hidden />
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="상품 검색"
+            placeholder="상품명, 장소 검색"
             className="placeholder:text-[#b0b8c1]"
-            style={{
-              flex: 1,
-              minWidth: 0,
-              height: "100%",
-              border: "none",
-              background: "transparent",
-              fontSize: 14,
-              fontWeight: 500,
-              color: grey900,
-              outline: "none",
-            }}
+            style={{ flex: 1, minWidth: 0, height: "100%", border: "none", background: "transparent", fontSize: 13.5, fontWeight: 500, color: grey900, outline: "none" }}
           />
         </label>
-      </div>
+      </section>
 
-      <div
-        className="no-scrollbar"
-        style={{
-          display: "flex",
-          gap: 7,
-          padding: `10px ${UI_PAGE_PAD_X}px 12px`,
-          overflowX: "auto",
-          flexShrink: 0,
-          scrollbarWidth: "none",
-        }}
-      >
-        {FILTERS.map((f) => {
-          const active = filter === f.id;
+      <div className="no-scrollbar" style={{ display: "flex", gap: 6, padding: `10px ${UI_PAGE_PAD_X}px 12px`, overflowX: "auto", scrollbarWidth: "none" }}>
+        {FILTERS.map((item) => {
+          const active = filter === item.id;
           return (
             <button
-              key={f.id}
+              key={item.id}
               type="button"
-              onClick={() => setFilterAndUrl(f.id)}
+              onClick={() => setFilterAndUrl(item.id)}
               className={active ? UI_IX_BUTTON : `${UI_IX_BUTTON} ${UI_IX_HOVER_GREY50} bg-white`}
               style={{
                 flexShrink: 0,
-                height: 32,
-                padding: "0 13px",
+                height: 30,
+                padding: "0 12px",
                 borderRadius: UI_R_BADGE,
-                border: active ? `1px solid ${blue50}` : `1px solid ${C_CHIP_BORDER}`,
+                border: active ? `1px solid ${blue50}` : `1px solid ${HOME_BORDER}`,
                 background: active ? blue50 : "#ffffff",
                 color: active ? BRAND_PRIMARY : TEXT_META,
-                fontSize: 12.5,
-                fontWeight: active ? 800 : 600,
-                lineHeight: "32px",
+                fontSize: 12,
+                fontWeight: active ? 800 : 650,
+                lineHeight: "30px",
                 cursor: "pointer",
                 boxShadow: "none",
                 whiteSpace: "nowrap",
               }}
             >
-              {f.label}
+              {item.label}
             </button>
           );
         })}
       </div>
 
-      <main
-        style={{
-          flex: 1,
-          padding: `0 ${UI_PAGE_PAD_X}px 96px`,
-          minHeight: 0,
-        }}
-      >
-        {visible.length === 0 ? (
-          <EmptyState
-            icon={<Search size={56} strokeWidth={1.25} />}
-            title="검색 결과가 없어요"
-            description="다른 검색어나 카테고리로 다시 찾아볼까요?"
-          />
+      <main style={{ padding: `0 ${UI_PAGE_PAD_X}px 96px`, minHeight: 0 }}>
+        {loading ? (
+          <CardSkeletonGrid />
+        ) : error ? (
+          <EmptyState icon={<RotateCw size={56} strokeWidth={1.25} />} title={error} description="잠시 후 다시 새로고침해 주세요." />
+        ) : visible.length === 0 ? (
+          <EmptyState icon={<Search size={56} strokeWidth={1.25} />} title="검색 결과가 없어요" description="다른 검색어나 카테고리로 다시 찾아볼까요?" />
         ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 10,
-          }}
-        >
-          {visible.map((p) => (
-            <article
-              key={p.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => nav(ROUTES.GROUP_BUY_DETAIL.replace(":id", String(p.id)))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  nav(ROUTES.GROUP_BUY_DETAIL.replace(":id", String(p.id)));
-                }
-              }}
-              className="transition-[transform,background-color] duration-150 ease-out active:scale-[0.98]"
-              style={{
-                borderRadius: 18,
-                border: `1px solid rgba(229, 232, 235, 0.92)`,
-                backgroundColor: "#ffffff",
-                overflow: "hidden",
-                cursor: "pointer",
-                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.035)",
-              }}
-            >
-              <div className="relative" style={{ height: 136, background: `linear-gradient(145deg, ${p.thumbBg} 0%, ${blue50} 100%)` }}>
-                <span
-                  style={{
-                    position: "absolute",
-                    left: 8,
-                    top: 8,
-                    height: 20,
-                    padding: "0 8px",
-                    borderRadius: UI_R_BADGE,
-                    backgroundColor: p.badge === "closing" ? BADGE_URGENT_BG : BADGE_INFO_BG,
-                    color: p.badge === "closing" ? BADGE_URGENT_TEXT : BADGE_INFO_TEXT,
-                    fontSize: 10,
-                    fontWeight: UI_BADGE_FW,
-                    lineHeight: "20px",
-                  }}
-                >
-                  {p.badge === "closing" ? "마감임박" : "모집중"}
-                </span>
-                <div
-                  style={{ position: "absolute", right: 6, top: 6 }}
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  role="presentation"
-                >
-                  <FavoriteHeartButton
-                    postId={p.id}
-                    style={{
-                      padding: 4,
-                      color: TEXT_META,
-                      background: SCRIM_LIGHT,
-                      borderRadius: 999,
-                    }}
-                    iconClassName="size-[18px]"
-                  />
-                </div>
-                <div
-                  className="flex items-center justify-center"
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    opacity: 0.15,
-                    pointerEvents: "none",
-                  }}
-                  aria-hidden
-                >
-                  <span style={{ fontSize: 46 }}>📦</span>
-                </div>
-              </div>
-              <div style={{ padding: "11px 12px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 13.5,
-                    fontWeight: 800,
-                    color: grey900,
-                    lineHeight: "18.5px",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  }}
-                >
-                  {p.title}
-                </p>
-                <p style={{ margin: 0, fontSize: 16.5, fontWeight: 850, color: BRAND_PRIMARY, lineHeight: "21px", letterSpacing: "-0.03em" }}>
-                  {formatPrice(p.price)}
-                </p>
-                <div className="flex items-center" style={{ gap: 4 }}>
-                  <Users size={13} strokeWidth={2} style={{ color: TEXT_META, flexShrink: 0 }} aria-hidden />
-                  <span style={{ fontSize: 11.5, fontWeight: 500, color: TEXT_META, lineHeight: "17px" }}>
-                    {p.current}/{p.max}명 참여 중
-                  </span>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
+            {visible.map((post, index) => (
+              <CategoryCard
+                key={String(post.id)}
+                post={post}
+                tint={THUMB_BG[index % THUMB_BG.length]}
+                onClick={() => nav(ROUTES.GROUP_BUY_DETAIL.replace(":id", String(post.id)))}
+              />
+            ))}
+          </div>
         )}
       </main>
+    </div>
+  );
+}
+
+function CategoryCard({ post, tint, onClick }: { post: ApiPost; tint: string; onClick: () => void }) {
+  const [imgError, setImgError] = useState(false);
+  const current = Number(post.currentQuantity ?? 0);
+  const max = Number(post.minParticipants ?? 0);
+  const progress = getProgress(post);
+  const closed = isClosed(post);
+  const imageUrl = getImageUrl(getFirstImage(post));
+
+  return (
+    <article
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="transition-[transform,background-color] duration-150 ease-out active:scale-[0.98]"
+      style={{ borderRadius: 16, border: `1px solid rgba(229, 232, 235, 0.92)`, backgroundColor: "#fff", overflow: "hidden", cursor: "pointer", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.035)" }}
+    >
+      <div className="relative" style={{ height: 124, background: `linear-gradient(145deg, ${tint} 0%, ${blue50} 100%)` }}>
+        <span style={{ position: "absolute", left: 8, top: 8, height: 19, padding: "0 8px", borderRadius: UI_R_BADGE, backgroundColor: closed ? BADGE_URGENT_BG : BADGE_INFO_BG, color: closed ? BADGE_URGENT_TEXT : BADGE_INFO_TEXT, fontSize: 9.5, fontWeight: UI_BADGE_FW, lineHeight: "19px", zIndex: 2 }}>
+          {closed ? "마감" : "모집중"}
+        </span>
+        <div style={{ position: "absolute", right: 6, top: 6, zIndex: 2 }} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} role="presentation">
+          <FavoriteHeartButton
+            postId={post.id}
+            initialIsFavorite={Boolean(post.isFavorite)}
+            style={{
+              width: 25,
+              height: 25,
+              padding: 4,
+              color: grey500,
+              background: "rgba(255, 255, 255, 0.92)",
+              borderRadius: 999,
+              boxShadow: "0 2px 8px rgba(15, 23, 42, 0.14)",
+              display: "grid",
+              placeItems: "center",
+            }}
+            iconClassName=""
+            iconSize={16}
+          />
+        </div>
+        {!imgError && imageUrl && imageUrl !== "/placeholder.png" ? (
+          <img src={imageUrl} alt="" onError={() => setImgError(true)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <div className="flex items-center justify-center" style={{ width: "100%", height: "100%", color: grey400 }} aria-hidden>
+            <ImageIcon size={36} strokeWidth={1.5} />
+          </div>
+        )}
+      </div>
+      <div style={{ padding: "10px 11px 11px", display: "flex", flexDirection: "column", gap: 4 }}>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 850, color: grey900, lineHeight: "18px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {post.title || "제목 없는 공구"}
+        </p>
+        <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: BRAND_PRIMARY, lineHeight: "20px", letterSpacing: 0 }}>
+          {formatPrice(post.price)}
+        </p>
+        <p style={{ margin: 0, color: grey500, fontSize: 10.5, lineHeight: "15px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {post.pickupLocation || "수령 장소 미정"} · {formatDeadline(post.deadline)}
+        </p>
+        <div className="flex items-center" style={{ gap: 4 }}>
+          <Users size={12} strokeWidth={2} style={{ color: TEXT_META, flexShrink: 0 }} aria-hidden />
+          <span style={{ fontSize: 11, fontWeight: 650, color: TEXT_META, lineHeight: "16px" }}>
+            {current}/{max || "-"}명 참여 중
+          </span>
+        </div>
+        <div style={{ height: 4, marginTop: 2, borderRadius: 999, background: grey100, overflow: "hidden" }}>
+          <div style={{ width: `${progress * 100}%`, height: "100%", borderRadius: 999, background: closed ? grey300 : BRAND_PRIMARY }} />
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function CardSkeletonGrid() {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
+      {[0, 1, 2, 3, 4, 5].map((item) => (
+        <div key={item} style={{ height: 224, borderRadius: 16, background: "#fff", border: `1px solid ${HOME_BORDER}`, overflow: "hidden" }}>
+          <div style={{ height: 124, background: "linear-gradient(90deg, #f2f4f6 0%, #ffffff 50%, #f2f4f6 100%)", backgroundSize: "200% 100%" }} />
+          <div style={{ padding: 11, display: "grid", gap: 8 }}>
+            <span style={{ height: 14, borderRadius: 999, background: grey100 }} />
+            <span style={{ width: "70%", height: 18, borderRadius: 999, background: grey100 }} />
+            <span style={{ width: "86%", height: 12, borderRadius: 999, background: grey100 }} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

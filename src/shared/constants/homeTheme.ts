@@ -69,7 +69,7 @@ export const AUTH_HALO_BLUR = "rgba(232, 243, 255, 0.7)";
 export const AUTH_ICON_DIM = "rgba(49, 130, 246, 0.5)";
 
 /** 페이지 루트 배경 */
-export const HOME_CANVAS = grey50;
+export const HOME_CANVAS = "#F6F8FC";
 
 /** 카드·섹션 살짝 띄운 면 */
 export const HOME_SURFACE = grey100;

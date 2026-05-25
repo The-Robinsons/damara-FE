@@ -1,13 +1,7 @@
 import axiosInstance from "../../../shared/api/axiosInstance";
+import type { ApiRegisterUserInput } from "../../../shared/api/swaggerTypes";
 
-export const registerUser = (userData: {
-  email: string;
-  passwordHash: string;
-  nickname: string;
-  studentId: string;
-  department?: string;
-  avatarUrl?: string;
-}) =>
+export const registerUser = (userData: ApiRegisterUserInput) =>
   axiosInstance.post(`/users`, {
     user: userData,
   });

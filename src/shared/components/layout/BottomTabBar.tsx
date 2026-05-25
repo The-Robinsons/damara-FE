@@ -2,7 +2,7 @@ import { Home, LayoutGrid, MessageSquareMore, Plus, User, type LucideIcon } from
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { ROUTES } from "../../../app/router/routes";
-import { blue50, BRAND_PRIMARY, grey500 } from "../../constants/homeTheme";
+import { background, BRAND_PRIMARY, grey500, HOME_BORDER } from "../../constants/homeTheme";
 import { UI_IX_BUTTON, UI_IX_HOVER_GREY50 } from "../../constants/damaraUISystem";
 
 interface BottomTabBarProps {
@@ -10,7 +10,7 @@ interface BottomTabBarProps {
   onCreateClick?: () => void;
 }
 
-const ICON_PX = 16;
+const ICON_PX = 17;
 const TAB_ACTIVE = BRAND_PRIMARY;
 const TAB_INACTIVE = grey500;
 
@@ -52,12 +52,13 @@ export default function BottomTabBar({ className, onCreateClick }: BottomTabBarP
         key={to}
         type="button"
         onClick={() => handleTabClick(to)}
-        className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0 rounded-full py-1.5 no-underline ${
+        className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0 rounded-full py-1 no-underline ${
           isActive ? UI_IX_BUTTON : `${UI_IX_BUTTON} ${UI_IX_HOVER_GREY50}`
         }`}
         style={{
+          minHeight: 42,
           color: isActive ? TAB_ACTIVE : TAB_INACTIVE,
-          backgroundColor: isActive ? blue50 : "transparent",
+          backgroundColor: isActive ? "rgba(49, 130, 246, 0.10)" : "transparent",
         }}
         aria-label={label}
       >
@@ -73,10 +74,10 @@ export default function BottomTabBar({ className, onCreateClick }: BottomTabBarP
         <span
           className="max-w-full truncate px-0.5 text-center font-medium leading-none"
           style={{
-            fontSize: 8,
-            marginTop: 2,
+            fontSize: 9.5,
+            marginTop: 3,
             letterSpacing: 0,
-            fontWeight: isActive ? 700 : 600,
+            fontWeight: isActive ? 750 : 650,
           }}
         >
           {label}
@@ -89,22 +90,24 @@ export default function BottomTabBar({ className, onCreateClick }: BottomTabBarP
     <div
       className={`pointer-events-auto fixed bottom-0 left-0 right-0 z-[100] mx-auto max-w-[430px] ${className ?? ""}`}
       style={{
-        paddingLeft: 12,
-        paddingRight: 12,
-        paddingTop: 14,
-        paddingBottom: "max(6px, env(safe-area-inset-bottom, 0px))",
-        backgroundColor: "rgba(255,255,255,0.92)",
-        backdropFilter: "blur(18px)",
-        WebkitBackdropFilter: "blur(18px)",
+        paddingLeft: 16,
+        paddingRight: 16,
+        paddingTop: 8,
+        paddingBottom: "max(10px, env(safe-area-inset-bottom, 0px))",
+        background:
+          "linear-gradient(180deg, rgba(246,248,252,0) 0%, rgba(246,248,252,0.84) 45%, rgba(246,248,252,0.96) 100%)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
       }}
     >
       <nav
-        className="pointer-events-auto flex w-full items-center justify-between rounded-full bg-white px-1 py-1"
+        className="pointer-events-auto flex w-full items-center justify-between rounded-full px-1.5 py-1.5"
         style={{
+          minHeight: 56,
           borderRadius: 9999,
-          minHeight: 46,
-          border: "1px solid rgba(49, 130, 246, 0.10)",
-          boxShadow: "0 8px 24px rgba(49, 130, 246, 0.10), 0 2px 6px rgba(15, 23, 42, 0.05)",
+          border: `1px solid ${HOME_BORDER}`,
+          backgroundColor: "rgba(255,255,255,0.88)",
+          boxShadow: "0 14px 34px rgba(15, 23, 42, 0.10), 0 2px 8px rgba(15, 23, 42, 0.04)",
         }}
         aria-label="하단 메뉴"
       >
@@ -118,19 +121,19 @@ export default function BottomTabBar({ className, onCreateClick }: BottomTabBarP
           style={{
             width: 50,
             height: 50,
-            margin: "-16px 8px 0",
-            border: 0,
+            margin: "-16px 9px 0",
+            border: `4px solid ${background}`,
             borderRadius: 9999,
             display: "grid",
             placeItems: "center",
             flexShrink: 0,
             color: "#ffffff",
             background: `linear-gradient(135deg, ${BRAND_PRIMARY} 0%, #2272eb 100%)`,
-            boxShadow: "0 10px 22px rgba(49, 130, 246, 0.30)",
+            boxShadow: "0 10px 22px rgba(49, 130, 246, 0.24)",
             cursor: "pointer",
           }}
         >
-          <Plus size={24} strokeWidth={2.7} aria-hidden />
+          <Plus size={24} strokeWidth={2.65} aria-hidden />
         </button>
 
         {RIGHT_TABS.map(renderTab)}

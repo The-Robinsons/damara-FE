@@ -1,18 +1,12 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
-import GroupBuyCard from "../../features/group-buy/components/GroupBuyCard";
-import { getFavoritePosts } from "../../features/group-buy/api/groupBuyApi";
-import { mapApiPostToGroupBuyCard } from "../../features/group-buy/utils/postToCardProps";
-import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
-import { HOME_BORDER, HOME_CANVAS } from "../../shared/constants/homeTheme";
-import { UI_PAGE_PAD_X, UI_SECTION_GAP, UI_T_HEADER_TITLE } from "../../shared/constants/damaraUISystem";
+
 import { ROUTES } from "../../app/router/routes";
-import EmptyState from "../../shared/components/damara/EmptyState";
-import { SkeletonGroupBuyRow } from "../../shared/components/damara/Skeleton";
+import { getFavoritePosts } from "../../features/group-buy/api/groupBuyApi";
+import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
+import MyGroupBuyListView, { normalizeFavoritePosts } from "./MyGroupBuyListView";
 
 export default function FavoriteGroupBuyPage() {
-  const nav = useNavigate();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,27 +23,15 @@ export default function FavoriteGroupBuyPage() {
       try {
         setLoading(true);
         const res = await getFavoritePosts(userId);
-
-        let postsData: any[] = [];
-        if (Array.isArray(res.data)) {
-          postsData = res.data;
-        } else if (res.data?.posts && Array.isArray(res.data.posts)) {
-          postsData = res.data.posts;
-        } else if (res.data?.favorites && Array.isArray(res.data.favorites)) {
-          postsData = res.data.favorites;
-        } else if (res.data?.data && Array.isArray(res.data.data)) {
-          postsData = res.data.data;
-        }
-
-        setPosts(postsData);
+        setPosts(normalizeFavoritePosts(res.data));
       } catch (err: any) {
-        console.error("관심목록 로드 실패:", err);
+        console.error(err);
         if (err.response?.status === 404) {
           setPosts([]);
           setError(null);
-        } else {
-          setError("목록을 불러올 수 없어요.");
+          return;
         }
+        setError("관심목록을 불러오지 못했어요.");
       } finally {
         setLoading(false);
       }
@@ -58,69 +40,21 @@ export default function FavoriteGroupBuyPage() {
     fetchFavoritePosts();
   }, []);
 
-  const normalized = posts.map((item) => {
-    const p = item.post ?? item;
-    return p;
-  });
-
   return (
-    <div data-page="관심목록" style={{ minHeight: "100dvh", backgroundColor: HOME_CANVAS }}>
-      <header
-        style={{
-          height: 56,
-          padding: `12px ${UI_PAGE_PAD_X}px`,
-          borderBottom: `1px solid ${HOME_BORDER}`,
-          backgroundColor: HOME_CANVAS,
-        }}
-      >
-        <h1
-          style={{
-            margin: 0,
-            fontSize: UI_T_HEADER_TITLE.size,
-            fontWeight: UI_T_HEADER_TITLE.weight,
-            color: "#191f28",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          관심목록
-        </h1>
-      </header>
-
-      <main style={{ padding: `${UI_SECTION_GAP}px ${UI_PAGE_PAD_X}px 100px` }}>
-        {loading ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <SkeletonGroupBuyRow />
-            <SkeletonGroupBuyRow />
-            <SkeletonGroupBuyRow />
-          </div>
-        ) : error ? (
-          <EmptyState
-            icon={<Heart size={48} strokeWidth={1.5} />}
-            title="불러오지 못했어요"
-            description={error}
-            actionLabel="홈으로"
-            onAction={() => nav(ROUTES.HOME)}
-          />
-        ) : normalized.length === 0 ? (
-          <EmptyState
-            icon={<Heart size={48} strokeWidth={1.5} />}
-            title="관심목록이 비어 있어요"
-            description="마음에 드는 공동구매를 찜해두면 여기에서 볼 수 있어요."
-            actionLabel="공구 둘러보기"
-            onAction={() => nav(ROUTES.HOME)}
-          />
-        ) : (
-          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 12 }}>
-            {normalized.map((p) => (
-              <li key={p.id}>
-                <GroupBuyCard
-                  {...mapApiPostToGroupBuyCard(p, () => nav(ROUTES.GROUP_BUY_DETAIL.replace(":id", String(p.id))))}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </main>
-    </div>
+    <MyGroupBuyListView
+      title="관심목록"
+      subtitle="찜한 공구를 모아봤어요"
+      heroTitle="관심 공동구매"
+      heroDescription="나중에 다시 보고 싶은 공구를 한곳에서 확인해요."
+      Icon={Heart}
+      accent="blue"
+      posts={posts}
+      loading={loading}
+      error={error}
+      emptyTitle="관심목록이 비어 있어요"
+      emptyDescription="마음에 드는 공구의 하트를 누르면 여기에서 다시 볼 수 있어요."
+      emptyActionLabel="공구 둘러보기"
+      emptyActionRoute={ROUTES.HOME}
+    />
   );
 }

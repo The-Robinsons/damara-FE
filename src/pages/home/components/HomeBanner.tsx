@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type React from "react";
 
 import banner1 from "../../../assets/banner_1 1.png";
 import banner2 from "../../../assets/banner-2.png";
@@ -8,10 +9,7 @@ import banner5 from "../../../assets/banner-5.png";
 import banner6 from "../../../assets/banner6.png";
 
 const BANNERS = [
-  {
-    src: banner1,
-    alt: "필요할 때, 함께 사면 더 이득! 명지대 캠퍼스 공동구매",
-  },
+  { src: banner1, alt: "믿고 함께 사는 명지대 공동구매 플랫폼 다마라" },
   { src: banner2, alt: "명지대 공동구매 배너 2" },
   { src: banner3, alt: "명지대 공동구매 배너 3" },
   { src: banner4, alt: "명지대 공동구매 배너 4" },
@@ -69,7 +67,7 @@ export default function HomeBanner() {
 
   return (
     <section
-      aria-label="캠퍼스 공동구매 광고 배너"
+      aria-label="캠퍼스 공동구매 배너"
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerCancel={() => {
@@ -80,10 +78,11 @@ export default function HomeBanner() {
         position: "relative",
         overflow: "hidden",
         width: "100%",
-        height: 158,
-        borderRadius: 20,
-        background: "linear-gradient(135deg, #e8f3ff 0%, #f7fbff 52%, #eef6ff 100%)",
-        boxShadow: "0 10px 40px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04)",
+        height: 138,
+        borderRadius: 24,
+        background: "linear-gradient(135deg, #6b42ec 0%, #6453f4 46%, #87b5ff 100%)",
+        boxShadow: "0 14px 32px rgba(49, 130, 246, 0.12), 0 2px 8px rgba(25, 31, 40, 0.05)",
+        border: "1px solid #E5E8EF",
         touchAction: "pan-y",
         cursor: isDragging ? "grabbing" : "grab",
       }}
@@ -97,7 +96,7 @@ export default function HomeBanner() {
             display: "flex",
             alignItems: "center",
             padding: "0 24px",
-            color: "#1d4ed8",
+            color: "#ffffff",
             fontSize: 18,
             fontWeight: 850,
             lineHeight: "25px",
@@ -124,7 +123,7 @@ export default function HomeBanner() {
             alt={banner.alt}
             decoding="async"
             loading="eager"
-            fetchpriority={idx === 0 ? "high" : "auto"}
+            fetchPriority={idx === 0 ? "high" : "auto"}
             draggable={false}
             onLoad={() => setLoaded((prev) => ({ ...prev, [banner.src]: true }))}
             style={{
@@ -146,14 +145,25 @@ export default function HomeBanner() {
         aria-hidden
         style={{
           position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          background:
+            "linear-gradient(90deg, rgba(44, 29, 135, 0.10) 0%, rgba(44, 29, 135, 0.00) 48%, rgba(255, 255, 255, 0.08) 100%)",
+        }}
+      />
+
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
           left: "50%",
-          bottom: 10,
+          bottom: 8,
           display: "flex",
-          gap: 5,
+          gap: 4,
           transform: "translateX(-50%)",
-          padding: "4px 7px",
+          padding: "3px 7px",
           borderRadius: 999,
-          background: "rgba(15, 23, 42, 0.16)",
+          background: "rgba(25, 31, 40, 0.18)",
           backdropFilter: "blur(8px)",
         }}
       >
@@ -164,7 +174,7 @@ export default function HomeBanner() {
             aria-label={`${idx + 1}번 배너 보기`}
             onClick={() => setActiveIndex(idx)}
             style={{
-              width: idx === activeIndex ? 13 : 5,
+              width: idx === activeIndex ? 15 : 5,
               height: 5,
               padding: 0,
               border: 0,

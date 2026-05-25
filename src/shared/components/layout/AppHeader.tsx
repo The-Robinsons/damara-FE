@@ -1,8 +1,8 @@
-import React from "react";
-import { Bell, ChevronDown, Menu, Search } from "lucide-react";
+import type React from "react";
+import { Bell, ChevronDown, Search } from "lucide-react";
 import { toast } from "sonner";
 
-import { grey400, grey500, grey900, HOME_CANVAS } from "../../constants/homeTheme";
+import { BRAND_PRIMARY, grey400, grey500, grey900, HOME_CANVAS } from "../../constants/homeTheme";
 import { APP_HEADER_HEIGHT_PX } from "./appShellConstants";
 
 export default function AppHeader() {
@@ -11,66 +11,83 @@ export default function AppHeader() {
       className="fixed left-0 right-0 top-0 z-50 mx-auto max-w-[430px]"
       style={{
         paddingTop: "env(safe-area-inset-top, 0px)",
-        backgroundColor: HOME_CANVAS,
-        borderBottom: "1px solid rgba(229, 232, 235, 0.45)",
+        backgroundColor: "rgba(246, 248, 252, 0.86)",
+        borderBottom: "1px solid rgba(229, 232, 239, 0.54)",
+        backdropFilter: "blur(18px)",
+        WebkitBackdropFilter: "blur(18px)",
       }}
     >
-      <div
-        className="flex items-center justify-between"
-        style={{ height: APP_HEADER_HEIGHT_PX, paddingLeft: 18, paddingRight: 18 }}
-      >
+      <div className="flex items-center justify-between" style={{ height: APP_HEADER_HEIGHT_PX, paddingLeft: 22, paddingRight: 22 }}>
         <button
           type="button"
           className="flex min-w-0 items-center gap-1.5 rounded-xl py-1 pr-1"
-          style={{
-            margin: 0,
-            border: "none",
-            background: "transparent",
-            cursor: "pointer",
-            color: grey900,
-          }}
-          onClick={() => toast.message("캠퍼스 선택은 곧 연결됩니다.")}
+          style={{ margin: 0, border: "none", background: "transparent", cursor: "pointer", color: grey900 }}
+          onClick={() => toast.message("캠퍼스 선택은 곧 연결할게요.")}
           aria-label="캠퍼스 선택, 명지대"
         >
-          <span
-            className="truncate text-[18px] leading-none"
-            style={{ fontWeight: 850, letterSpacing: "-0.025em", color: grey900 }}
-          >
+          <span className="truncate text-[20px] leading-none" style={{ fontWeight: 850, letterSpacing: 0, color: grey900 }}>
             명지대
           </span>
-          <ChevronDown className="size-[16px] shrink-0" color={grey400} strokeWidth={2.35} aria-hidden />
+          <ChevronDown className="size-[17px] shrink-0" color={grey400} strokeWidth={2.35} aria-hidden />
         </button>
 
-        <div className="flex shrink-0 items-center" style={{ gap: 3 }}>
-          <button
-            type="button"
-            aria-label="검색"
-            className="flex h-9 w-9 items-center justify-center rounded-full transition active:scale-[0.98]"
-            style={{ color: grey500, backgroundColor: "transparent" }}
-            onClick={() => toast.message("검색은 곧 연결됩니다.")}
-          >
-            <Search className="size-[21px]" strokeWidth={2.15} />
-          </button>
-          <button
-            type="button"
-            aria-label="알림"
-            className="flex h-9 w-9 items-center justify-center rounded-full transition active:scale-[0.98]"
-            style={{ color: grey500, backgroundColor: "transparent" }}
-            onClick={() => toast.message("알림은 곧 연결됩니다.")}
-          >
-            <Bell className="size-[21px]" strokeWidth={2.15} />
-          </button>
-          <button
-            type="button"
-            aria-label="메뉴"
-            className="flex h-9 w-9 items-center justify-center rounded-full transition active:scale-[0.98]"
-            style={{ color: grey500, backgroundColor: "transparent" }}
-            onClick={() => toast.message("메뉴는 곧 연결됩니다.")}
-          >
-            <Menu className="size-[22px]" strokeWidth={2.15} />
-          </button>
+        <div className="flex shrink-0 items-center" style={{ gap: 7 }}>
+          <HeaderIcon label="검색" onClick={() => toast.message("검색은 곧 연결할게요.")}>
+            <Search size={20} strokeWidth={2.05} />
+          </HeaderIcon>
+          <HeaderIcon label="알림" onClick={() => toast.message("알림은 곧 연결할게요.")} showDot>
+            <Bell size={20} strokeWidth={2.05} />
+          </HeaderIcon>
         </div>
       </div>
     </header>
+  );
+}
+
+function HeaderIcon({
+  label,
+  onClick,
+  children,
+  showDot,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  showDot?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      className="flex items-center justify-center transition active:scale-[0.98]"
+      style={{
+        position: "relative",
+        width: 34,
+        height: 34,
+        borderRadius: 999,
+        border: 0,
+        color: grey500,
+        backgroundColor: "transparent",
+        cursor: "pointer",
+      }}
+      onClick={onClick}
+    >
+      {children}
+      {showDot ? (
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            right: 7,
+            top: 7,
+            width: 6,
+            height: 6,
+            borderRadius: 999,
+            background: BRAND_PRIMARY,
+            boxShadow: `0 0 0 2px ${HOME_CANVAS}`,
+          }}
+        />
+      ) : null}
+    </button>
   );
 }

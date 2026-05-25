@@ -30,6 +30,9 @@ export const ROUTES = {
 /** 상단 앱 헤더를 쓰는 경로 (채팅/카테고리는 각 페이지 전용 헤더 사용) */
 export const SHOW_APP_CHROME_PATHS: string[] = [
   ROUTES.HOME,
+  ROUTES.CATEGORY,
+  ROUTES.CHAT,
+  ROUTES.MYPAGE,
 ];
 
 /** 하단 탭 경로 */
