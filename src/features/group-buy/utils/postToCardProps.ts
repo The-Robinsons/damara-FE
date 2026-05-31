@@ -22,6 +22,12 @@ function mapStatus(raw: string | undefined): GroupBuyCardProps["status"] {
   return "open";
 }
 
+function mapGroupBuyType(raw: unknown): GroupBuyCardProps["groupBuyType"] {
+  if (raw === "pre_recruit") return "PRE_RECRUIT";
+  if (raw === "post_purchase") return "POST_PURCHASE";
+  return (raw as GroupBuyCardProps["groupBuyType"]) ?? null;
+}
+
 /** API post 객체 → GroupBuyCard props */
 export function mapApiPostToGroupBuyCard(post: Record<string, unknown>, onClick?: () => void): GroupBuyCardProps {
   return {
@@ -34,7 +40,7 @@ export function mapApiPostToGroupBuyCard(post: Record<string, unknown>, onClick?
     location: String(post.pickupLocation ?? "명지대 캠퍼스"),
     status: mapStatus(post.status as string | undefined),
     onClick,
-    groupBuyType: (post.type as GroupBuyCardProps["groupBuyType"]) ?? null,
+    groupBuyType: mapGroupBuyType(post.groupBuyType ?? post.type),
     deadline: (post.deadline as string) ?? null,
     deadlineLabel: (post.deadlineLabel as string) ?? null,
     visualType: (post.visualType as GroupBuyCardProps["visualType"]) ?? "default",

@@ -2,7 +2,10 @@ import axiosInstance from "../../../shared/api/axiosInstance";
 import type {
   ApiCreatePostInput,
   ApiGetPostsParams,
+  ApiParticipantStatus,
   ApiPostCategory,
+  ApiPostExceptionSeverity,
+  ApiPostExceptionStatus,
   ApiPostSort,
   ApiPostStatus,
   ApiUpdatePostInput,
@@ -76,6 +79,18 @@ export const checkParticipation = (postId: string, userId: string) =>
 export const getParticipants = (postId: string) =>
   axiosInstance.get(`/posts/${postId}/participants`);
 
+export const updateParticipantStatus = (
+  postId: string,
+  userId: string,
+  participantStatus: ApiParticipantStatus,
+  actorUserId: string
+) =>
+  axiosInstance.patch(
+    `/posts/${postId}/participants/${userId}/status`,
+    { participantStatus, actorUserId },
+    { headers: { "x-user-id": actorUserId } }
+  );
+
 export const getParticipatedPosts = (userId: string) =>
   axiosInstance.get(`/posts/user/${userId}/participated`);
 
@@ -98,3 +113,42 @@ export const getFavoritePosts = (userId: string, limit = 20, offset = 0) =>
   axiosInstance.get(`/users/${userId}/favorites`, {
     params: { limit, offset },
   });
+
+export const getPostExceptions = (postId: string, limit = 20, offset = 0) =>
+  axiosInstance.get(`/posts/${postId}/exceptions`, {
+    params: { limit, offset },
+  });
+
+export const createPostException = (
+  postId: string,
+  reporterId: string,
+  exception: {
+    type: string;
+    reason: string;
+    displayTitle?: string;
+    displayMessage?: string;
+    severity?: ApiPostExceptionSeverity;
+    oldPrice?: number;
+    newPrice?: number;
+    affectedQuantity?: number;
+    metadata?: Record<string, unknown>;
+  }
+) =>
+  axiosInstance.post(
+    `/posts/${postId}/exceptions`,
+    { exception: { ...exception, reporterId } },
+    { headers: { "x-user-id": reporterId } }
+  );
+
+export const updatePostExceptionStatus = (
+  postId: string,
+  exceptionId: string,
+  actorUserId: string,
+  status: ApiPostExceptionStatus,
+  resolutionNote?: string
+) =>
+  axiosInstance.patch(
+    `/posts/${postId}/exceptions/${exceptionId}/status`,
+    { actorUserId, status, ...(resolutionNote && { resolutionNote }) },
+    { headers: { "x-user-id": actorUserId } }
+  );

@@ -17,7 +17,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 import { ROUTES } from "../../app/router/routes";
-import { getFavoritePosts, getParticipatedPosts, getPostsByStudentId } from "../../features/group-buy/api/groupBuyApi";
+import { getUserSummary } from "../../features/user/api/userApi";
 import {
   BRAND_PRIMARY_TEXT,
   HOME_BORDER,
@@ -42,6 +42,11 @@ type UserLite = {
 
 type CountKey = "created" | "joined" | "favorites";
 
+type TrustLite = {
+  label?: string;
+  trustGrade?: number;
+};
+
 type ActionItem = {
   title: string;
   desc: string;
@@ -59,17 +64,6 @@ const cardBase: React.CSSProperties = {
   backgroundColor: "#fff",
   boxShadow: "0 3px 12px rgba(15, 23, 42, 0.04)",
 };
-
-function getListLength(data: unknown): number {
-  if (Array.isArray(data)) return data.length;
-  if (data && typeof data === "object") {
-    const value = data as Record<string, unknown>;
-    for (const key of ["favorites", "posts", "items", "data"]) {
-      if (Array.isArray(value[key])) return value[key].length;
-    }
-  }
-  return 0;
-}
 
 function StatSkeleton() {
   return (
@@ -91,6 +85,7 @@ export default function MyPage() {
   const nav = useNavigate();
   const [user, setUser] = useState<UserLite | null>(null);
   const [counts, setCounts] = useState<Record<CountKey, number>>({ created: 0, joined: 0, favorites: 0 });
+  const [trust, setTrust] = useState<TrustLite>({});
   const [countsLoading, setCountsLoading] = useState(true);
 
   useEffect(() => {
@@ -108,28 +103,27 @@ export default function MyPage() {
       setCountsLoading(true);
       try {
         const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
-        const [createdRes, joinedRes, favoriteRes] = await Promise.allSettled([
-          user?.studentId ? getPostsByStudentId(user.studentId) : Promise.resolve({ data: [] }),
-          userId ? getParticipatedPosts(userId) : Promise.resolve({ data: [] }),
-          userId ? getFavoritePosts(userId) : Promise.resolve({ data: [] }),
-        ]);
-
+        if (!userId) return;
+        const { data } = await getUserSummary(userId);
+        setUser(data.user);
         setCounts({
-          created: createdRes.status === "fulfilled" ? getListLength(createdRes.value.data) : 0,
-          joined: joinedRes.status === "fulfilled" ? getListLength(joinedRes.value.data) : 0,
-          favorites: favoriteRes.status === "fulfilled" ? getListLength(favoriteRes.value.data) : 0,
+          created: data.counts.createdPostCount,
+          joined: data.counts.participatedPostCount,
+          favorites: data.counts.favoriteCount,
         });
+        setTrust({ label: data.trust.label, trustGrade: data.user.trustGrade });
       } finally {
         setCountsLoading(false);
       }
     };
 
     fetchCounts();
-  }, [user?.studentId]);
+  }, []);
 
   const nickname = user?.nickname || "사용자";
   const studentId = user?.studentId || "학번 정보 없음";
   const initial = nickname.slice(0, 1).toUpperCase();
+  const trustGrade = Number(trust.trustGrade ?? 0).toFixed(1);
 
   const tradeItems: ActionItem[] = useMemo(
     () => [
@@ -208,9 +202,9 @@ export default function MyPage() {
           <button type="button" onClick={() => nav(ROUTES.TRUST_INFO)} style={mannerBoxStyle}>
             <span style={{ minWidth: 0 }}>
               <span style={mannerTitleStyle}>
-                매너 점수 4.5 <span style={{ color: grey400, fontWeight: 800 }}>/ 4.5</span>
+                매너 점수 {trustGrade} <span style={{ color: grey400, fontWeight: 800 }}>/ 4.5</span>
               </span>
-              <span style={mannerDescStyle}>신뢰도 좋은 거래 파트너예요</span>
+              <span style={mannerDescStyle}>{trust.label || "거래 이력을 확인해 보세요"}</span>
               <span style={scoreTrackStyle} aria-hidden>
                 <span style={scoreFillStyle} />
               </span>

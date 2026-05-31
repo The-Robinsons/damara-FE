@@ -144,6 +144,7 @@ export default function GroupBuyDetailPage() {
   const pickupDate = post?.pickupDate || "채팅으로 협의";
   const current = Number(post?.currentQuantity ?? fallbackPost.currentQuantity);
   const min = Number(post?.minParticipants ?? fallbackPost.minParticipants);
+  const isOwner = Boolean(currentUserId && (post?.isOwner || post?.authorId === currentUserId));
   const progress = Math.min(100, Math.round((current / Math.max(min, 1)) * 100));
   const remaining = Math.max(min - current, 0);
   const content = post?.content || fallbackPost.content;
@@ -358,13 +359,19 @@ export default function GroupBuyDetailPage() {
       )}
 
       <div style={bottomBarStyle}>
-        <button type="button" onClick={handleChat} style={chatButtonStyle}>
-          <MessageCircle size={19} strokeWidth={2.15} aria-hidden />
-          채팅
-        </button>
-        <button type="button" disabled={busy} onClick={handleParticipate} style={participateButtonStyle}>
-          {isParticipant ? "참여취소" : "참여하기"}
-        </button>
+        {isOwner ? (
+          <div style={ownerBottomNoticeStyle}>내가 작성한 공구입니다</div>
+        ) : (
+          <>
+            <button type="button" onClick={handleChat} style={chatButtonStyle}>
+              <MessageCircle size={19} strokeWidth={2.15} aria-hidden />
+              채팅
+            </button>
+            <button type="button" disabled={busy} onClick={handleParticipate} style={participateButtonStyle}>
+              {isParticipant ? "참여취소" : "참여하기"}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -1049,6 +1056,19 @@ const participateButtonStyle: React.CSSProperties = {
   fontWeight: 900,
   boxShadow: "0 10px 22px rgba(49, 130, 246, 0.22)",
   cursor: "pointer",
+};
+
+const ownerBottomNoticeStyle: React.CSSProperties = {
+  gridColumn: "1 / -1",
+  height: 46,
+  borderRadius: 14,
+  border: `1px solid ${grey200}`,
+  background: grey50,
+  color: grey600,
+  display: "grid",
+  placeItems: "center",
+  fontSize: 13,
+  fontWeight: 850,
 };
 
 const productMockFrameStyle: React.CSSProperties = {

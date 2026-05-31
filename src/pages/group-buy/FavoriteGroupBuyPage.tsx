@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
 
 import { ROUTES } from "../../app/router/routes";
-import { getFavoritePosts } from "../../features/group-buy/api/groupBuyApi";
+import { getMyPosts } from "../../features/user/api/userApi";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import MyGroupBuyListView, { normalizeFavoritePosts } from "./MyGroupBuyListView";
 
@@ -22,8 +22,8 @@ export default function FavoriteGroupBuyPage() {
 
       try {
         setLoading(true);
-        const res = await getFavoritePosts(userId);
-        setPosts(normalizeFavoritePosts(res.data));
+        const res = await getMyPosts(userId, { tab: "favorites" });
+        setPosts(normalizeFavoritePosts(res.data?.items));
       } catch (err: any) {
         console.error(err);
         if (err.response?.status === 404) {

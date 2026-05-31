@@ -23,6 +23,7 @@ import {
 import { toast } from "sonner";
 
 import { getMessages, getUserChatRooms, markAllMessagesAsRead, sendMessage } from "../../features/chat/api/chatApi";
+import { checkParticipation } from "../../features/group-buy/api/groupBuyApi";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import { getImageUrl } from "../../shared/utils/imageUrl";
 import { damaraToast, damaraToastMessages } from "../../shared/lib/damaraToast";
@@ -162,16 +163,18 @@ function formatDeadlineLabel(value?: string): string {
 
 function getParticipantCount(room: any, post: any): number | null {
   const value =
-    room.currentParticipants ??
-    room.participantCount ??
-    room.participantsCount ??
     post.currentQuantity ??
     post.currentParticipants ??
     post.participantCount ??
-    post.participantsCount;
+    post.participantsCount ??
+    room.currentParticipants ??
+    room.participantCount ??
+    room.participantsCount;
   if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (Array.isArray(room.participants)) return room.participants.length;
   if (Array.isArray(post.participants)) return post.participants.length;
+  if (Array.isArray(room.participants)) {
+    return room.participants.filter((participant: any) => participant?.userId !== post.authorId).length;
+  }
   return null;
 }
 
@@ -390,6 +393,7 @@ function ChatDetailOverlay({ chat, currentUserId, onClose }: { chat: ChatPreview
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<DetailMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(true);
+  const [isParticipant, setIsParticipant] = useState(false);
   const metaParts = chat.locationLabel.split(" · ");
   const detailLocation = metaParts[0] || "장소 미정";
   const detailParticipant = metaParts[1] || "참여 정보 없음";
@@ -426,6 +430,27 @@ function ChatDetailOverlay({ chat, currentUserId, onClose }: { chat: ChatPreview
       cancelled = true;
     };
   }, [chat.id, currentUserId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!chat.postId || !currentUserId) {
+      setIsParticipant(false);
+      return;
+    }
+
+    checkParticipation(chat.postId, currentUserId)
+      .then((res) => {
+        if (!cancelled) setIsParticipant(Boolean(res.data?.isParticipant));
+      })
+      .catch(() => {
+        if (!cancelled) setIsParticipant(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chat.postId, currentUserId]);
 
   const handleSend = async () => {
     const content = draft.trim();
@@ -519,10 +544,12 @@ function ChatDetailOverlay({ chat, currentUserId, onClose }: { chat: ChatPreview
             messages.map((msg) => (msg.type === "me" ? <MyBubble key={msg.id} msg={msg} /> : <OtherBubble key={msg.id} msg={msg} />))
           )}
 
-          <div style={{ margin: `12px ${UI_PAGE_PAD_X}px 0`, borderRadius: 18, backgroundColor: blue50, border: "1px solid rgba(49, 130, 246, 0.1)", padding: "13px 16px", textAlign: "center" }}>
-            <p style={{ margin: 0, fontSize: 13.5, lineHeight: "20px", color: grey900, fontWeight: 800, letterSpacing: "-0.02em" }}>공구 참여가 확정됐어요</p>
-            <p style={{ margin: "5px 0 0", fontSize: 12, lineHeight: "18px", color: TEXT_META }}>수령 시간과 장소를 채팅으로 확인해 주세요.</p>
-          </div>
+          {isParticipant ? (
+            <div style={{ margin: `12px ${UI_PAGE_PAD_X}px 0`, borderRadius: 18, backgroundColor: blue50, border: "1px solid rgba(49, 130, 246, 0.1)", padding: "13px 16px", textAlign: "center" }}>
+              <p style={{ margin: 0, fontSize: 13.5, lineHeight: "20px", color: grey900, fontWeight: 800, letterSpacing: "-0.02em" }}>공구 참여가 확정됐어요</p>
+              <p style={{ margin: "5px 0 0", fontSize: 12, lineHeight: "18px", color: TEXT_META }}>수령 시간과 장소를 채팅으로 확인해 주세요.</p>
+            </div>
+          ) : null}
 
           <div style={{ margin: `12px ${UI_PAGE_PAD_X}px 0`, border: "1px solid rgba(229, 232, 235, 0.92)", borderRadius: 20, background: "linear-gradient(135deg, #fff 0%, #f8fbff 100%)", padding: "14px", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.035)" }}>
             <div style={{ display: "flex", gap: 12 }}>
