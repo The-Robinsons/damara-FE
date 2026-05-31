@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Users } from "lucide-react";
 
 import { ROUTES } from "../../app/router/routes";
-import { getParticipatedPosts } from "../../features/group-buy/api/groupBuyApi";
+import { getMyPosts } from "../../features/user/api/userApi";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import MyGroupBuyListView, { normalizeJoinedPosts } from "./MyGroupBuyListView";
 
@@ -22,8 +22,8 @@ export default function MyJoinedGroupBuyPage() {
 
       try {
         setLoading(true);
-        const res = await getParticipatedPosts(userId);
-        setPosts(normalizeJoinedPosts(res.data));
+        const res = await getMyPosts(userId, { tab: "participated" });
+        setPosts(normalizeJoinedPosts(res.data?.items));
       } catch (err) {
         console.error(err);
         setError("참여한 공구 목록을 불러오지 못했어요.");

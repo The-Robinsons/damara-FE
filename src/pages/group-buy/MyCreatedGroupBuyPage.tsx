@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Package } from "lucide-react";
 
 import { ROUTES } from "../../app/router/routes";
-import { getPostsByStudentId } from "../../features/group-buy/api/groupBuyApi";
+import { getMyPosts } from "../../features/user/api/userApi";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import MyGroupBuyListView, { CreatePostShortcut } from "./MyGroupBuyListView";
 
@@ -13,8 +13,8 @@ export default function MyCreatedGroupBuyPage() {
 
   useEffect(() => {
     const fetchMyPosts = async () => {
-      const storedUser = localStorage.getItem(STORAGE_KEYS.USER);
-      if (!storedUser) {
+      const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+      if (!userId) {
         setError("로그인이 필요해요.");
         setLoading(false);
         return;
@@ -22,9 +22,8 @@ export default function MyCreatedGroupBuyPage() {
 
       try {
         setLoading(true);
-        const user = JSON.parse(storedUser);
-        const res = await getPostsByStudentId(user.studentId);
-        setPosts(Array.isArray(res.data) ? res.data : []);
+        const res = await getMyPosts(userId, { tab: "registered" });
+        setPosts(Array.isArray(res.data?.items) ? res.data.items : []);
       } catch (err) {
         console.error(err);
         setError("내가 올린 공구 목록을 불러오지 못했어요.");

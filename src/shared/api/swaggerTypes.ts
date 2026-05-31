@@ -10,6 +10,18 @@ export type ApiPostCategory =
 
 export type ApiPostSort = "latest" | "deadline" | "popular";
 export type ApiMessageType = "text" | "image" | "file";
+export type ApiMyPostsTab = "registered" | "participated" | "favorites";
+export type ApiFaqCategory = "trade" | "account" | "payment" | "pickup" | "etc";
+export type ApiNoticeType = "service" | "event" | "maintenance" | "policy";
+export type ApiParticipantStatus =
+  | "participating"
+  | "payment_pending"
+  | "pickup_ready"
+  | "received"
+  | "cancelled"
+  | "no_show";
+export type ApiPostExceptionStatus = "open" | "resolved" | "dismissed";
+export type ApiPostExceptionSeverity = "info" | "warning" | "critical";
 
 export type ApiNotificationType =
   | "new_participant"
@@ -64,6 +76,7 @@ export interface ApiPost {
   id: string;
   authorId: string;
   title: string;
+  productName?: string | null;
   content: string;
   price: number;
   minParticipants: number;
@@ -71,12 +84,40 @@ export interface ApiPost {
   status?: ApiPostStatus;
   deadline: string;
   pickupLocation?: string | null;
+  pickupDate?: string | null;
+  pickupStartTime?: string | null;
+  pickupEndTime?: string | null;
+  pickupGuide?: string | null;
+  pickupType?: "damara_zone" | "custom" | string | null;
+  pickupZoneId?: string | null;
+  groupBuyType?: "pre_recruit" | "post_purchase" | string | null;
+  groupBuyMode?: "normal" | "price_unlock" | string | null;
+  targetParticipants?: number | null;
+  targetPrice?: number | null;
+  currentPrice?: number | null;
+  participantsToUnlock?: number | null;
+  priceUnlocked?: boolean;
+  dealMessage?: string | null;
+  tags?: string[] | null;
+  notice?: string | null;
   category?: ApiPostCategory | null;
-  images?: string[];
+  images?: Array<string | ApiPostImage>;
+  thumbnailUrl?: string | null;
   favoriteCount?: number;
   isFavorite?: boolean;
+  isParticipant?: boolean;
+  isOwner?: boolean;
+  deadlineStatus?: string;
+  deadlineLabel?: string;
+  remainingSeconds?: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface ApiPostImage {
+  id?: string;
+  imageUrl: string;
+  sortOrder?: number;
 }
 
 export interface ApiFavorite {
@@ -95,6 +136,8 @@ export interface ApiNotification {
   title: string;
   message: string;
   postId?: string | null;
+  chatRoomId?: string | null;
+  actionUrl?: string | null;
   isRead: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -108,7 +151,18 @@ export interface ApiChatRoom {
     title?: string;
     authorId?: string;
     images?: string[];
+    status?: ApiPostStatus;
+    pickupLocation?: string;
+    deadline?: string;
+    thumbnailUrl?: string;
   };
+  participants?: Array<{
+    userId: string;
+    nickname?: string;
+    avatarUrl?: string | null;
+  }>;
+  lastMessage?: Pick<ApiMessage, "id" | "content" | "senderId" | "messageType" | "createdAt">;
+  unreadCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -138,23 +192,49 @@ export interface ApiGetPostsParams {
 export interface ApiCreatePostInput {
   authorId: string;
   title: string;
+  productName?: string;
   content: string;
   price: number;
   minParticipants: number;
   deadline: string;
-  pickupLocation: string;
+  pickupLocation?: string;
+  pickupType?: "damara_zone" | "custom" | string;
+  pickupZoneId?: string;
+  pickupDate?: string;
+  pickupStartTime?: string;
+  pickupEndTime?: string;
+  pickupGuide?: string;
+  groupBuyType?: "pre_recruit" | "post_purchase" | string;
+  groupBuyMode?: "normal" | "price_unlock" | string;
+  targetParticipants?: number;
+  targetPrice?: number;
+  tags?: string[];
+  notice?: string;
   category?: ApiPostCategory | string | null;
   images?: string[];
 }
 
 export interface ApiUpdatePostInput {
   title?: string;
+  productName?: string;
   content?: string;
   price?: number;
   minParticipants?: number;
   status?: ApiPostStatus;
   deadline?: string;
   pickupLocation?: string;
+  pickupType?: "damara_zone" | "custom" | string;
+  pickupZoneId?: string;
+  pickupDate?: string;
+  pickupStartTime?: string;
+  pickupEndTime?: string;
+  pickupGuide?: string;
+  groupBuyType?: "pre_recruit" | "post_purchase" | string;
+  groupBuyMode?: "normal" | "price_unlock" | string;
+  targetParticipants?: number;
+  targetPrice?: number;
+  tags?: string[];
+  notice?: string;
   category?: ApiPostCategory | string | null;
   images?: string[];
 }
@@ -182,4 +262,98 @@ export interface ApiSendMessageInput {
   senderId: string;
   content: string;
   messageType?: ApiMessageType;
+}
+
+export interface ApiUserSummaryResponse {
+  user: Pick<ApiUser, "id" | "nickname" | "studentId" | "department" | "avatarUrl" | "trustScore" | "trustGrade">;
+  counts: {
+    createdPostCount: number;
+    participatedPostCount: number;
+    favoriteCount: number;
+    unreadChatCount: number;
+    unreadNotificationCount: number;
+  };
+  trust: {
+    label: string;
+    badges: string[];
+    completedTradeCount: number;
+    responseRate: number;
+    cancelCount: number;
+    noShowCount: number;
+  };
+}
+
+export interface ApiTrustSummaryResponse {
+  trustScore: number;
+  trustGrade: number;
+  gradeLabel: string;
+  rankPercent: number;
+  completedTradeCount: number;
+  responseRate: number;
+  avgResponseMinutes: number;
+  cancelCount: number;
+  noShowCount: number;
+  badges: string[];
+}
+
+export interface ApiUserSettings {
+  pushEnabled: boolean;
+  chatNotificationEnabled: boolean;
+  postNotificationEnabled: boolean;
+  marketingNotificationEnabled: boolean;
+  quietHoursEnabled: boolean;
+  quietHoursStart: string;
+  quietHoursEnd: string;
+}
+
+export interface ApiMyPostsListParams {
+  tab?: ApiMyPostsTab;
+  status?: string;
+  q?: string;
+  keyword?: string;
+  category?: ApiPostCategory;
+  sort?: ApiPostSort;
+  limit?: number;
+  offset?: number;
+  deadlineSoonHours?: number;
+  recentDays?: number;
+}
+
+export interface ApiMyPostsListResponse {
+  tab: ApiMyPostsTab;
+  items: ApiPost[];
+  total: number;
+  limit: number;
+  offset: number;
+  hasNext: boolean;
+}
+
+export interface ApiNotice {
+  id: string;
+  title: string;
+  summary?: string | null;
+  content: string;
+  type: ApiNoticeType;
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiFaq {
+  id: string;
+  category: ApiFaqCategory;
+  question: string;
+  answer: string;
+  order: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiPickupZone {
+  id: string;
+  name: string;
+  description?: string | null;
+  address?: string | null;
+  isActive?: boolean;
 }

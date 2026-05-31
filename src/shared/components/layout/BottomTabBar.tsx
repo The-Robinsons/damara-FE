@@ -2,7 +2,7 @@ import { Home, LayoutGrid, MessageSquareMore, Plus, User, type LucideIcon } from
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { ROUTES } from "../../../app/router/routes";
-import { background, BRAND_PRIMARY, grey500, HOME_BORDER } from "../../constants/homeTheme";
+import { BRAND_PRIMARY, grey500 } from "../../constants/homeTheme";
 import { UI_IX_BUTTON, UI_IX_HOVER_GREY50 } from "../../constants/damaraUISystem";
 
 interface BottomTabBarProps {
@@ -46,41 +46,58 @@ export default function BottomTabBar({ className, onCreateClick }: BottomTabBarP
 
   const renderTab = ({ Icon, to, label }: TabDef) => {
     const isActive = pathname === to;
+    const isEdgeTab = to === ROUTES.HOME || to === ROUTES.MYPAGE;
 
     return (
       <button
         key={to}
         type="button"
         onClick={() => handleTabClick(to)}
-        className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0 rounded-full py-1 no-underline ${
+        className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0 rounded-full no-underline ${
           isActive ? UI_IX_BUTTON : `${UI_IX_BUTTON} ${UI_IX_HOVER_GREY50}`
         }`}
         style={{
           minHeight: 42,
+          margin: "0 1px",
           color: isActive ? TAB_ACTIVE : TAB_INACTIVE,
-          backgroundColor: isActive ? "rgba(49, 130, 246, 0.10)" : "transparent",
+          backgroundColor: "transparent",
         }}
         aria-label={label}
       >
-        <span className="flex shrink-0 items-center justify-center" style={{ width: ICON_PX, height: ICON_PX }}>
-          <Icon
-            size={ICON_PX}
-            strokeWidth={isActive ? 2.35 : 2}
-            fill="none"
-            color={isActive ? TAB_ACTIVE : TAB_INACTIVE}
-            aria-hidden
-          />
-        </span>
         <span
-          className="max-w-full truncate px-0.5 text-center font-medium leading-none"
+          className="flex flex-col items-center justify-center rounded-full"
           style={{
-            fontSize: 9.5,
-            marginTop: 3,
-            letterSpacing: 0,
-            fontWeight: isActive ? 750 : 650,
+            width: isEdgeTab ? 66 : 68,
+            minHeight: 38,
+            backgroundColor: isActive ? "rgba(234, 242, 255, 0.86)" : "rgba(255, 255, 255, 0.26)",
+            backdropFilter: "blur(10px) saturate(145%)",
+            WebkitBackdropFilter: "blur(10px) saturate(145%)",
+            boxShadow: isActive
+              ? "inset 0 1px 1px rgba(255,255,255,0.7), inset 0 -2px 6px rgba(49,130,246,0.08), 0 5px 14px rgba(49,130,246,0.08)"
+              : "inset 0 1px 1px rgba(255,255,255,0.58)",
           }}
         >
-          {label}
+          <span className="flex shrink-0 items-center justify-center" style={{ width: ICON_PX, height: ICON_PX }}>
+            <Icon
+              size={ICON_PX}
+              strokeWidth={isActive ? 2.35 : 2}
+              fill="none"
+              color={isActive ? TAB_ACTIVE : TAB_INACTIVE}
+              aria-hidden
+            />
+          </span>
+          <span
+            className="max-w-full truncate px-0.5 text-center font-medium leading-none"
+            style={{
+              fontSize: 9.5,
+              marginTop: 3,
+              letterSpacing: 0,
+              fontWeight: isActive ? 750 : 650,
+              color: isActive ? TAB_ACTIVE : TAB_INACTIVE,
+            }}
+          >
+            {label}
+          </span>
         </span>
       </button>
     );
@@ -105,9 +122,12 @@ export default function BottomTabBar({ className, onCreateClick }: BottomTabBarP
         style={{
           minHeight: 56,
           borderRadius: 9999,
-          border: `1px solid ${HOME_BORDER}`,
-          backgroundColor: "rgba(255,255,255,0.88)",
-          boxShadow: "0 14px 34px rgba(15, 23, 42, 0.10), 0 2px 8px rgba(15, 23, 42, 0.04)",
+          border: "1px solid rgba(255, 255, 255, 0.72)",
+          backgroundColor: "rgba(255, 255, 255, 0.56)",
+          boxShadow:
+            "0 10px 26px rgba(15, 23, 42, 0.06), inset 0 1px 1px rgba(255,255,255,0.9), inset 0 -1px 1px rgba(229,232,239,0.42)",
+          WebkitBackdropFilter: "blur(16px) saturate(150%)",
+          backdropFilter: "blur(16px) saturate(150%)",
         }}
         aria-label="하단 메뉴"
       >
@@ -119,21 +139,40 @@ export default function BottomTabBar({ className, onCreateClick }: BottomTabBarP
           onClick={onCreateClick}
           className={UI_IX_BUTTON}
           style={{
-            width: 50,
-            height: 50,
-            margin: "-16px 9px 0",
-            border: `4px solid ${background}`,
+            width: 44,
+            height: 44,
+            margin: "-9px 10px 0",
+            border: 0,
             borderRadius: 9999,
             display: "grid",
             placeItems: "center",
             flexShrink: 0,
             color: "#ffffff",
-            background: `linear-gradient(135deg, ${BRAND_PRIMARY} 0%, #2272eb 100%)`,
-            boxShadow: "0 10px 22px rgba(49, 130, 246, 0.24)",
+            background: "rgba(87, 148, 244, 0.84)",
+            backdropFilter: "blur(10px) saturate(145%)",
+            WebkitBackdropFilter: "blur(10px) saturate(145%)",
+            boxShadow:
+              "inset 0 1px 1px rgba(255,255,255,0.34), inset 0 -3px 7px rgba(18,87,190,0.16), 0 0 16px rgba(49,130,246,0.24), 0 7px 16px rgba(49,130,246,0.22)",
             cursor: "pointer",
+            overflow: "hidden",
+            position: "relative",
           }}
         >
-          <Plus size={24} strokeWidth={2.65} aria-hidden />
+          <span
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 9999,
+              display: "grid",
+              placeItems: "center",
+              background: "transparent",
+              boxShadow: "none",
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            <Plus size={20} strokeWidth={2.75} aria-hidden />
+          </span>
         </button>
 
         {RIGHT_TABS.map(renderTab)}
