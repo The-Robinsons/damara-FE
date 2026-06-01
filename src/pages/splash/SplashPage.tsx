@@ -3,8 +3,7 @@ import type React from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ROUTES } from "../../app/router/routes";
-import damaraLogo from "../../assets/damara-logo.png";
-import { background, blue500, grey400, grey600 } from "../../shared/constants/homeTheme";
+import damaraMark from "../../assets/damara-mark.png";
 
 export default function SplashPage() {
   const navigate = useNavigate();
@@ -19,7 +18,7 @@ export default function SplashPage() {
 
     const timer = window.setTimeout(() => {
       navigate(ROUTES.LOGIN, { replace: true });
-    }, 2600);
+    }, 3400);
 
     return () => {
       window.clearTimeout(timer);
@@ -29,207 +28,202 @@ export default function SplashPage() {
   }, [navigate]);
 
   return (
-    <div data-page="스플래시" style={pageWrapStyle}>
-      <style>
-        {`
-          @keyframes damara-splash-rise {
-            from { opacity: 0; transform: translateY(14px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-          }
-          @keyframes damara-splash-pulse {
-            0%, 100% { transform: scale(1); opacity: 0.84; }
-            50% { transform: scale(1.035); opacity: 1; }
-          }
-          @keyframes damara-splash-bar {
-            from { transform: translateX(-100%); }
-            to { transform: translateX(170%); }
-          }
-        `}
-      </style>
+    <div data-page="스플래시" style={pageStyle}>
+      <style>{splashStyle}</style>
 
-      <main style={screenStyle}>
-        <AuthWave />
-        <section style={contentStyle}>
-          <div style={artWrapStyle}>
-            <div style={haloStyle} aria-hidden />
-            <div style={logoCardStyle}>
-              <img src={damaraLogo} alt="DAMARA" style={logoImageStyle} />
-            </div>
+      <div className="damara-splash-soft-light" aria-hidden />
+      <div className="damara-splash-wave damara-splash-wave-back" aria-hidden />
+      <div className="damara-splash-wave damara-splash-wave-front" aria-hidden />
+
+      <main style={mainStyle}>
+        <section style={brandStyle}>
+          <div className="damara-splash-mark-wrap" style={markWrapStyle}>
+            <div className="damara-splash-mark-glow" aria-hidden />
+            <img className="damara-splash-mark" src={damaraMark} alt="다마라" style={markStyle} />
           </div>
 
-          <div style={brandBlockStyle}>
-            <h1 style={brandTextStyle}>DAMARA</h1>
-            <p style={taglineStyle}>믿고 함께 사는 우리 학교 공동구매</p>
-          </div>
-
-          <div style={progressTrackStyle} aria-hidden>
-            <span style={progressBarStyle} />
+          <div className="damara-splash-copy" style={copyStyle}>
+            <p style={eyebrowStyle}>CAMPUS COMMUNITY</p>
+            <h1 style={titleStyle}>DAMARA</h1>
+            <p style={taglineStyle}>함께 사서, 더 가볍게</p>
           </div>
         </section>
 
-        <p style={bottomTextStyle}>명지대 캠퍼스 공동구매 플랫폼</p>
+        <p className="damara-splash-footer" style={footerStyle}>
+          명지대 공동구매 커뮤니티
+        </p>
       </main>
     </div>
   );
 }
 
-function AuthWave() {
-  return (
-    <svg aria-hidden viewBox="0 0 362 214" preserveAspectRatio="none" style={waveStyle}>
-      <defs>
-        <linearGradient id="damaraSplashWaveA" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0%" stopColor="#6EAEFF" />
-          <stop offset="100%" stopColor="#3182F6" />
-        </linearGradient>
-        <linearGradient id="damaraSplashWaveB" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0%" stopColor="#D9ECFF" />
-          <stop offset="100%" stopColor="#82BBFF" />
-        </linearGradient>
-      </defs>
-      <rect width="362" height="214" fill="url(#damaraSplashWaveA)" />
-      <path
-        d="M0 58C35 86 62 82 99 52C137 22 167 38 199 84C238 140 276 162 316 135C338 120 351 105 362 92V214H0V58Z"
-        fill="url(#damaraSplashWaveB)"
-        opacity="0.82"
-      />
-      <path
-        d="M0 168C34 191 72 184 112 145C155 103 198 99 240 135C279 169 319 181 362 160V214H0V168Z"
-        fill="#F5F9FF"
-      />
-      <path d="M70 -16L258 192" stroke="rgba(255,255,255,0.22)" />
-      <path d="M214 -32L68 182" stroke="rgba(255,255,255,0.18)" />
-    </svg>
-  );
-}
+const splashStyle = `
+  @keyframes damara-mark-enter {
+    0% { opacity: 0; transform: translateY(20px) scale(0.86); filter: blur(8px); }
+    70% { opacity: 1; transform: translateY(-3px) scale(1.025); filter: blur(0); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  }
+  @keyframes damara-mark-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  @keyframes damara-copy-enter {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes damara-wave-enter {
+    from { opacity: 0; transform: translateY(36px) rotate(-10deg); }
+    to { opacity: 1; transform: translateY(0) rotate(-10deg); }
+  }
+  @keyframes damara-glow-breathe {
+    0%, 100% { opacity: 0.36; transform: scale(0.92); }
+    50% { opacity: 0.64; transform: scale(1.08); }
+  }
+  .damara-splash-mark-wrap {
+    animation: damara-mark-enter 880ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .damara-splash-mark {
+    animation: damara-mark-float 3000ms 950ms ease-in-out infinite;
+  }
+  .damara-splash-copy {
+    animation: damara-copy-enter 680ms 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .damara-splash-footer {
+    animation: damara-copy-enter 680ms 660ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .damara-splash-mark-glow {
+    position: absolute;
+    inset: 14%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(64, 126, 245, 0.2) 0%, rgba(118, 170, 255, 0.08) 54%, transparent 76%);
+    filter: blur(22px);
+    animation: damara-glow-breathe 2600ms ease-in-out infinite;
+  }
+  .damara-splash-soft-light {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.38) 36%, transparent 68%),
+      radial-gradient(circle at 46% 12%, rgba(217, 231, 255, 0.7) 0%, transparent 42%);
+  }
+  .damara-splash-wave {
+    position: absolute;
+    width: 138%;
+    height: 27%;
+    left: -19%;
+    bottom: -15%;
+    border-radius: 50% 50% 0 0;
+    transform: rotate(-10deg);
+    animation: damara-wave-enter 960ms 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .damara-splash-wave-back {
+    bottom: -8%;
+    background: rgba(207, 224, 255, 0.38);
+  }
+  .damara-splash-wave-front {
+    left: -8%;
+    bottom: -17%;
+    background: rgba(234, 242, 255, 0.82);
+    animation-delay: 340ms;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .damara-splash-mark-wrap,
+    .damara-splash-mark,
+    .damara-splash-copy,
+    .damara-splash-footer,
+    .damara-splash-mark-glow,
+    .damara-splash-wave {
+      animation: none !important;
+    }
+  }
+`;
 
-const pageWrapStyle: React.CSSProperties = {
+const pageStyle: React.CSSProperties = {
   position: "relative",
   width: "100%",
-  minHeight: "100dvh",
   height: "100dvh",
   overflow: "hidden",
-  background: "#F5F9FF",
+  background: "linear-gradient(145deg, #F7FAFF 0%, #EEF4FF 48%, #E5EEFF 100%)",
 };
 
-const screenStyle: React.CSSProperties = {
+const mainStyle: React.CSSProperties = {
   position: "relative",
-  width: "100%",
-  height: "100dvh",
-  overflow: "hidden",
-  background: "#F5F9FF",
-};
-
-const waveStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: "0 0 auto 0",
-  width: "100%",
-  height: 214,
-  display: "block",
   zIndex: 1,
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
-const contentStyle: React.CSSProperties = {
-  position: "relative",
-  zIndex: 2,
-  height: "100%",
-  padding: "192px 42px 84px",
-  boxSizing: "border-box",
+const brandStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  justifyContent: "center",
-  animation: "damara-splash-rise 680ms ease-out both",
+  transform: "translateY(-12px)",
 };
 
-const artWrapStyle: React.CSSProperties = {
+const markWrapStyle: React.CSSProperties = {
   position: "relative",
-  width: 184,
-  height: 184,
+  width: 164,
+  height: 164,
   display: "grid",
   placeItems: "center",
 };
 
-const haloStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  borderRadius: 56,
-  background: "radial-gradient(circle, rgba(49,130,246,0.20) 0%, rgba(49,130,246,0.08) 48%, rgba(49,130,246,0) 72%)",
-  filter: "blur(5px)",
-  animation: "damara-splash-pulse 1900ms ease-in-out infinite",
-};
-
-const logoCardStyle: React.CSSProperties = {
+const markStyle: React.CSSProperties = {
   position: "relative",
-  width: 136,
-  height: 136,
-  borderRadius: 0,
-  overflow: "hidden",
-  background: "transparent",
-  border: 0,
-  boxShadow: "none",
-};
-
-const logoImageStyle: React.CSSProperties = {
+  zIndex: 1,
   width: "100%",
   height: "100%",
-  objectFit: "cover",
+  objectFit: "contain",
   display: "block",
-  transform: "scale(1.28)",
 };
 
-const brandBlockStyle: React.CSSProperties = {
-  marginTop: 20,
+const copyStyle: React.CSSProperties = {
+  marginTop: 22,
   textAlign: "center",
 };
 
-const brandTextStyle: React.CSSProperties = {
+const eyebrowStyle: React.CSSProperties = {
   margin: 0,
-  color: blue500,
+  color: "#8DAFE7",
   fontFamily: "Montserrat, Pretendard, system-ui, sans-serif",
-  fontSize: 31,
+  fontSize: 9,
   fontWeight: 800,
-  lineHeight: "38px",
-  letterSpacing: 0,
+  lineHeight: "13px",
+  letterSpacing: "0.22em",
+};
+
+const titleStyle: React.CSSProperties = {
+  margin: "8px 0 0",
+  color: "#2D5CC8",
+  fontFamily: "Montserrat, Pretendard, system-ui, sans-serif",
+  fontSize: 34,
+  fontWeight: 850,
+  lineHeight: "40px",
+  letterSpacing: "0.045em",
 };
 
 const taglineStyle: React.CSSProperties = {
-  margin: "9px 0 0",
-  color: grey600,
-  fontSize: 13,
-  fontWeight: 650,
-  lineHeight: "19px",
-  letterSpacing: 0,
+  margin: "8px 0 0",
+  color: "#5680D2",
+  fontSize: 14,
+  fontWeight: 750,
+  lineHeight: "20px",
+  letterSpacing: "-0.015em",
 };
 
-const progressTrackStyle: React.CSSProperties = {
-  position: "relative",
-  width: 118,
-  height: 4,
-  marginTop: 34,
-  overflow: "hidden",
-  borderRadius: 999,
-  background: "rgba(49, 130, 246, 0.13)",
-};
-
-const progressBarStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  width: "46%",
-  borderRadius: 999,
-  background: "linear-gradient(90deg, #6EAEFF 0%, #3182F6 100%)",
-  animation: "damara-splash-bar 1450ms ease-in-out infinite",
-};
-
-const bottomTextStyle: React.CSSProperties = {
+const footerStyle: React.CSSProperties = {
   position: "absolute",
   left: 24,
   right: 24,
-  bottom: 30,
-  zIndex: 2,
+  bottom: "calc(31px + env(safe-area-inset-bottom, 0px))",
   margin: 0,
-  color: grey400,
+  color: "#7797CC",
   textAlign: "center",
-  fontSize: 11,
-  fontWeight: 600,
-  lineHeight: "16px",
+  fontSize: 10,
+  fontWeight: 700,
+  lineHeight: "15px",
+  letterSpacing: "0.045em",
 };

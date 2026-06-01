@@ -114,6 +114,14 @@ export interface ApiPost {
   updatedAt?: string;
 }
 
+export interface ApiPostProductSearchResponse {
+  exists: boolean;
+  exactMatchExists: boolean;
+  partialMatchExists: boolean;
+  total: number;
+  items: ApiPost[];
+}
+
 export interface ApiPostImage {
   id?: string;
   imageUrl: string;
@@ -333,6 +341,7 @@ export interface ApiNotice {
   title: string;
   summary?: string | null;
   content: string;
+  category?: string | null;
   type: ApiNoticeType;
   isPinned: boolean;
   createdAt: string;
