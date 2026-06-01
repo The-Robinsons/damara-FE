@@ -25,6 +25,8 @@ export type ApiPostExceptionSeverity = "info" | "warning" | "critical";
 
 export type ApiNotificationType =
   | "new_participant"
+  | "new_chat_message"
+  | "post_status_changed"
   | "participant_cancel"
   | "deadline_soon"
   | "post_completed"

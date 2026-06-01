@@ -1,19 +1,20 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
-import { Bell, BellRing, ChevronRight, MapPin, PackageSearch, Search, UsersRound, X } from "lucide-react";
+import { Bell, BellRing, ChevronRight, MapPin, MessageCircle, PackageSearch, Search, UsersRound, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { ROUTES } from "../../../app/router/routes";
 import damaraMark from "../../../assets/damara-mark.png";
 import { searchPostsByProductName } from "../../../features/group-buy/api/groupBuyApi";
-import { getNotifications, getUnreadCount, markAsRead } from "../../../features/user/api/notificationApi";
+import { getNotifications, getUnreadCount, markAllAsRead, markAsRead } from "../../../features/user/api/notificationApi";
 import type { ApiNotification, ApiPost, ApiPostProductSearchResponse } from "../../api/swaggerTypes";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { BRAND_PRIMARY, grey200, grey400, grey500, grey700, grey900, HOME_CANVAS } from "../../constants/homeTheme";
 import { APP_HEADER_HEIGHT_PX } from "./appShellConstants";
 
 type ActivePanel = "search" | "notifications" | null;
+type NotificationFilter = "all" | "group-buy" | "chat" | "activity";
 
 export default function AppHeader() {
   const nav = useNavigate();
@@ -25,7 +26,12 @@ export default function AppHeader() {
   const [notifications, setNotifications] = useState<ApiNotification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationFilter, setNotificationFilter] = useState<NotificationFilter>("all");
   const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+  const filteredNotifications = useMemo(
+    () => notifications.filter((notification) => matchesNotificationFilter(notification, notificationFilter)),
+    [notificationFilter, notifications]
+  );
 
   useEffect(() => {
     if (!userId) return;
@@ -62,6 +68,7 @@ export default function AppHeader() {
 
   const openNotifications = async () => {
     setActivePanel("notifications");
+    setNotificationFilter("all");
     if (!userId) {
       setNotifications([]);
       return;
@@ -76,6 +83,17 @@ export default function AppHeader() {
       toast.error("알림을 불러오지 못했어요.");
     } finally {
       setLoadingNotifications(false);
+    }
+  };
+
+  const readAllNotifications = async () => {
+    if (!userId || unreadCount === 0) return;
+    try {
+      await markAllAsRead(userId);
+      setNotifications((items) => items.map((item) => ({ ...item, isRead: true })));
+      setUnreadCount(0);
+    } catch {
+      toast.error("알림 읽음 처리에 실패했어요.");
     }
   };
 
@@ -96,6 +114,11 @@ export default function AppHeader() {
       }
     }
 
+    if (notification.chatRoomId) {
+      setActivePanel(null);
+      nav(`${ROUTES.CHAT}?roomId=${encodeURIComponent(notification.chatRoomId)}`);
+      return;
+    }
     if (notification.postId) {
       moveToPost(notification.postId);
       return;
@@ -110,9 +133,9 @@ export default function AppHeader() {
     <>
       <header className="fixed left-0 right-0 top-0 z-50 mx-auto max-w-[430px]" style={headerStyle}>
         <div className="flex items-center justify-between" style={{ height: APP_HEADER_HEIGHT_PX, paddingLeft: 22, paddingRight: 22 }}>
-          <div style={brandMarkStyle} aria-label="다마라">
+          <button type="button" style={brandMarkStyle} aria-label="홈으로 이동" onClick={() => nav(ROUTES.HOME)}>
             <img src={damaraMark} alt="" aria-hidden style={headerLogoStyle} />
-          </div>
+          </button>
 
           <div className="flex shrink-0 items-center" style={{ gap: 7 }}>
             <HeaderIcon label="검색" onClick={() => setActivePanel("search")}><Search size={20} strokeWidth={2.05} /></HeaderIcon>
@@ -147,7 +170,7 @@ export default function AppHeader() {
         </HeaderPanel>
       ) : null}
 
-      {activePanel === "notifications" ? (
+      {false && activePanel === "notifications" ? (
         <HeaderPanel title="알림" subtitle={unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개` : "새로운 소식을 확인해 보세요"} onClose={() => setActivePanel(null)}>
           <div style={panelBodyStyle}>
             {loadingNotifications ? <PanelEmpty icon={<Bell size={24} />} title="알림을 불러오는 중이에요" description="잠시만 기다려 주세요." /> : notifications.length === 0 ? <PanelEmpty icon={<Bell size={24} />} title="새로운 알림이 없어요" description="공구 소식이 생기면 이곳에서 알려드릴게요." /> : notifications.map((notification) => (
@@ -169,7 +192,96 @@ export default function AppHeader() {
           </div>
         </HeaderPanel>
       ) : null}
+      {activePanel === "notifications" ? (
+        <NotificationPanel
+          notifications={filteredNotifications}
+          unreadCount={unreadCount}
+          loading={loadingNotifications}
+          filter={notificationFilter}
+          onFilterChange={setNotificationFilter}
+          onReadAll={() => void readAllNotifications()}
+          onClose={() => setActivePanel(null)}
+          onOpen={(notification) => void openNotification(notification)}
+        />
+      ) : null}
     </>
+  );
+}
+
+function NotificationPanel({
+  notifications,
+  unreadCount,
+  loading,
+  filter,
+  onFilterChange,
+  onReadAll,
+  onClose,
+  onOpen,
+}: {
+  notifications: ApiNotification[];
+  unreadCount: number;
+  loading: boolean;
+  filter: NotificationFilter;
+  onFilterChange: (filter: NotificationFilter) => void;
+  onReadAll: () => void;
+  onClose: () => void;
+  onOpen: (notification: ApiNotification) => void;
+}) {
+  return (
+    <section role="dialog" aria-modal="true" aria-label="알림" style={notificationPanelStyle}>
+      <div style={panelHandleStyle} aria-hidden />
+      <header style={notificationHeaderStyle}>
+        <div>
+          <h2 style={notificationPanelTitleStyle}>알림</h2>
+          <p style={notificationSubtitleStyle}>
+            읽지 않은 알림 <strong style={{ color: BRAND_PRIMARY }}>{unreadCount}개</strong>
+          </p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button type="button" onClick={onReadAll} disabled={unreadCount === 0} style={{ ...readAllButtonStyle, opacity: unreadCount === 0 ? 0.42 : 1 }}>
+            모두 읽음
+          </button>
+          <button type="button" onClick={onClose} aria-label="닫기" style={notificationCloseStyle}>
+            <X size={18} strokeWidth={2.2} aria-hidden />
+          </button>
+        </div>
+      </header>
+
+      <div style={notificationFilterStyle}>
+        {NOTIFICATION_FILTERS.map((item) => {
+          const active = filter === item.id;
+          return (
+            <button key={item.id} type="button" onClick={() => onFilterChange(item.id)} style={{ ...filterChipStyle, ...(active ? activeFilterChipStyle : {}) }}>
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={notificationListStyle}>
+        {loading ? (
+          <PanelEmpty icon={<Bell size={24} />} title="알림을 불러오는 중이에요" description="잠시만 기다려 주세요." />
+        ) : notifications.length === 0 ? (
+          <PanelEmpty icon={<Bell size={24} />} title="알림이 없어요" description="새로운 소식이 생기면 이곳에서 알려드릴게요." />
+        ) : (
+          notifications.map((notification) => (
+            <button key={notification.id} type="button" onClick={() => onOpen(notification)} style={notificationCardStyle}>
+              {!notification.isRead ? <span style={unreadDotStyle} aria-hidden /> : null}
+              <span style={notificationCardIconStyle}>{getNotificationIcon(notification.type)}</span>
+              <span style={{ minWidth: 0, flex: 1 }}>
+                <span style={notificationTitleRowStyle}>
+                  <strong style={notificationCardTitleStyle}>{notification.title}</strong>
+                  {!notification.isRead ? <span style={newBadgeStyle}>NEW</span> : null}
+                </span>
+                <span style={notificationCardDescriptionStyle}>{notification.message}</span>
+                <span style={notificationTimeStyle}>{formatNotificationTime(notification.createdAt)}</span>
+              </span>
+              {(notification.postId || notification.chatRoomId || notification.actionUrl) ? <ChevronRight size={17} color="#B0B8C1" strokeWidth={2} aria-hidden /> : null}
+            </button>
+          ))
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -210,8 +322,28 @@ function formatNotificationTime(value?: string) {
   return date.toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
 }
 
+const NOTIFICATION_FILTERS: Array<{ id: NotificationFilter; label: string }> = [
+  { id: "all", label: "전체" },
+  { id: "group-buy", label: "공동구매" },
+  { id: "chat", label: "채팅" },
+  { id: "activity", label: "활동" },
+];
+
+function matchesNotificationFilter(notification: ApiNotification, filter: NotificationFilter) {
+  if (filter === "all") return true;
+  if (filter === "chat") return notification.type === "new_chat_message";
+  if (filter === "group-buy") return notification.type === "new_participant";
+  return notification.type !== "new_chat_message" && notification.type !== "new_participant";
+}
+
+function getNotificationIcon(type: ApiNotification["type"]) {
+  if (type === "new_participant") return <UsersRound size={20} strokeWidth={2} aria-hidden />;
+  if (type === "new_chat_message") return <MessageCircle size={20} strokeWidth={2} aria-hidden />;
+  return <BellRing size={20} strokeWidth={2} aria-hidden />;
+}
+
 const headerStyle: React.CSSProperties = { paddingTop: "env(safe-area-inset-top, 0px)", backgroundColor: "rgba(246, 248, 252, 0.86)", borderBottom: "1px solid rgba(229, 232, 239, 0.54)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" };
-const brandMarkStyle: React.CSSProperties = { display: "flex", minWidth: 0, alignItems: "center" };
+const brandMarkStyle: React.CSSProperties = { display: "flex", minWidth: 0, alignItems: "center", padding: 0, border: 0, background: "transparent", cursor: "pointer" };
 const headerLogoStyle: React.CSSProperties = { width: 34, height: 34, objectFit: "contain", display: "block" };
 const headerIconStyle: React.CSSProperties = { position: "relative", width: 34, height: 34, borderRadius: 999, border: 0, color: grey500, background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" };
 const dotStyle: React.CSSProperties = { position: "absolute", right: 7, top: 7, width: 6, height: 6, borderRadius: 999, background: BRAND_PRIMARY, boxShadow: `0 0 0 2px ${HOME_CANVAS}` };
@@ -239,3 +371,19 @@ const emptyStateStyle: React.CSSProperties = { padding: "34px 18px 38px", displa
 const emptyIconStyle: React.CSSProperties = { width: 54, height: 54, borderRadius: 18, background: "#EDF4FF", color: BRAND_PRIMARY, display: "grid", placeItems: "center" };
 const emptyTitleStyle: React.CSSProperties = { marginTop: 13, color: grey900, fontSize: 14, fontWeight: 820, lineHeight: "20px" };
 const emptyDescriptionStyle: React.CSSProperties = { margin: "5px 0 0", color: grey500, fontSize: 12, fontWeight: 590, lineHeight: "18px" };
+const notificationPanelStyle: React.CSSProperties = { position: "fixed", zIndex: 70, top: "calc(68px + env(safe-area-inset-top, 0px))", left: "50%", width: "min(calc(100% - 20px), 410px)", maxHeight: "min(660px, calc(100dvh - 82px))", transform: "translateX(-50%)", overflow: "hidden", border: "1px solid #E5E8EF", borderRadius: 24, background: "#FFFFFF", boxShadow: "0 20px 48px rgba(31, 45, 70, 0.16), 0 3px 10px rgba(31, 45, 70, 0.06)" };
+const notificationHeaderStyle: React.CSSProperties = { padding: "13px 17px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 };
+const notificationPanelTitleStyle: React.CSSProperties = { margin: 0, color: "#191F28", fontSize: 23, lineHeight: "30px", fontWeight: 900, letterSpacing: "-0.035em" };
+const notificationSubtitleStyle: React.CSSProperties = { margin: "4px 0 0", color: "#8B95A1", fontSize: 12.5, lineHeight: "18px", fontWeight: 650 };
+const readAllButtonStyle: React.CSSProperties = { border: 0, background: "transparent", color: BRAND_PRIMARY, fontSize: 12, lineHeight: "18px", fontWeight: 800, cursor: "pointer" };
+const notificationCloseStyle: React.CSSProperties = { width: 34, height: 34, border: 0, borderRadius: 999, display: "grid", placeItems: "center", color: "#4E5968", background: "#F2F4F6", cursor: "pointer" };
+const notificationFilterStyle: React.CSSProperties = { display: "flex", gap: 7, padding: "8px 17px 12px", overflowX: "auto", scrollbarWidth: "none" };
+const filterChipStyle: React.CSSProperties = { height: 30, padding: "0 12px", flexShrink: 0, border: "1px solid #E5E8EF", borderRadius: 999, color: "#8B95A1", background: "#FFFFFF", fontSize: 11.5, lineHeight: "28px", fontWeight: 700, cursor: "pointer", transition: "background-color 180ms ease, color 180ms ease, border-color 180ms ease" };
+const activeFilterChipStyle: React.CSSProperties = { borderColor: BRAND_PRIMARY, color: "#FFFFFF", background: BRAND_PRIMARY };
+const notificationListStyle: React.CSSProperties = { maxHeight: "min(500px, calc(100dvh - 226px))", padding: "3px 12px 14px", display: "grid", gap: 9, overflowY: "auto", background: "#FFFFFF" };
+const notificationCardStyle: React.CSSProperties = { position: "relative", width: "100%", minHeight: 91, padding: "12px 12px 12px 16px", display: "flex", alignItems: "center", gap: 10, border: "1px solid #E5E8EF", borderRadius: 18, color: "#191F28", background: "#FFFFFF", boxShadow: "0 4px 12px rgba(31, 45, 70, 0.045)", textAlign: "left", cursor: "pointer" };
+const notificationCardIconStyle: React.CSSProperties = { width: 44, height: 44, flexShrink: 0, display: "grid", placeItems: "center", borderRadius: 15, color: BRAND_PRIMARY, background: "#EEF4FF" };
+const notificationTitleRowStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 5, minWidth: 0 };
+const notificationCardTitleStyle: React.CSSProperties = { overflow: "hidden", color: "#191F28", fontSize: 13.5, lineHeight: "19px", fontWeight: 850, textOverflow: "ellipsis", whiteSpace: "nowrap" };
+const notificationCardDescriptionStyle: React.CSSProperties = { display: "-webkit-box", overflow: "hidden", marginTop: 3, color: "#4E5968", fontSize: 11.5, lineHeight: "16px", fontWeight: 600, WebkitBoxOrient: "vertical", WebkitLineClamp: 2 };
+const unreadDotStyle: React.CSSProperties = { position: "absolute", left: 6, top: "50%", width: 5, height: 5, borderRadius: 999, background: BRAND_PRIMARY, transform: "translateY(-50%)" };

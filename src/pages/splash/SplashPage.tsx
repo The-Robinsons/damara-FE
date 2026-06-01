@@ -43,15 +43,10 @@ export default function SplashPage() {
           </div>
 
           <div className="damara-splash-copy" style={copyStyle}>
-            <p style={eyebrowStyle}>CAMPUS COMMUNITY</p>
             <h1 style={titleStyle}>DAMARA</h1>
-            <p style={taglineStyle}>함께 사서, 더 가볍게</p>
+            <p style={taglineStyle}>같이 사고, 더 가볍게</p>
           </div>
         </section>
-
-        <p className="damara-splash-footer" style={footerStyle}>
-          명지대 공동구매 커뮤니티
-        </p>
       </main>
     </div>
   );
@@ -87,9 +82,6 @@ const splashStyle = `
   }
   .damara-splash-copy {
     animation: damara-copy-enter 680ms 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-  .damara-splash-footer {
-    animation: damara-copy-enter 680ms 660ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   .damara-splash-mark-glow {
     position: absolute;
@@ -130,7 +122,6 @@ const splashStyle = `
     .damara-splash-mark-wrap,
     .damara-splash-mark,
     .damara-splash-copy,
-    .damara-splash-footer,
     .damara-splash-mark-glow,
     .damara-splash-wave {
       animation: none !important;
@@ -185,18 +176,8 @@ const copyStyle: React.CSSProperties = {
   textAlign: "center",
 };
 
-const eyebrowStyle: React.CSSProperties = {
-  margin: 0,
-  color: "#8DAFE7",
-  fontFamily: "Montserrat, Pretendard, system-ui, sans-serif",
-  fontSize: 9,
-  fontWeight: 800,
-  lineHeight: "13px",
-  letterSpacing: "0.22em",
-};
-
 const titleStyle: React.CSSProperties = {
-  margin: "8px 0 0",
+  margin: 0,
   color: "#2D5CC8",
   fontFamily: "Montserrat, Pretendard, system-ui, sans-serif",
   fontSize: 34,
@@ -212,18 +193,4 @@ const taglineStyle: React.CSSProperties = {
   fontWeight: 750,
   lineHeight: "20px",
   letterSpacing: "-0.015em",
-};
-
-const footerStyle: React.CSSProperties = {
-  position: "absolute",
-  left: 24,
-  right: 24,
-  bottom: "calc(31px + env(safe-area-inset-bottom, 0px))",
-  margin: 0,
-  color: "#7797CC",
-  textAlign: "center",
-  fontSize: 10,
-  fontWeight: 700,
-  lineHeight: "15px",
-  letterSpacing: "0.045em",
 };
