@@ -1,4 +1,4 @@
-import { Flame, ImageIcon } from "lucide-react";
+import { Flame, ImageIcon, MapPin } from "lucide-react";
 
 import FavoriteHeartButton from "../../../features/group-buy/components/FavoriteHeartButton";
 import { getImageUrl } from "../../../shared/utils/imageUrl";
@@ -9,7 +9,6 @@ import {
   BRAND_PRIMARY,
   DANGER,
   GHOST_ON_SOLID,
-  HOME_BORDER,
   TEXT_META,
   TEXT_TITLE,
 } from "../../../shared/constants/homeTheme";
@@ -32,23 +31,17 @@ function getFirstImageUrl(post: any): string | null {
 }
 
 function getPopularDisplay(post: any, idx: number) {
-  const rawTitle = String(post.title ?? "").trim();
   const current = Number(post.currentQuantity ?? 0);
   const max = Number(post.minParticipants ?? 2);
   const progress = max > 0 ? Math.min(Math.round((current / max) * 100), 100) : 0;
+  const location = String(post.pickupLocation ?? "명지대 픽업");
+  const deadline = String(post.deadlineLabel ?? `D-${idx + 2}`);
 
-  if (rawTitle.includes("물티슈")) {
-    return { title: "물티슈 공동구매", meta: "D-2 · 자연캠 픽업", progress };
-  }
-  if (rawTitle.includes("옥스퍼드")) {
-    return { title: "옥스퍼드 노트 공동구매", meta: "D-3 · 학생회관 앞 거래", progress };
-  }
-  if (rawTitle.includes("샴푸")) {
-    return { title: "샴푸 공동구매", meta: "D-1 · 자연캠 픽업", progress };
-  }
-
-  const fallbackMeta = ["D-4 · 명지대 픽업", "D-5 · 자연캠 픽업", "D-6 · 학생회관 앞 거래"][idx % 3];
-  return { title: rawTitle || "공동구매 상품", meta: fallbackMeta, progress };
+  return {
+    title: String(post.title ?? "").trim() || "공동구매 상품",
+    meta: `${deadline} · ${location}`,
+    progress,
+  };
 }
 
 export default function HomePopularList({ posts, onItemClick }: HomePopularListProps) {
@@ -59,30 +52,36 @@ export default function HomePopularList({ posts, onItemClick }: HomePopularListP
     .slice(0, 6);
 
   return (
-    <section aria-label="인기 공동구매" style={{ paddingTop: 8 }}>
-      <div style={{ padding: "0 20px 8px" }}>
+    <section aria-label="실시간 인기 공동구매" style={{ paddingTop: 12 }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "0 20px 10px" }}
+      >
         <p
           style={{
             margin: 0,
-            color: TEXT_META,
-            fontSize: 12,
-            fontWeight: 750,
-            lineHeight: "17px",
+            color: TEXT_TITLE,
+            fontSize: 15,
+            fontWeight: 850,
+            lineHeight: "21px",
             display: "flex",
             alignItems: "center",
-            gap: 5,
+            gap: 6,
           }}
         >
-          <Flame size={14} strokeWidth={2} color={DANGER} fill="rgba(240,68,82,0.12)" aria-hidden />
+          <Flame size={17} strokeWidth={2.2} color={DANGER} fill="rgba(240,68,82,0.12)" aria-hidden />
           실시간 인기
         </p>
+        <span style={{ color: TEXT_META, fontSize: 11, fontWeight: 700 }}>
+          지금 많이 보는 공구
+        </span>
       </div>
 
       <ul
         className="no-scrollbar flex overflow-x-auto"
         style={{
-          gap: 12,
-          padding: "0 20px 8px",
+          gap: 10,
+          padding: "0 20px 10px",
           margin: 0,
           scrollbarWidth: "none",
         }}
@@ -95,8 +94,8 @@ export default function HomePopularList({ posts, onItemClick }: HomePopularListP
           const display = getPopularDisplay(post, idx);
 
           return (
-            <li key={post.id} style={{ width: 140, flex: "0 0 140px" }}>
-              <div
+            <li key={post.id} style={{ width: 272, flex: "0 0 272px" }}>
+              <article
                 role="button"
                 tabIndex={0}
                 onClick={() => onItemClick(post.id)}
@@ -108,114 +107,111 @@ export default function HomePopularList({ posts, onItemClick }: HomePopularListP
                 }}
                 className="text-left"
                 style={{
+                  display: "flex",
+                  gap: 11,
                   width: "100%",
-                  height: 204,
+                  height: 157,
+                  padding: 10,
                   overflow: "hidden",
                   borderRadius: 22,
-                  background: "#ffffff",
-                  border: "1px solid #EEF2F6",
-                  boxShadow: "0 10px 26px rgba(15,23,42,0.055), 0 1px 3px rgba(15,23,42,0.035)",
+                  background: "linear-gradient(135deg, #ffffff 0%, #ffffff 62%, #f5f9ff 100%)",
+                  border: "1px solid #E8EEF7",
+                  boxShadow: "0 10px 24px rgba(15,23,42,0.06), 0 2px 5px rgba(15,23,42,0.035)",
                   cursor: "pointer",
+                  boxSizing: "border-box",
                 }}
               >
-                <div className="relative" style={{ height: 82, width: "100%", padding: 8, background: "#ffffff", boxSizing: "border-box" }}>
+                <div
+                  className="relative flex items-center justify-center"
+                  style={{
+                    width: 104,
+                    height: 135,
+                    flexShrink: 0,
+                    overflow: "hidden",
+                    borderRadius: 17,
+                    background: "#F8FAFC",
+                  }}
+                >
                   {idx === 0 ? (
                     <span
                       style={{
                         position: "absolute",
-                        left: 8,
-                        top: 8,
-                        height: 19,
-                        padding: "0 7px 0 6px",
+                        left: 7,
+                        top: 7,
+                        height: 20,
+                        padding: "0 8px 0 6px",
                         borderRadius: 999,
                         backgroundColor: DANGER,
                         color: background,
-                        fontSize: 9.5,
-                        fontWeight: 800,
-                        lineHeight: "18px",
+                        fontSize: 10,
+                        fontWeight: 850,
+                        lineHeight: "20px",
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 3,
                         zIndex: 2,
                       }}
                     >
-                      <Flame size={10} strokeWidth={1.9} color={background} fill={GHOST_ON_SOLID} aria-hidden />
+                      <Flame size={11} strokeWidth={2} color={background} fill={GHOST_ON_SOLID} aria-hidden />
                       HOT
                     </span>
                   ) : null}
-                  <FavoriteHeartButton
-                    postId={post.id}
-                    initialIsFavorite={Boolean(post.isFavorite)}
-                    style={{
-                      position: "absolute",
-                      right: 8,
-                      top: 8,
-                      width: 24,
-                      height: 24,
-                      padding: 0,
-                      display: "grid",
-                      placeItems: "center",
-                      borderRadius: 999,
-                      backgroundColor: "rgba(255,255,255,0.88)",
-                      color: "#A0A8B5",
-                      zIndex: 2,
-                      boxShadow: "0 2px 8px rgba(15, 23, 42, 0.06)",
-                    }}
-                    iconClassName="size-3.5"
-                  />
-                  <div
-                    className="flex items-center justify-center"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      overflow: "hidden",
-                      borderRadius: 16,
-                      background: "#F7F9FC",
-                    }}
-                  >
-                    {imgUrl && imgUrl !== "/placeholder.png" ? (
-                      <img
-                        src={imgUrl}
-                        alt=""
-                        style={{ width: "84%", height: "84%", objectFit: "contain" }}
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = "none";
-                        }}
-                      />
-                    ) : (
-                      <ImageIcon size={30} color="rgba(78,89,104,0.42)" strokeWidth={1.55} aria-hidden />
-                    )}
-                  </div>
+                  {imgUrl && imgUrl !== "/placeholder.png" ? (
+                    <img
+                      src={imgUrl}
+                      alt=""
+                      style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 17 }}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <ImageIcon size={30} color="rgba(78,89,104,0.42)" strokeWidth={1.55} aria-hidden />
+                  )}
                 </div>
-                <div style={{ padding: "7px 9px 9px" }}>
-                  <div className="flex items-center" style={{ gap: 4, height: 17 }}>
+
+                <div style={{ minWidth: 0, flex: 1, padding: "1px 0 0" }}>
+                  <div className="flex items-center justify-between" style={{ gap: 5 }}>
                     <span
                       style={{
-                        height: 17,
-                        padding: "0 6px",
+                        height: 18,
+                        padding: "0 7px",
                         borderRadius: 999,
                         backgroundColor: BADGE_INFO_BG,
                         color: BADGE_INFO_TEXT,
-                        fontSize: 9,
-                        fontWeight: 800,
-                        lineHeight: "17px",
+                        fontSize: 9.5,
+                        fontWeight: 850,
+                        lineHeight: "18px",
                       }}
                     >
                       모집중
                     </span>
-                    <span style={{ color: TEXT_META, fontSize: 9.5, fontWeight: 750, lineHeight: "13px" }}>
-                      · {current}/{max}명
-                    </span>
+                    <FavoriteHeartButton
+                      postId={post.id}
+                      initialIsFavorite={Boolean(post.isFavorite)}
+                      style={{
+                        width: 25,
+                        height: 25,
+                        flexShrink: 0,
+                        padding: 0,
+                        display: "grid",
+                        placeItems: "center",
+                        borderRadius: 999,
+                        backgroundColor: "#ffffff",
+                        color: "#A0A8B5",
+                        boxShadow: "0 2px 8px rgba(15, 23, 42, 0.06)",
+                      }}
+                      iconClassName="size-3.5"
+                    />
                   </div>
                   <p
                     style={{
-                      margin: "5px 0 0",
-                      minHeight: 32,
+                      margin: "4px 0 0",
+                      minHeight: 34,
                       color: TEXT_TITLE,
-                      fontSize: 12.5,
+                      fontSize: 13.5,
                       fontWeight: 850,
-                      lineHeight: "16px",
-                      letterSpacing: 0,
+                      lineHeight: "17px",
                       display: "-webkit-box",
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: "vertical",
@@ -226,49 +222,44 @@ export default function HomePopularList({ posts, onItemClick }: HomePopularListP
                   </p>
                   <p
                     style={{
-                      margin: "4px 0 0",
+                      margin: "3px 0 0",
                       color: BRAND_PRIMARY,
-                      fontSize: 17,
+                      fontSize: 18,
                       fontWeight: 900,
-                      lineHeight: "21px",
-                      letterSpacing: 0,
+                      lineHeight: "22px",
                     }}
                   >
                     {price}원
                   </p>
                   <p
-                    style={{
-                      margin: "3px 0 0",
-                      color: TEXT_META,
-                      fontSize: 10.5,
-                      fontWeight: 650,
-                      lineHeight: "14px",
-                    }}
+                    className="flex items-center"
+                    style={{ margin: "2px 0 0", gap: 3, color: TEXT_META, fontSize: 10.5, fontWeight: 650, lineHeight: "14px" }}
                   >
-                    {display.meta}
+                    <MapPin size={11} strokeWidth={2} aria-hidden />
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{display.meta}</span>
                   </p>
-                  <div style={{ marginTop: 6 }}>
-                    <div
-                      style={{
-                        width: "100%",
-                        height: 4,
-                        overflow: "hidden",
-                        borderRadius: 999,
-                        background: "#EDF2FA",
-                      }}
-                    >
+                  <div style={{ marginTop: 7 }}>
+                    <div className="flex items-center justify-between" style={{ marginBottom: 4 }}>
+                      <span style={{ color: TEXT_META, fontSize: 10, fontWeight: 750 }}>
+                        {current}/{max}명 참여
+                      </span>
+                      <span style={{ color: BRAND_PRIMARY, fontSize: 10, fontWeight: 850 }}>
+                        {display.progress}%
+                      </span>
+                    </div>
+                    <div style={{ width: "100%", height: 4, overflow: "hidden", borderRadius: 999, background: "#E8EEF7" }}>
                       <div
                         style={{
                           width: `${display.progress}%`,
                           height: "100%",
                           borderRadius: 999,
-                          background: BRAND_PRIMARY,
+                          background: `linear-gradient(90deg, ${BRAND_PRIMARY}, #70adff)`,
                         }}
                       />
                     </div>
                   </div>
                 </div>
-              </div>
+              </article>
             </li>
           );
         })}

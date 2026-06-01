@@ -27,6 +27,7 @@ import {
   removeFavorite,
 } from "../../features/group-buy/api/groupBuyApi";
 import { getChatRoomByPostId } from "../../features/chat/api/chatApi";
+import { getUserTrustSummary } from "../../features/user/api/userApi";
 import { readFavoriteFlag } from "../../features/group-buy/utils/favoriteResponse";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import {
@@ -73,6 +74,16 @@ type Participant = {
   };
 };
 
+type SellerTrustSummary = {
+  trustGrade?: number;
+  gradeLabel?: string;
+  rankPercent?: number;
+  responseRate?: number;
+  avgResponseMinutes?: number;
+  completedTradeCount?: number;
+  badges?: string[];
+};
+
 export default function GroupBuyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
@@ -85,6 +96,7 @@ export default function GroupBuyDetailPage() {
   const [isParticipant, setIsParticipant] = useState(false);
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [sellerTrust, setSellerTrust] = useState<SellerTrustSummary | null>(null);
 
   useEffect(() => {
     const run = async () => {
@@ -113,6 +125,24 @@ export default function GroupBuyDetailPage() {
     };
     run();
   }, [id]);
+
+  useEffect(() => {
+    const authorId = post?.authorId;
+    if (!authorId) return;
+
+    let cancelled = false;
+    getUserTrustSummary(authorId)
+      .then(({ data }) => {
+        if (!cancelled) setSellerTrust(data);
+      })
+      .catch(() => {
+        if (!cancelled) setSellerTrust(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [post?.authorId]);
 
   useEffect(() => {
     if (!id || !currentUserId) return;
@@ -148,6 +178,13 @@ export default function GroupBuyDetailPage() {
   const progress = Math.min(100, Math.round((current / Math.max(min, 1)) * 100));
   const remaining = Math.max(min - current, 0);
   const content = post?.content || fallbackPost.content;
+  const sellerNickname = post?.author?.nickname || "판매자";
+  const sellerGrade = Number(sellerTrust?.trustGrade ?? post?.author?.trustGrade ?? 0).toFixed(1);
+  const sellerGradeLabel = sellerTrust?.gradeLabel || "거래 이력 확인 중";
+  const sellerRankPercent = sellerTrust?.rankPercent;
+  const sellerResponseRate = sellerTrust?.responseRate;
+  const sellerResponseMinutes = sellerTrust?.avgResponseMinutes;
+  const sellerBadges = sellerTrust?.badges?.length ? sellerTrust.badges.slice(0, 3) : ["거래 정보를 확인해 보세요"];
   const participantList = participants.length
     ? participants
     : Array.from({ length: Math.min(current, 2) }, (_, index) => ({
@@ -295,13 +332,14 @@ export default function GroupBuyDetailPage() {
           <section style={sellerCardStyle}>
             <Avatar />
             <div style={{ minWidth: 0, flex: 1 }}>
-              <h3 style={sectionSmallTitleStyle}>판매자 정보</h3>
+              <h3 style={sectionSmallTitleStyle}>{sellerNickname}</h3>
+              <p style={sellerMetaStyle}>판매자 정보</p>
               <div style={sellerStatsStyle}>
-                <span>응답 10분 이내</span>
-                <span>완료율 98%</span>
+                {sellerResponseMinutes !== undefined ? <span>평균 응답 {sellerResponseMinutes}분</span> : null}
+                {sellerResponseRate !== undefined ? <span>응답률 {sellerResponseRate}%</span> : null}
               </div>
               <div style={tagRowStyle}>
-                {["꼼꼼해요", "친절해요", "약속시간 잘 지켜요"].map((tag) => (
+                {sellerBadges.map((tag) => (
                   <span key={tag} style={softTagStyle}>
                     {tag}
                   </span>
@@ -310,11 +348,11 @@ export default function GroupBuyDetailPage() {
             </div>
             <div style={mannerCardStyle}>
               <GraduationCap size={16} color={blue600} fill="rgba(49,130,246,0.12)" />
-              <p style={mannerLabelStyle}>매너 학생</p>
+              <p style={mannerLabelStyle}>{sellerGradeLabel}</p>
               <p style={mannerScoreStyle}>
-                4.3 <span>/ 4.5</span>
+                {sellerGrade} <span>/ 4.5</span>
               </p>
-              <p style={mannerRankStyle}>상위 23%</p>
+              {sellerRankPercent !== undefined ? <p style={mannerRankStyle}>상위 {sellerRankPercent}%</p> : null}
             </div>
           </section>
 
@@ -348,6 +386,7 @@ export default function GroupBuyDetailPage() {
             <NoticeCard
               title="거래 유의사항"
               icon={<LockKeyhole size={22} />}
+              tone="caution"
               lines={[
                 "취소는 마감 전까지만 가능해요.",
                 "마감 후 취소 시 참여가 제한될 수 있어요.",
@@ -510,16 +549,20 @@ function ParticipantCard({ person, index }: { person: Participant; index: number
   );
 }
 
-function NoticeCard({ title, lines, icon }: { title: string; lines: string[]; icon: React.ReactNode }) {
+function NoticeCard({ title, lines, icon, tone = "guide" }: { title: string; lines: string[]; icon: React.ReactNode; tone?: "guide" | "caution" }) {
+  const caution = tone === "caution";
   return (
-    <section style={noticeCardStyle}>
+    <section style={{ ...noticeCardStyle, background: caution ? "linear-gradient(135deg, #FFFCF7 0%, #FFFFFF 100%)" : noticeCardStyle.background }}>
       <div style={noticeHeaderStyle}>
+        <span style={{ ...noticeIconStyle, color: caution ? "#B7793E" : blue600, background: caution ? "#FFF3E2" : blue50 }}>{icon}</span>
         <h3 style={noticeTitleStyle}>{title}</h3>
-        <span style={noticeIconStyle}>{icon}</span>
       </div>
       <ul style={noticeListStyle}>
         {lines.map((line) => (
-          <li key={line}>{line}</li>
+          <li key={line} style={noticeListItemStyle}>
+            <span style={{ ...noticeDotStyle, background: caution ? "#D8A166" : "#75A7FF" }} aria-hidden />
+            <span>{line}</span>
+          </li>
         ))}
       </ul>
     </section>
@@ -968,48 +1011,61 @@ const contentTextStyle: React.CSSProperties = {
 
 const noticeGridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr",
+  gridTemplateColumns: "1fr",
   gap: 9,
 };
 
 const noticeCardStyle: React.CSSProperties = {
   ...cardBase,
-  padding: "13px 12px",
-  minHeight: 124,
-  background: "linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%)",
+  padding: "13px 14px",
+  background: "linear-gradient(135deg, #F8FBFF 0%, #FFFFFF 100%)",
 };
 
 const noticeHeaderStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between",
-  gap: 8,
+  gap: 9,
 };
 
 const noticeIconStyle: React.CSSProperties = {
-  width: 34,
-  height: 34,
-  borderRadius: 12,
+  width: 30,
+  height: 30,
+  borderRadius: 10,
   display: "grid",
   placeItems: "center",
-  color: blue600,
-  background: blue50,
   flexShrink: 0,
 };
 
 const noticeTitleStyle: React.CSSProperties = {
   margin: 0,
   color: grey900,
-  fontSize: 12,
-  fontWeight: 950,
+  fontSize: 12.5,
+  fontWeight: 900,
 };
 
 const noticeListStyle: React.CSSProperties = {
-  margin: "8px 0 0",
-  paddingLeft: 12,
+  display: "grid",
+  gap: 4,
+  margin: "10px 0 0",
+  padding: 0,
   color: grey700,
-  fontSize: 10,
-  lineHeight: "15.5px",
+  fontSize: 10.5,
+  lineHeight: "16px",
+  listStyle: "none",
+};
+
+const noticeListItemStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 7,
+};
+
+const noticeDotStyle: React.CSSProperties = {
+  width: 4,
+  height: 4,
+  marginTop: 6,
+  borderRadius: 999,
+  flexShrink: 0,
 };
 
 const bottomBarStyle: React.CSSProperties = {

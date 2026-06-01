@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ImageIcon, RotateCw, Search, Users } from "lucide-react";
-import { toast } from "sonner";
 
 import { ROUTES } from "../../app/router/routes";
 import { getPosts } from "../../features/group-buy/api/groupBuyApi";
@@ -143,13 +142,11 @@ export default function CategoryPage() {
   const [search, setSearch] = useState("");
   const [posts, setPosts] = useState<ApiPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPosts = useCallback(
-    async (silent = false) => {
-      if (silent) setRefreshing(true);
-      else setLoading(true);
+    async () => {
+      setLoading(true);
       setError(null);
 
       try {
@@ -157,21 +154,18 @@ export default function CategoryPage() {
         const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
         const res = await getPosts(50, 0, selectedFilter?.apiCategory, userId);
         setPosts(extractPosts(res.data));
-        if (silent) toast.success("목록을 새로고침했어요.");
       } catch (err) {
         console.error(err);
         setError("공구 목록을 불러오지 못했어요.");
-        if (silent) toast.error("새로고침에 실패했어요.");
       } finally {
         setLoading(false);
-        setRefreshing(false);
       }
     },
     [filter]
   );
 
   useEffect(() => {
-    void fetchPosts(false);
+    void fetchPosts();
   }, [fetchPosts]);
 
   const setFilterAndUrl = (id: FilterId) => {
@@ -202,27 +196,6 @@ export default function CategoryPage() {
               실제 등록된 공구 {loading ? "" : `${visible.length}개`}
             </p>
           </div>
-          <button
-            type="button"
-            aria-label="새로고침"
-            onClick={() => void fetchPosts(true)}
-            disabled={refreshing}
-            style={{
-              width: 34,
-              height: 34,
-              display: "grid",
-              placeItems: "center",
-              border: `1px solid ${HOME_BORDER}`,
-              background: "#fff",
-              borderRadius: 999,
-              cursor: refreshing ? "default" : "pointer",
-              color: grey500,
-              opacity: refreshing ? 0.5 : 1,
-              boxShadow: "0 1px 3px rgba(15,23,42,0.035)",
-            }}
-          >
-            <RotateCw size={16} strokeWidth={2.1} />
-          </button>
         </div>
 
         <label

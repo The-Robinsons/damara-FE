@@ -27,7 +27,6 @@ import {
   TEXT_TITLE,
   blue50,
   grey400,
-  grey500,
   grey900,
 } from "../../shared/constants/homeTheme";
 import { UI_PAGE_PAD_X, UI_TRANSITION } from "../../shared/constants/damaraUISystem";
@@ -199,7 +198,7 @@ export default function MyPage() {
             </div>
           </div>
 
-          <button type="button" onClick={() => nav(ROUTES.TRUST_INFO)} style={mannerBoxStyle}>
+          <button type="button" data-card-interactive onClick={() => nav(ROUTES.TRUST_INFO)} style={mannerBoxStyle}>
             <span style={{ minWidth: 0 }}>
               <span style={mannerTitleStyle}>
                 매너 점수 {trustGrade} <span style={{ color: grey400, fontWeight: 800 }}>/ 4.5</span>
@@ -273,7 +272,7 @@ function ActivityCard({
   const { Icon } = item;
 
   return (
-    <button type="button" onClick={onClick} style={{ ...activityCardStyle, borderBottom: showDivider ? "1px solid rgba(49, 130, 246, 0.08)" : 0 }}>
+    <button type="button" data-card-interactive="row" onClick={onClick} style={{ ...activityCardStyle, borderBottom: showDivider ? "1px solid rgba(49, 130, 246, 0.08)" : 0 }}>
       <span style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
         <span style={{ ...activityIconStyle, backgroundColor: item.iconBg, color: item.iconColor }}>
           <Icon size={18} strokeWidth={2.2} aria-hidden />
@@ -295,7 +294,7 @@ function UtilityCard({ item, onClick }: { item: ActionItem; onClick: () => void 
   const { Icon } = item;
 
   return (
-    <button type="button" onClick={onClick} style={utilityCardStyle}>
+    <button type="button" data-card-interactive onClick={onClick} style={utilityCardStyle}>
       <span style={{ ...utilityIconStyle, backgroundColor: item.iconBg, color: item.iconColor }}>
         <Icon size={17} strokeWidth={2.15} aria-hidden />
       </span>
@@ -308,14 +307,11 @@ function AccountCard({ item, onClick }: { item: ActionItem; onClick: () => void 
   const { Icon } = item;
 
   return (
-    <button type="button" onClick={onClick} style={item.title === "회원 탈퇴" ? withdrawCardStyle : accountCardStyle}>
-      <span style={{ ...accountIconStyle, backgroundColor: item.iconBg, color: item.iconColor }}>
-        <Icon size={17} strokeWidth={2.15} aria-hidden />
+    <button type="button" data-card-interactive onClick={onClick} style={accountActionStyle}>
+      <span style={accountActionIconStyle}>
+        <Icon size={18} strokeWidth={2.1} aria-hidden />
       </span>
-      <span style={{ minWidth: 0 }}>
-        <span style={accountTitleStyle}>{item.title}</span>
-        <span style={accountDescStyle}>{item.desc}</span>
-      </span>
+      <span>{item.title}</span>
     </button>
   );
 }
@@ -572,49 +568,32 @@ const accountGridStyle: React.CSSProperties = {
   gap: 10,
 };
 
-const accountCardStyle: React.CSSProperties = {
+const accountActionStyle: React.CSSProperties = {
   minHeight: 72,
-  padding: 12,
+  padding: "0 16px",
   borderRadius: 18,
   border: "1px solid rgba(49, 130, 246, 0.14)",
   background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
   display: "flex",
   alignItems: "center",
-  gap: 10,
-  textAlign: "left",
+  justifyContent: "center",
+  gap: 9,
+  color: BRAND_PRIMARY_TEXT,
+  fontSize: 13,
+  fontWeight: 900,
+  textAlign: "center",
   cursor: "pointer",
   transition: UI_TRANSITION,
   boxShadow: "0 6px 18px rgba(49, 130, 246, 0.055)",
 };
 
-const withdrawCardStyle: React.CSSProperties = {
-  ...accountCardStyle,
-  border: "1px solid rgba(49, 130, 246, 0.2)",
-  background: "linear-gradient(180deg, #ffffff 0%, #eef6ff 100%)",
-};
-
-const accountIconStyle: React.CSSProperties = {
+const accountActionIconStyle: React.CSSProperties = {
   width: 34,
   height: 34,
   borderRadius: 12,
   display: "grid",
   placeItems: "center",
   flexShrink: 0,
-};
-
-const accountTitleStyle: React.CSSProperties = {
-  display: "block",
   color: BRAND_PRIMARY_TEXT,
-  fontSize: 12.5,
-  fontWeight: 900,
-  lineHeight: "18px",
-};
-
-const accountDescStyle: React.CSSProperties = {
-  display: "block",
-  marginTop: 2,
-  color: grey500,
-  fontSize: 10.5,
-  fontWeight: 650,
-  lineHeight: "15px",
+  backgroundColor: blue50,
 };

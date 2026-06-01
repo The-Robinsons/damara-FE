@@ -25,6 +25,8 @@ export type ApiPostExceptionSeverity = "info" | "warning" | "critical";
 
 export type ApiNotificationType =
   | "new_participant"
+  | "new_chat_message"
+  | "post_status_changed"
   | "participant_cancel"
   | "deadline_soon"
   | "post_completed"
@@ -112,6 +114,14 @@ export interface ApiPost {
   remainingSeconds?: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface ApiPostProductSearchResponse {
+  exists: boolean;
+  exactMatchExists: boolean;
+  partialMatchExists: boolean;
+  total: number;
+  items: ApiPost[];
 }
 
 export interface ApiPostImage {
@@ -333,6 +343,7 @@ export interface ApiNotice {
   title: string;
   summary?: string | null;
   content: string;
+  category?: string | null;
   type: ApiNoticeType;
   isPinned: boolean;
   createdAt: string;

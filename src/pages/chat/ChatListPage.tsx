@@ -1,11 +1,12 @@
 ﻿import React, { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { createPortal } from "react-dom";
+import { useCallback, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   BookOpen,
   CalendarClock,
   CheckCheck,
-  Clock3,
   Cookie,
   Droplets,
   MapPin,
@@ -19,11 +20,14 @@ import {
   Store,
   User,
   Users,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ROUTES } from "../../app/router/routes";
 import { getMessages, getUserChatRooms, markAllMessagesAsRead, sendMessage } from "../../features/chat/api/chatApi";
-import { checkParticipation } from "../../features/group-buy/api/groupBuyApi";
+import { checkParticipation, searchPostsByProductName } from "../../features/group-buy/api/groupBuyApi";
+import type { ApiPostProductSearchResponse } from "../../shared/api/swaggerTypes";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import { getImageUrl } from "../../shared/utils/imageUrl";
 import { damaraToast, damaraToastMessages } from "../../shared/lib/damaraToast";
@@ -48,7 +52,6 @@ import {
   grey900,
   HOME_BORDER,
   HOME_CANVAS,
-  HOME_CONTROL,
   HOME_CONTROL_TEXT,
   orange50,
   orange500,
@@ -68,6 +71,7 @@ type RoomStatus = "ongoing" | "closing" | "seller";
 type ChatPreview = {
   id: number | string;
   postId?: string;
+  authorId?: string;
   title: string;
   status: RoomStatus;
   timeLabel: string;
@@ -95,6 +99,23 @@ const C_TEXT_SUB = TEXT_SUB;
 const C_TEXT_META = TEXT_META;
 const C_TEXT_TIME = grey400;
 const THUMB_TONES = [blue50, purple50, green50, orange50] as const;
+const SELLER_TONE = {
+  avatarBg: "#EAF2FF",
+  avatarColor: blue600,
+  bubbleBg: "#F7FAFF",
+  border: "rgba(49, 130, 246, 0.2)",
+};
+const PARTICIPANT_TONES = [
+  { avatarBg: "#F3F0FF", avatarColor: "#7C6DE8", bubbleBg: "#FBFAFF", border: "rgba(124, 109, 232, 0.16)" },
+  { avatarBg: "#EDF8F4", avatarColor: "#3F9B7B", bubbleBg: "#FAFDFC", border: "rgba(63, 155, 123, 0.16)" },
+  { avatarBg: "#FFF5E9", avatarColor: "#C77A32", bubbleBg: "#FFFCF8", border: "rgba(199, 122, 50, 0.16)" },
+  { avatarBg: "#EEF5FF", avatarColor: "#5683E8", bubbleBg: "#FBFDFF", border: "rgba(86, 131, 232, 0.16)" },
+] as const;
+
+function getSenderTone(senderId?: string) {
+  const hash = [...String(senderId || "participant")].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  return PARTICIPANT_TONES[hash % PARTICIPANT_TONES.length];
+}
 
 function formatChatTime(value?: string): string {
   if (!value) return "";
@@ -110,6 +131,15 @@ function formatChatTime(value?: string): string {
     if (diffDays === 1) return "어제";
     return `${date.getMonth() + 1}월 ${date.getDate()}일`;
   }
+  const hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours < 12 ? "오전" : "오후"} ${hours % 12 || 12}:${minutes}`;
+}
+
+function formatMessageTime(value?: string): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
   const hours = date.getHours();
   const minutes = String(date.getMinutes()).padStart(2, "0");
   return `${hours < 12 ? "오전" : "오후"} ${hours % 12 || 12}:${minutes}`;
@@ -193,6 +223,7 @@ function mapRoomToPreview(room: any): ChatPreview {
   return {
     id: String(room.id ?? room.chatRoomId ?? room.postId ?? post.id ?? Date.now()),
     postId: room.postId ?? post.id,
+    authorId: String(post.authorId ?? post.author?.id ?? room.authorId ?? ""),
     title: post.title || room.title || "공동구매 채팅",
     status: mapPostStatusToRoomStatus(post),
     timeLabel: formatChatTime(lastMessage.createdAt || room.updatedAt || room.createdAt) || "방금",
@@ -205,18 +236,24 @@ function mapRoomToPreview(room: any): ChatPreview {
   };
 }
 
-function mapMessageToDetail(message: any, currentUserId: string): DetailMessage {
+function mapMessageToDetail(message: any, currentUserId: string, authorId?: string): DetailMessage {
   const senderId = String(message.senderId ?? message.sender?.id ?? "");
   const isMe = Boolean(currentUserId && senderId === currentUserId);
   const senderName = message.sender?.nickname || message.nickname || (isMe ? "나" : "상대");
+  const senderRole = String(message.sender?.role ?? message.senderRole ?? "").toLowerCase();
+  const isSeller =
+    Boolean(authorId && senderId === authorId) ||
+    Boolean(message.sender?.isAuthor ?? message.isAuthor) ||
+    senderRole === "seller" ||
+    senderRole === "author";
   return {
     id: String(message.id ?? `${senderId}-${message.createdAt ?? Math.random()}`),
-    type: isMe ? "me" : "seller",
+    type: isMe ? "me" : isSeller ? "seller" : "participant",
     senderId,
     senderLabel: isMe ? "나" : senderName,
-    subLabel: isMe ? "" : "공동구매",
+    subLabel: !isMe && isSeller ? "공구장" : "",
     text: message.content || "",
-    time: formatChatTime(message.createdAt) || "",
+    time: formatMessageTime(message.createdAt) || "",
   };
 }
 
@@ -310,21 +347,22 @@ function ChatThumb({ type, imageUrl }: { type: ChatPreview["thumbType"]; imageUr
 }
 
 function OtherBubble({ msg }: { msg: DetailMessage }) {
+  const tone = msg.type === "seller" ? SELLER_TONE : getSenderTone(msg.senderId);
   const avatar =
     msg.type === "participant" ? (
-      <User size={17} color={HOME_CONTROL_TEXT} strokeWidth={1.85} aria-hidden />
+      <User size={17} color={tone.avatarColor} strokeWidth={1.85} aria-hidden />
     ) : (
-      <Store size={16} color={C_PRIMARY} strokeWidth={2} aria-hidden />
+      <Store size={16} color={tone.avatarColor} strokeWidth={2} aria-hidden />
     );
   return (
-    <div style={{ display: "flex", gap: 9, padding: "7px 18px" }}>
+    <div data-sender-id={msg.senderId} data-sender-role={msg.type} style={{ display: "flex", gap: 9, padding: "7px 18px" }}>
       <div
         style={{
           width: 32,
           height: 32,
           borderRadius: 12,
-          background: msg.type === "participant" ? "#fff" : blue50,
-          border: "1px solid rgba(229, 232, 235, 0.92)",
+          background: tone.avatarBg,
+          border: `1px solid ${tone.border}`,
           display: "grid",
           placeItems: "center",
           flexShrink: 0,
@@ -335,13 +373,18 @@ function OtherBubble({ msg }: { msg: DetailMessage }) {
       <div style={{ maxWidth: 286 }}>
         <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 4 }}>
           <span style={{ color: C_TEXT_SUB, fontSize: 10.5, fontWeight: 800 }}>{msg.senderLabel}</span>
-          <span style={{ color: C_TEXT_META, fontSize: 11 }}>{msg.subLabel}</span>
+          {msg.subLabel ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "0 6px", height: 17, borderRadius: UI_R_BADGE, backgroundColor: BADGE_INFO_BG, color: BADGE_INFO_TEXT, fontSize: 9.5, fontWeight: 800, lineHeight: "17px" }}>
+              <Store size={10} strokeWidth={2.2} aria-hidden />
+              {msg.subLabel}
+            </span>
+          ) : null}
         </div>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
           <div
             style={{
-              backgroundColor: background,
-              border: "1px solid rgba(229, 232, 235, 0.92)",
+              backgroundColor: tone.bubbleBg,
+              border: `1px solid ${tone.border}`,
               borderRadius: "6px 17px 17px 17px",
               padding: "10px 13px",
               color: C_TEXT_MAIN,
@@ -390,46 +433,83 @@ function MyBubble({ msg }: { msg: DetailMessage }) {
 }
 
 function ChatDetailOverlay({ chat, currentUserId, onClose }: { chat: ChatPreview; currentUserId: string; onClose: () => void }) {
+  const nav = useNavigate();
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<DetailMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [isParticipant, setIsParticipant] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const messageListRef = useRef<HTMLElement | null>(null);
+  const mountedRef = useRef(true);
   const metaParts = chat.locationLabel.split(" · ");
   const detailLocation = metaParts[0] || "장소 미정";
   const detailParticipant = metaParts[1] || "참여 정보 없음";
   const detailDeadline = metaParts[2] || "마감일 미정";
+  const moveToPost = () => {
+    if (!chat.postId) return;
+    onClose();
+    nav(ROUTES.GROUP_BUY_DETAIL.replace(":id", chat.postId));
+  };
 
   useEffect(() => {
-    let cancelled = false;
+    const bodyOverflow = document.body.style.overflow;
+    const htmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
 
-    const run = async () => {
-      if (!chat.id || typeof chat.id === "number") {
-        setMessages([]);
-        setLoadingMessages(false);
-        return;
-      }
-
-      try {
-        setLoadingMessages(true);
-        const res = await getMessages(String(chat.id), 50, 0);
-        if (cancelled) return;
-        setMessages(extractMessages(res.data).map((message) => mapMessageToDetail(message, currentUserId)));
-        if (currentUserId) {
-          markAllMessagesAsRead(String(chat.id), currentUserId).catch(() => undefined);
-        }
-      } catch (error) {
-        console.error(error);
-        if (!cancelled) setMessages([]);
-      } finally {
-        if (!cancelled) setLoadingMessages(false);
-      }
-    };
-
-    run();
     return () => {
-      cancelled = true;
+      document.body.style.overflow = bodyOverflow;
+      document.documentElement.style.overflow = htmlOverflow;
     };
-  }, [chat.id, currentUserId]);
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const refreshMessages = useCallback(async (showLoading = false) => {
+    if (!chat.id || typeof chat.id === "number") {
+      setMessages([]);
+      setLoadingMessages(false);
+      return;
+    }
+
+    try {
+      if (showLoading) setLoadingMessages(true);
+      const res = await getMessages(String(chat.id), 50, 0);
+      if (!mountedRef.current) return;
+      setMessages(extractMessages(res.data).map((message) => mapMessageToDetail(message, currentUserId, chat.authorId)));
+      if (currentUserId) {
+        markAllMessagesAsRead(String(chat.id), currentUserId).catch(() => undefined);
+      }
+    } catch (error) {
+      console.error(error);
+      if (showLoading && mountedRef.current) setMessages([]);
+    } finally {
+      if (showLoading && mountedRef.current) setLoadingMessages(false);
+    }
+  }, [chat.authorId, chat.id, currentUserId]);
+
+  useEffect(() => {
+    void refreshMessages(true);
+    const interval = window.setInterval(() => {
+      void refreshMessages();
+    }, 5000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [refreshMessages]);
+
+  useEffect(() => {
+    window.requestAnimationFrame(() => {
+      const messageList = messageListRef.current;
+      if (messageList) messageList.scrollTop = messageList.scrollHeight;
+    });
+  }, [messages.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -454,7 +534,7 @@ function ChatDetailOverlay({ chat, currentUserId, onClose }: { chat: ChatPreview
 
   const handleSend = async () => {
     const content = draft.trim();
-    if (!content) return;
+    if (!content || isSending) return;
     if (!currentUserId || !chat.id) {
       toast.error("로그인이 필요해요.");
       return;
@@ -472,19 +552,23 @@ function ChatDetailOverlay({ chat, currentUserId, onClose }: { chat: ChatPreview
 
     setDraft("");
     setMessages((prev) => [...prev, optimistic]);
+    setIsSending(true);
 
     try {
       await sendMessage({ chatRoomId: String(chat.id), senderId: currentUserId, content });
+      await refreshMessages();
     } catch (error) {
       console.error(error);
       setMessages((prev) => prev.filter((message) => message.id !== optimistic.id));
       toast.error("메시지 전송에 실패했어요.");
+    } finally {
+      if (mountedRef.current) setIsSending(false);
     }
   };
 
-  return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 80, backgroundColor: HOME_CANVAS, display: "flex", justifyContent: "center" }}>
-      <div style={{ width: "100%", maxWidth: 430, minHeight: "100dvh", backgroundColor: HOME_CANVAS, display: "flex", flexDirection: "column" }}>
+  return createPortal(
+    <div style={{ position: "fixed", inset: 0, zIndex: 120, height: "100dvh", overflow: "hidden", backgroundColor: HOME_CANVAS, display: "flex", justifyContent: "center" }}>
+      <div style={{ width: "100%", maxWidth: 430, height: "100dvh", minHeight: 0, overflow: "hidden", backgroundColor: HOME_CANVAS, display: "flex", flexDirection: "column" }}>
         <header style={{ height: 56, backgroundColor: HOME_CANVAS, borderBottom: `1px solid rgba(229, 232, 235, 0.56)`, display: "flex", alignItems: "center", padding: `0 ${UI_PAGE_PAD_X}px`, gap: 8 }}>
           <button type="button" onClick={onClose} aria-label="뒤로가기" style={{ width: 36, height: 36, flexShrink: 0, border: 0, background: "transparent", borderRadius: 999, display: "grid", placeItems: "center", cursor: "pointer" }}>
             <ArrowLeft size={18} strokeWidth={2} color={grey900} />
@@ -498,38 +582,49 @@ function ChatDetailOverlay({ chat, currentUserId, onClose }: { chat: ChatPreview
           </button>
         </header>
 
-        <div style={{ padding: `12px ${UI_PAGE_PAD_X}px 2px` }}>
-          <div
+        <div style={{ padding: `10px ${UI_PAGE_PAD_X}px 4px` }}>
+          <button
+            type="button"
+            aria-label={`${chat.title} 게시물 상세 보기`}
+            disabled={!chat.postId}
+            onClick={moveToPost}
+            data-card-interactive
             style={{
-              minHeight: 46,
+              width: "100%",
+              minHeight: 74,
               border: "1px solid rgba(229, 232, 235, 0.92)",
               background: "linear-gradient(135deg, #fff 0%, #f8fbff 100%)",
               borderRadius: 18,
-              display: "flex",
-              alignItems: "center",
-              padding: "8px 12px",
-              gap: 8,
-              boxShadow: "0 1px 3px rgba(15, 23, 42, 0.035)",
+              padding: "10px 12px",
+              boxShadow: "0 4px 14px rgba(15, 23, 42, 0.04)",
+              cursor: chat.postId ? "pointer" : "default",
+              textAlign: "left",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
-              <MapPin size={13} color={C_PRIMARY} strokeWidth={2} aria-hidden />
-              <span style={{ fontSize: 11, color: C_TEXT_SUB, fontWeight: 500 }}>
-                수령 <span style={{ color: C_TEXT_META, fontWeight: 600 }}>{detailLocation}</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <span style={{ color: C_TEXT_MAIN, fontSize: 12, fontWeight: 850 }}>거래 안내</span>
+              <span style={{ padding: "0 8px", height: 20, borderRadius: UI_R_BADGE, backgroundColor: isParticipant ? green50 : chat.status === "closing" ? BADGE_URGENT_BG : BADGE_INFO_BG, color: isParticipant ? teal500 : chat.status === "closing" ? BADGE_URGENT_TEXT : BADGE_INFO_TEXT, fontSize: 10, lineHeight: "20px", fontWeight: UI_BADGE_FW, flexShrink: 0 }}>
+                {isParticipant ? "참여 확정" : chat.status === "closing" ? "마감임박" : "진행중"}
               </span>
             </div>
-            <div style={{ width: 1, height: 18, backgroundColor: HOME_BORDER, flexShrink: 0 }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
-              <CalendarClock size={13} color={C_PRIMARY} strokeWidth={2} aria-hidden />
-              <span style={{ fontSize: 11, color: C_TEXT_SUB, fontWeight: 500 }}>
-                마감 <span style={{ color: C_TEXT_META, fontWeight: 600 }}>{detailDeadline}</span>
+            <div className="flex items-center" style={{ gap: 10, marginTop: 7, minWidth: 0, color: C_TEXT_META }}>
+              <span className="flex items-center" style={{ gap: 4, minWidth: 0, fontSize: 11, fontWeight: 650 }}>
+                <MapPin size={12} color={C_PRIMARY} strokeWidth={2} aria-hidden />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{detailLocation}</span>
+              </span>
+              <span className="flex items-center" style={{ gap: 4, flexShrink: 0, fontSize: 11, fontWeight: 650 }}>
+                <CalendarClock size={12} color={C_PRIMARY} strokeWidth={2} aria-hidden />
+                {detailDeadline}
+              </span>
+              <span className="flex items-center" style={{ gap: 4, flexShrink: 0, fontSize: 11, fontWeight: 650 }}>
+                <Users size={12} color={C_PRIMARY} strokeWidth={2} aria-hidden />
+                {detailParticipant}
               </span>
             </div>
-            <span style={{ marginLeft: "auto", padding: "0 8px", height: 20, borderRadius: UI_R_BADGE, backgroundColor: chat.status === "closing" ? BADGE_URGENT_BG : BADGE_INFO_BG, color: chat.status === "closing" ? BADGE_URGENT_TEXT : BADGE_INFO_TEXT, fontSize: 10, lineHeight: "20px", fontWeight: UI_BADGE_FW, flexShrink: 0 }}>{chat.status === "closing" ? "마감임박" : "진행중"}</span>
-          </div>
+          </button>
         </div>
 
-        <main style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingTop: 8, paddingBottom: 18 }}>
+        <main ref={messageListRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingTop: 10, paddingBottom: 18, background: "linear-gradient(180deg, rgba(246,248,252,0.28) 0%, rgba(246,248,252,0.92) 100%)" }}>
           {loadingMessages ? (
             <p style={{ margin: "24px 0", textAlign: "center", color: C_TEXT_META, fontSize: 12, fontWeight: 650 }}>
               메시지를 불러오는 중이에요
@@ -544,63 +639,22 @@ function ChatDetailOverlay({ chat, currentUserId, onClose }: { chat: ChatPreview
             messages.map((msg) => (msg.type === "me" ? <MyBubble key={msg.id} msg={msg} /> : <OtherBubble key={msg.id} msg={msg} />))
           )}
 
-          {isParticipant ? (
-            <div style={{ margin: `12px ${UI_PAGE_PAD_X}px 0`, borderRadius: 18, backgroundColor: blue50, border: "1px solid rgba(49, 130, 246, 0.1)", padding: "13px 16px", textAlign: "center" }}>
-              <p style={{ margin: 0, fontSize: 13.5, lineHeight: "20px", color: grey900, fontWeight: 800, letterSpacing: "-0.02em" }}>공구 참여가 확정됐어요</p>
-              <p style={{ margin: "5px 0 0", fontSize: 12, lineHeight: "18px", color: TEXT_META }}>수령 시간과 장소를 채팅으로 확인해 주세요.</p>
-            </div>
-          ) : null}
-
-          <div style={{ margin: `12px ${UI_PAGE_PAD_X}px 0`, border: "1px solid rgba(229, 232, 235, 0.92)", borderRadius: 20, background: "linear-gradient(135deg, #fff 0%, #f8fbff 100%)", padding: "14px", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.035)" }}>
-            <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ width: 60, height: 60, borderRadius: 17, background: `linear-gradient(145deg, ${THUMB_TONES[0]} 0%, ${blue50} 100%)`, display: "grid", placeItems: "center", border: "1px solid rgba(229, 232, 235, 0.92)", flexShrink: 0 }}>
-                {chat.imageUrl ? (
-                  <img src={chat.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 17, display: "block" }} />
-                ) : (
-                  <Package size={26} color={C_PRIMARY} strokeWidth={1.65} aria-hidden />
-                )}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <strong style={{ fontSize: 14.5, lineHeight: "20px", color: grey900, fontWeight: 850, letterSpacing: "-0.02em" }}>{chat.title}</strong>
-                  <span style={{ height: 20, padding: "0 8px", borderRadius: UI_R_BADGE, backgroundColor: chat.status === "closing" ? BADGE_URGENT_BG : BADGE_INFO_BG, color: chat.status === "closing" ? BADGE_URGENT_TEXT : BADGE_INFO_TEXT, fontSize: 10, lineHeight: "20px", fontWeight: UI_BADGE_FW }}>{chat.status === "closing" ? "마감임박" : "진행중"}</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6, color: C_TEXT_META, fontSize: 12 }}>
-                  <MapPin size={12} strokeWidth={2} aria-hidden /> {detailLocation}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4, color: C_TEXT_META, fontSize: 12 }}>
-                  <Clock3 size={12} strokeWidth={2} aria-hidden /> 마감 <span style={{ color: C_TEXT_SUB, fontWeight: 600 }}>{detailDeadline}</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
-                  <span style={{ color: C_TEXT_META, fontSize: 12, whiteSpace: "nowrap" }}>
-                    <Users size={12} style={{ marginRight: 3, verticalAlign: "middle" }} aria-hidden /> <span style={{ color: C_TEXT_SUB, fontWeight: 600 }}>{detailParticipant}</span>
-                  </span>
-                  <div style={{ flex: 1, height: 5, borderRadius: 999, backgroundColor: HOME_CONTROL, overflow: "hidden" }}>
-                    <div style={{ width: "30%", height: "100%", backgroundColor: C_PRIMARY }} />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-              <button type="button" onClick={() => toast.message("수령 정보 보기 기능은 준비 중입니다.")} style={{ flex: 1, height: 34, borderRadius: 12, border: "1px solid rgba(229, 232, 235, 0.92)", background: "#fff", color: C_TEXT_SUB, fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>수령 정보</button>
-              <button type="button" onClick={() => toast.message("참여 내역 기능은 준비 중입니다.")} style={{ flex: 1, height: 34, borderRadius: 12, border: `1px solid ${blue50}`, background: blue50, color: C_PRIMARY, fontSize: 11.5, fontWeight: 800, cursor: "pointer" }}>참여 내역</button>
-            </div>
-          </div>
         </main>
 
-        <footer style={{ minHeight: 66, padding: `10px ${UI_PAGE_PAD_X}px calc(10px + env(safe-area-inset-bottom, 0px))`, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(16px)", borderTop: "1px solid rgba(229, 232, 235, 0.72)", display: "flex", alignItems: "center", gap: 8, boxShadow: UI_SHADOW_SHEET }}>
+        <form onSubmit={(event) => { event.preventDefault(); void handleSend(); }} style={{ minHeight: 66, padding: `10px ${UI_PAGE_PAD_X}px calc(10px + env(safe-area-inset-bottom, 0px))`, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(16px)", borderTop: "1px solid rgba(229, 232, 235, 0.72)", display: "flex", alignItems: "center", gap: 8, boxShadow: UI_SHADOW_SHEET }}>
           <button type="button" onClick={() => toast.message("첨부는 곧 연결돼요.")} style={{ width: 40, height: 40, borderRadius: 14, border: "1px solid rgba(229, 232, 235, 0.92)", background: background, display: "grid", placeItems: "center", cursor: "pointer" }} aria-label="첨부">
             <Plus size={20} color={C_TEXT_SUB} strokeWidth={2} />
           </button>
           <label style={{ flex: 1, height: 42, borderRadius: 16, border: "1px solid rgba(229, 232, 235, 0.92)", backgroundColor: "#f7f9fc", padding: "0 14px", display: "flex", alignItems: "center" }}>
             <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="메시지를 입력해 주세요" className="placeholder:text-[#b0b8c1]" style={{ flex: 1, border: 0, outline: "none", background: "transparent", color: grey900, fontSize: 14, fontWeight: 500 }} />
           </label>
-          <button type="button" onClick={handleSend} style={{ width: 42, height: 42, borderRadius: 16, border: 0, background: C_PRIMARY, color: background, display: "grid", placeItems: "center", cursor: "pointer", boxShadow: "0 6px 16px rgba(49, 130, 246, 0.22)" }} aria-label="전송">
+          <button type="submit" disabled={!draft.trim() || isSending} style={{ width: 42, height: 42, borderRadius: 16, border: 0, background: C_PRIMARY, color: background, display: "grid", placeItems: "center", cursor: !draft.trim() || isSending ? "default" : "pointer", opacity: !draft.trim() || isSending ? 0.42 : 1, boxShadow: "0 6px 16px rgba(49, 130, 246, 0.22)", transition: "opacity 150ms ease-out" }} aria-label="전송">
             <SendHorizontal size={15} strokeWidth={2.1} />
           </button>
-        </footer>
+        </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -612,6 +666,11 @@ export default function ChatListPage() {
   const [openedChat, setOpenedChat] = useState<ChatPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [matchedPostIds, setMatchedPostIds] = useState<Set<string> | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -647,6 +706,34 @@ export default function ChatListPage() {
   }, [currentUserId]);
 
   useEffect(() => {
+    if (showSearch) searchInputRef.current?.focus();
+  }, [showSearch]);
+
+  useEffect(() => {
+    const productName = searchQuery.trim();
+    if (!showSearch || !productName) {
+      setMatchedPostIds(null);
+      setSearching(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setSearching(true);
+      searchPostsByProductName(productName, 20, currentUserId)
+        .then(({ data }: { data: ApiPostProductSearchResponse }) => {
+          setMatchedPostIds(new Set((Array.isArray(data?.items) ? data.items : []).map((post) => String(post.id))));
+        })
+        .catch(() => {
+          setMatchedPostIds(new Set());
+          toast.error("채팅 검색 결과를 불러오지 못했어요.");
+        })
+        .finally(() => setSearching(false));
+    }, 240);
+
+    return () => window.clearTimeout(timer);
+  }, [currentUserId, searchQuery, showSearch]);
+
+  useEffect(() => {
     const params = new URLSearchParams(routeLocation.search);
     const roomId = params.get("roomId");
     const postId = params.get("postId");
@@ -677,7 +764,16 @@ export default function ChatListPage() {
     );
   }, [routeLocation.search, chats]);
 
-  const displayChats = chats;
+  const displayChats = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    if (!showSearch || !normalizedQuery) return chats;
+
+    return chats.filter((chat) => {
+      const titleMatches = chat.title.toLowerCase().includes(normalizedQuery);
+      const postMatches = chat.postId ? matchedPostIds?.has(String(chat.postId)) : false;
+      return titleMatches || postMatches;
+    });
+  }, [chats, matchedPostIds, searchQuery, showSearch]);
 
   const filterItems = useMemo(() => {
     const ongoingCount = displayChats.filter((chat) => chat.status === "ongoing" || chat.status === "closing").length;
@@ -701,36 +797,61 @@ export default function ChatListPage() {
   return (
     <div data-page="채팅" style={{ minHeight: "100dvh", width: "100%", backgroundColor: HOME_CANVAS, display: "flex", flexDirection: "column" }}>
       <section style={{ flexShrink: 0, backgroundColor: HOME_CANVAS, padding: `18px ${UI_PAGE_PAD_X}px 12px`, boxSizing: "border-box" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
-          <div>
-            <h1 style={{ margin: 0, color: grey900, fontSize: 25, lineHeight: "32px", fontWeight: 900, letterSpacing: 0 }}>
-              채팅
-            </h1>
-            <p style={{ margin: "4px 0 0", color: C_TEXT_META, fontSize: 13, lineHeight: "18px", fontWeight: 650 }}>
-              참여 중인 공구 대화를 모아봤어요
-            </p>
+        {showSearch ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <div style={{ height: 42, minWidth: 0, flex: 1, padding: "0 12px", display: "flex", alignItems: "center", gap: 8, border: `1px solid ${HOME_BORDER}`, borderRadius: 14, background: background, boxShadow: "0 3px 10px rgba(15,23,42,0.035)" }}>
+              <Search size={16} strokeWidth={2.1} color={TEXT_META} aria-hidden />
+              <input
+                ref={searchInputRef}
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="상품명으로 채팅방 검색"
+                aria-label="채팅방 상품명 검색"
+                style={{ minWidth: 0, flex: 1, border: 0, outline: 0, background: "transparent", color: C_TEXT_MAIN, fontSize: 13, fontWeight: 650 }}
+              />
+              {searchQuery ? (
+                <button type="button" aria-label="검색어 지우기" onClick={() => setSearchQuery("")} style={{ width: 26, height: 26, border: 0, borderRadius: 999, background: "transparent", display: "grid", placeItems: "center", color: TEXT_META, cursor: "pointer" }}>
+                  <X size={15} strokeWidth={2.1} aria-hidden />
+                </button>
+              ) : null}
+            </div>
+            <button type="button" onClick={() => { setShowSearch(false); setSearchQuery(""); }} style={{ flexShrink: 0, border: 0, background: "transparent", color: blue600, fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
+              취소
+            </button>
           </div>
-          <button
-            type="button"
-            aria-label="채팅 검색"
-            onClick={() => toast.message("채팅 검색은 곧 연결돼요.")}
-            style={{
-              width: 34,
-              height: 34,
-              border: `1px solid ${HOME_BORDER}`,
-              background: background,
-              borderRadius: 999,
-              color: TEXT_META,
-              display: "grid",
-              placeItems: "center",
-              cursor: "pointer",
-              flexShrink: 0,
-              boxShadow: "0 1px 3px rgba(15,23,42,0.035)",
-            }}
-          >
-            <Search size={17} strokeWidth={2.1} color={TEXT_META} />
-          </button>
-        </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
+            <div>
+              <h1 style={{ margin: 0, color: grey900, fontSize: 25, lineHeight: "32px", fontWeight: 900, letterSpacing: 0 }}>
+                채팅
+              </h1>
+              <p style={{ margin: "4px 0 0", color: C_TEXT_META, fontSize: 13, lineHeight: "18px", fontWeight: 650 }}>
+                참여 중인 공구 대화를 모아봤어요
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label="채팅 검색"
+              onClick={() => setShowSearch(true)}
+              style={{
+                width: 34,
+                height: 34,
+                border: `1px solid ${HOME_BORDER}`,
+                background: background,
+                borderRadius: 999,
+                color: TEXT_META,
+                display: "grid",
+                placeItems: "center",
+                cursor: "pointer",
+                flexShrink: 0,
+                boxShadow: "0 1px 3px rgba(15,23,42,0.035)",
+              }}
+            >
+              <Search size={17} strokeWidth={2.1} color={TEXT_META} />
+            </button>
+          </div>
+        )}
         <div className="no-scrollbar" style={{ display: "flex", alignItems: "center", gap: 7, overflowX: "auto", scrollbarWidth: "none" }}>
         {filterItems.map((item) => {
           const active = filter === item.id;
@@ -769,11 +890,15 @@ export default function ChatListPage() {
           <p style={{ margin: "32px 0", textAlign: "center", color: C_TEXT_META, fontSize: 12, fontWeight: 650 }}>
             채팅방을 불러오는 중이에요
           </p>
+        ) : searching ? (
+          <p style={{ margin: "32px 0", textAlign: "center", color: C_TEXT_META, fontSize: 12, fontWeight: 650 }}>
+            채팅방을 검색하는 중이에요
+          </p>
         ) : visibleChats.length === 0 ? (
           <EmptyState
             icon={<MessageCircle size={64} strokeWidth={1.25} />}
-            title="채팅방이 없어요"
-            description={error || "공동구매에 참여하면 작성자·참여자와 여기서 대화할 수 있어요."}
+            title={searchQuery.trim() ? "검색 결과가 없어요" : "채팅방이 없어요"}
+            description={searchQuery.trim() ? "다른 상품명으로 다시 검색해 보세요." : error || "공동구매에 참여하면 작성자·참여자와 여기서 대화할 수 있어요."}
           />
         ) : (
           visibleChats.map((chat) => {

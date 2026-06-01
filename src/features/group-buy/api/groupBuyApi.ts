@@ -47,6 +47,12 @@ export const getPostDetail = (id: string, userId?: string | null) =>
     ...(userId ? { params: { userId }, headers: { "x-user-id": userId } } : {}),
   });
 
+export const searchPostsByProductName = (productName: string, limit = 10, userId?: string | null) =>
+  axiosInstance.get(`/posts/product-search`, {
+    params: { productName, limit },
+    ...(userId ? { headers: { "x-user-id": userId } } : {}),
+  });
+
 export const createPost = (data: ApiCreatePostInput) =>
   axiosInstance.post(`/posts`, {
     post: data,

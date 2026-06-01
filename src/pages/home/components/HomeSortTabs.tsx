@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 
 import { BRAND_PRIMARY, TEXT_META } from "../../../shared/constants/homeTheme";
@@ -25,6 +26,32 @@ export default function HomeSortTabs({
   onChange,
   onFilterClick,
 }: HomeSortTabsProps) {
+  const tabListRef = useRef<HTMLDivElement | null>(null);
+  const tabRefs = useRef<Record<SortKey, HTMLButtonElement | null>>({
+    latest: null,
+    deadline: null,
+    popular: null,
+  });
+  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
+
+  useEffect(() => {
+    const updateIndicator = () => {
+      const list = tabListRef.current;
+      const activeTab = tabRefs.current[sortBy];
+      if (!list || !activeTab) return;
+      const listRect = list.getBoundingClientRect();
+      const tabRect = activeTab.getBoundingClientRect();
+      setIndicator({ left: tabRect.left - listRect.left, width: tabRect.width });
+    };
+
+    const frame = window.requestAnimationFrame(updateIndicator);
+    window.addEventListener("resize", updateIndicator);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", updateIndicator);
+    };
+  }, [sortBy]);
+
   return (
     <div
       style={{
@@ -33,10 +60,12 @@ export default function HomeSortTabs({
       }}
     >
       <div
+        ref={tabListRef}
         role="tablist"
         aria-label="정렬"
         className="flex items-center"
         style={{
+          position: "relative",
           minWidth: 0,
           height: 34,
           gap: 17,
@@ -48,6 +77,9 @@ export default function HomeSortTabs({
           return (
             <button
               key={tab.key}
+              ref={(element) => {
+                tabRefs.current[tab.key] = element;
+              }}
               type="button"
               role="tab"
               aria-selected={active}
@@ -64,24 +96,24 @@ export default function HomeSortTabs({
               }}
             >
               {tab.label}
-              {active ? (
-                <span
-                  style={{
-                    position: "absolute",
-                    left: "50%",
-                    bottom: 2,
-                    width: "100%",
-                    height: 2,
-                    transform: "translateX(-50%)",
-                    borderRadius: 999,
-                    background: BRAND_PRIMARY,
-                  }}
-                  aria-hidden
-                />
-              ) : null}
             </button>
           );
         })}
+
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            left: indicator.left,
+            bottom: 2,
+            width: indicator.width,
+            height: 2,
+            borderRadius: 999,
+            background: BRAND_PRIMARY,
+            transition: "left 320ms cubic-bezier(0.22, 1, 0.36, 1), width 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+            pointerEvents: "none",
+          }}
+        />
 
         <button
           type="button"
