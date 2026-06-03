@@ -58,11 +58,11 @@ export const createPost = (data: ApiCreatePostInput) =>
     post: data,
   });
 
-export const updatePost = (id: string, data: ApiUpdatePostInput) =>
-  axiosInstance.put(`/posts/${id}`, { post: data });
+export const updatePost = (id: string, data: ApiUpdatePostInput, userId?: string | null) =>
+  axiosInstance.put(`/posts/${id}`, { post: data, ...(userId && { userId }) }, userId ? { headers: { "x-user-id": userId } } : undefined);
 
-export const deletePost = (id: string) =>
-  axiosInstance.delete(`/posts/${id}`);
+export const deletePost = (id: string, userId?: string | null) =>
+  axiosInstance.delete(`/posts/${id}`, userId ? { params: { userId }, headers: { "x-user-id": userId } } : undefined);
 
 export const getPostsByStudentId = (
   studentId: string,

@@ -1,4 +1,4 @@
-import FavoriteHeartButton from "../../../features/group-buy/components/FavoriteHeartButton";
+﻿import FavoriteHeartButton from "../../../features/group-buy/components/FavoriteHeartButton";
 import EmptyState from "../../../shared/components/damara/EmptyState";
 import { SkeletonGroupBuyRow } from "../../../shared/components/damara/Skeleton";
 import { Package } from "lucide-react";
@@ -25,6 +25,14 @@ function getFirstImage(post: any): string {
   );
 }
 
+function getTradeBadge(post: any) {
+  const raw = String(post.groupBuyType ?? post.type ?? "").toLowerCase();
+  if (raw === "post_recruit" || raw === "post_purchase" || raw === "post_purchase_recruit") {
+    return { label: "나눔구매", color: "#5B67F1", background: "rgba(91, 103, 241, 0.11)" };
+  }
+  return { label: "함께구매", color: BRAND_PRIMARY, background: "rgba(49, 130, 246, 0.1)" };
+}
+
 function sortPosts(posts: any[], sortBy?: SortKey): any[] {
   if (!sortBy) return posts;
   const arr = [...posts];
@@ -44,48 +52,13 @@ function sortPosts(posts: any[], sortBy?: SortKey): any[] {
 
 function getDisplayInfo(post: any) {
   const rawTitle = String(post.title ?? "").trim();
-
-  if (rawTitle === "ㅇ") {
-    return {
-      title: "모바일 쿠폰 공동구매",
-      meta: "마감 5월 9일 · 명지대 자연캠 픽업",
-    };
-  }
-
-  if (rawTitle.includes("옥스퍼드")) {
-    return {
-      title: "옥스퍼드 노트 구매하실분~",
-      meta: "마감 5월 10일 · 학생회관 앞 거래",
-    };
-  }
-
-  if (rawTitle.includes("샴푸")) {
-    return {
-      title: "샴푸 공동구매",
-      meta: "마감 5월 11일 · 명지대 후문 거래",
-    };
-  }
-
-  if (rawTitle.includes("물티슈")) {
-    return {
-      title: "물티슈 공동구매",
-      meta: "마감 5월 12일 · 명지대 정문 픽업",
-    };
-  }
-
-  if (rawTitle.includes("대파")) {
-    return {
-      title: "대파 공동구매",
-      meta: "마감 5월 13일 · 명지대 도서관 앞 거래",
-    };
-  }
+  const productName = String(post.productName ?? "").trim();
 
   return {
-    title: rawTitle || "공동구매 상품",
-    meta: `마감 예정 · ${post.pickupLocation || "명지대 캠퍼스"} 픽업`,
+    title: rawTitle || productName || "공동구매 상품",
+    meta: `${post.deadlineLabel || "마감 예정"} · ${post.pickupLocation || "명지대 캠퍼스"} 픽업`,
   };
 }
-
 export default function HomePostList({
   posts,
   sortBy,
@@ -119,16 +92,17 @@ export default function HomePostList({
 
   return (
     <ul className="flex flex-col" style={{ gap: 10, padding: "10px 0 0", margin: 0 }}>
-      {sorted.map((post) => {
+      {sorted.map((post, index) => {
         const display = getDisplayInfo(post);
         const currentPeople = Number(post.currentQuantity ?? 0);
         const maxPeople = Number(post.minParticipants ?? 2);
         const progressPercent = maxPeople > 0 ? Math.min(Math.round((currentPeople / maxPeople) * 100), 100) : 0;
         const price = Math.floor(Number(post.price ?? 0)).toLocaleString("ko-KR");
         const image = getImageUrl(getFirstImage(post));
+        const tradeBadge = getTradeBadge(post);
 
         return (
-          <li key={post.id}>
+          <li key={post.id} data-list-item style={{ animationDelay: `${Math.min(index, 7) * 90}ms` }}>
             <article
               role="button"
               tabIndex={0}
@@ -167,6 +141,7 @@ export default function HomePostList({
               >
                 {image && image !== "/placeholder.png" ? (
                   <img
+                    data-damara-image
                     src={image}
                     alt=""
                     style={{ width: "100%", height: "100%", objectFit: "contain" }}
@@ -192,9 +167,25 @@ export default function HomePostList({
                 >
                   {display.title}
                 </h3>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 5 }}>
+                  <span
+                    style={{
+                      height: 19,
+                      padding: "0 8px",
+                      borderRadius: 999,
+                      color: tradeBadge.color,
+                      background: tradeBadge.background,
+                      fontSize: 10,
+                      fontWeight: 850,
+                      lineHeight: "19px",
+                    }}
+                  >
+                    {tradeBadge.label}
+                  </span>
+                </div>
                 <p
                   style={{
-                    margin: "2px 0 0",
+                    margin: "4px 0 0",
                     color: TEXT_META,
                     fontSize: 11.5,
                     fontWeight: 600,
@@ -237,7 +228,19 @@ export default function HomePostList({
                       }}
                     />
                   </div>
-                  <span style={{ color: TEXT_META, fontSize: 11, fontWeight: 750, lineHeight: "15px" }}>
+                  <span
+                    style={{
+                      minWidth: 38,
+                      padding: "2px 7px",
+                      borderRadius: 999,
+                      color: BRAND_PRIMARY,
+                      background: "rgba(49, 130, 246, 0.1)",
+                      fontSize: 11,
+                      fontWeight: 850,
+                      lineHeight: "15px",
+                      textAlign: "center",
+                    }}
+                  >
                     {progressPercent}%
                   </span>
                 </div>
@@ -253,7 +256,6 @@ export default function HomePostList({
                   }}
                 >
                   {price}원
-                  <span style={{ color: "#A0A8B5", fontSize: 11, fontWeight: 650, marginLeft: 4 }}>/ 1인</span>
                 </p>
               </div>
 

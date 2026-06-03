@@ -1,5 +1,5 @@
 import React from "react";
-import { EnhancedPostFields } from "../utils/enhancedPostMapper";
+import type { EnhancedPostFields } from "../utils/enhancedPostMapper";
 import { VerificationBadge, TrustBadge } from "./TrustBadges";
 
 interface TrustInfoCardProps {

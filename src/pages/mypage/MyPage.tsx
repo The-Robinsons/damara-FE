@@ -68,13 +68,12 @@ function StatSkeleton() {
   return (
     <span
       aria-hidden
+      data-skeleton
       style={{
         display: "inline-block",
         width: 30,
         height: 19,
         borderRadius: 8,
-        background: "linear-gradient(90deg, #f2f4f6 0%, #ffffff 50%, #f2f4f6 100%)",
-        backgroundSize: "200% 100%",
       }}
     />
   );

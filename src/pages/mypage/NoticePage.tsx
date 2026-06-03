@@ -170,9 +170,9 @@ function NoticeDetail({ notice, loading, onClose }: { notice: ApiNotice; loading
 function NoticePlaceholder() {
   return (
     <div style={placeholderStyle}>
-      <div style={{ width: 68, height: 20, borderRadius: 999, background: grey200 }} />
-      <div style={{ width: "78%", height: 18, marginTop: 16, borderRadius: 6, background: grey200 }} />
-      <div style={{ width: "100%", height: 14, marginTop: 10, borderRadius: 6, background: "rgba(229,232,235,0.72)" }} />
+      <div data-skeleton style={{ width: 68, height: 20, borderRadius: 999 }} />
+      <div data-skeleton style={{ width: "78%", height: 18, marginTop: 16, borderRadius: 6 }} />
+      <div data-skeleton style={{ width: "100%", height: 14, marginTop: 10, borderRadius: 6 }} />
     </div>
   );
 }

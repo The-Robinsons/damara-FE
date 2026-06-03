@@ -90,10 +90,6 @@ export default function MyGroupBuyListView({
               <p style={heroEyebrowStyle}>{heroTitle}</p>
               <p style={heroDescStyle}>{heroDescription}</p>
             </div>
-            <div style={{ textAlign: "right", flexShrink: 0 }}>
-              <strong style={{ ...heroCountStyle, color: tone.fg }}>{posts.length}</strong>
-              <span style={heroCountLabelStyle}>개</span>
-            </div>
           </div>
 
           <div style={metricGridStyle}>
@@ -161,8 +157,8 @@ export default function MyGroupBuyListView({
               <span>{posts.length}개</span>
             </div>
             <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
-              {posts.map((post) => (
-                <li key={String(post.id)}>
+              {posts.map((post, index) => (
+                <li key={String(post.id)} data-list-item style={{ animationDelay: `${Math.min(index, 7) * 90}ms` }}>
                   <GroupBuyCard
                     {...mapApiPostToGroupBuyCard(post, () => nav(ROUTES.GROUP_BUY_DETAIL.replace(":id", String(post.id))))}
                   />
@@ -336,22 +332,6 @@ const heroDescStyle: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 600,
   lineHeight: "16px",
-};
-
-const heroCountStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: 28,
-  fontWeight: 900,
-  lineHeight: "30px",
-};
-
-const heroCountLabelStyle: React.CSSProperties = {
-  display: "block",
-  marginTop: 1,
-  color: TEXT_META,
-  fontSize: 10,
-  fontWeight: 800,
-  lineHeight: "14px",
 };
 
 const metricGridStyle: React.CSSProperties = {

@@ -184,6 +184,7 @@ export default function GroupBuyCard({
           </div>
         ) : (
           <img
+            data-damara-image
             src={processedImageUrl}
             alt=""
             style={{ width: "100%", height: "100%", objectFit: "cover" }}

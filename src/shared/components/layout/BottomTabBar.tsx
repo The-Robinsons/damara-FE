@@ -57,11 +57,13 @@ export default function BottomTabBar({ className, onCreateClick }: BottomTabBarP
 
   const renderTab = ({ Icon, to, label }: TabDef) => {
     const isActive = pathname === to;
+    const tutorialTarget = to === ROUTES.CHAT ? "chat-tab" : undefined;
 
     return (
       <button
         key={to}
         type="button"
+        data-tutorial-target={tutorialTarget}
         onClick={() => moveTo(to)}
         aria-label={label}
         aria-current={isActive ? "page" : undefined}
@@ -159,7 +161,7 @@ export default function BottomTabBar({ className, onCreateClick }: BottomTabBarP
       <nav aria-label="하단 메뉴" className="relative flex w-full items-center justify-between" style={navStyle}>
         {LEFT_TABS.map(renderTab)}
 
-        <button type="button" aria-label="공구 등록" onClick={handleCreate} className="damara-nav-fab relative z-[3]" style={{ ...fabStyle, animation: popping ? "damara-fab-pop 270ms cubic-bezier(0.34, 1.56, 0.64, 1)" : undefined }}>
+        <button type="button" data-tutorial-target="create-fab" aria-label="공구 등록" onClick={handleCreate} className="damara-nav-fab relative z-[3]" style={{ ...fabStyle, animation: popping ? "damara-fab-pop 270ms cubic-bezier(0.34, 1.56, 0.64, 1)" : undefined }}>
           {popping ? <span aria-hidden className="damara-nav-ripple" style={rippleStyle} /> : null}
           <span aria-hidden className="damara-nav-fab-gloss" style={fabGlossStyle} />
           <Plus size={25} strokeWidth={3} strokeLinecap="round" color="#FFFFFF" style={{ position: "relative", zIndex: 2, filter: "drop-shadow(0 1px 1px rgba(45, 77, 175, 0.2))" }} />
@@ -172,21 +174,21 @@ export default function BottomTabBar({ className, onCreateClick }: BottomTabBarP
 }
 
 const footerWrapStyle: React.CSSProperties = {
-  padding: "9px 16px max(10px, env(safe-area-inset-bottom, 0px))",
-  background: "linear-gradient(180deg, rgba(247,248,251,0) 0%, rgba(247,248,251,0.8) 46%, rgba(247,248,251,0.97) 100%)",
-  backdropFilter: "blur(13px)",
-  WebkitBackdropFilter: "blur(13px)",
+  padding: "8px 15px max(10px, env(safe-area-inset-bottom, 0px))",
+  background: "linear-gradient(180deg, rgba(247,248,251,0) 0%, rgba(247,248,251,0.62) 52%, rgba(247,248,251,0.94) 100%)",
+  backdropFilter: "blur(16px) saturate(138%)",
+  WebkitBackdropFilter: "blur(16px) saturate(138%)",
 };
 
 const navStyle: React.CSSProperties = {
-  minHeight: 62,
+  minHeight: 61,
   padding: "6px 7px",
   borderRadius: 999,
-  border: "1px solid rgba(255,255,255,0.94)",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(244,247,252,0.98) 100%)",
-  boxShadow: "0 8px 20px rgba(120,140,180,0.09), 0 2px 6px rgba(120,140,180,0.06), inset 0 0 0 1px rgba(225,230,240,0.76), inset 0 1px 2px rgba(255,255,255,1)",
-  backdropFilter: "blur(18px) saturate(145%)",
-  WebkitBackdropFilter: "blur(18px) saturate(145%)",
+  border: "1px solid rgba(226,232,242,0.92)",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(247,249,253,0.94) 100%)",
+  boxShadow: "0 10px 24px rgba(82,101,132,0.075), 0 2px 7px rgba(82,101,132,0.045), inset 0 1px 0 rgba(255,255,255,0.96)",
+  backdropFilter: "blur(18px) saturate(142%)",
+  WebkitBackdropFilter: "blur(18px) saturate(142%)",
 };
 
 const fabStyle: React.CSSProperties = {

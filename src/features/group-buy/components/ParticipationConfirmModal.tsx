@@ -1,5 +1,5 @@
 import React from "react";
-import { EnhancedPostFields } from "../utils/enhancedPostMapper";
+import type { EnhancedPostFields } from "../utils/enhancedPostMapper";
 import { TradeMethodBadge } from "./TrustBadges";
 import { grey600, grey900, HOME_BORDER } from "../../../shared/constants/homeTheme";
 import ConfirmBottomSheet from "../../../shared/components/damara/ConfirmBottomSheet";

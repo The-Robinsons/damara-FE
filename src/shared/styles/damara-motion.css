@@ -127,6 +127,79 @@ select:focus {
   background: rgba(49, 130, 246, 0.18);
 }
 
+.damara-app-shell {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(49, 130, 246, 0.075) 0%, rgba(49, 130, 246, 0.025) 34%, rgba(49, 130, 246, 0) 62%),
+    linear-gradient(180deg, #f8fbff 0%, #f6f8fc 42%, #f7f9fd 100%);
+}
+
+.damara-app-shell::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  z-index: -1;
+  width: min(100vw, 430px);
+  pointer-events: none;
+  transform: translateX(-50%);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(49, 130, 246, 0.075) 0%, rgba(49, 130, 246, 0) 30%),
+    radial-gradient(circle at 84% 22%, rgba(114, 153, 255, 0.07) 0%, rgba(114, 153, 255, 0) 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 34%);
+}
+
+.damara-app-shell::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  left: 50%;
+  z-index: -1;
+  width: min(100vw, 430px);
+  pointer-events: none;
+  transform: translateX(-50%);
+  background-image:
+    linear-gradient(rgba(49, 130, 246, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(49, 130, 246, 0.014) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.34) 0%, transparent 42%);
+  opacity: 0.55;
+}
+
+:where(article[role="button"], [data-card-interactive], button[data-card-interactive]) {
+  box-shadow: var(--damara-shadow-card-soft);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :where(article[role="button"], [data-card-interactive], button[data-card-interactive]):hover {
+    box-shadow: var(--damara-shadow-card-hover) !important;
+  }
+}
+
+:where(input, textarea, select) {
+  transition:
+    background-color var(--damara-motion-base) var(--damara-motion-ease),
+    border-color var(--damara-motion-base) var(--damara-motion-ease),
+    box-shadow var(--damara-motion-base) var(--damara-motion-ease),
+    filter var(--damara-motion-base) var(--damara-motion-ease);
+}
+
+:where(input, textarea, select):focus {
+  box-shadow: 0 0 0 4px rgba(49, 130, 246, 0.08);
+}
+
+[data-damara-image] {
+  background:
+    linear-gradient(135deg, rgba(238, 244, 255, 0.9) 0%, rgba(255, 255, 255, 0.92) 54%, rgba(232, 243, 255, 0.84) 100%);
+  backface-visibility: hidden;
+}
+
+:where(button, a, [role="button"]) {
+  touch-action: manipulation;
+}
+
 @keyframes damara-page-enter {
   from {
     opacity: 0;

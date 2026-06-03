@@ -24,7 +24,7 @@ function mapStatus(raw: string | undefined): GroupBuyCardProps["status"] {
 
 function mapGroupBuyType(raw: unknown): GroupBuyCardProps["groupBuyType"] {
   if (raw === "pre_recruit") return "PRE_RECRUIT";
-  if (raw === "post_purchase") return "POST_PURCHASE";
+  if (raw === "post_recruit" || raw === "post_purchase") return "POST_PURCHASE";
   return (raw as GroupBuyCardProps["groupBuyType"]) ?? null;
 }
 

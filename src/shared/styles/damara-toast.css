@@ -1,49 +1,76 @@
-/**
- * 다마라 전역 Toast (Sonner) — Toss-like 다크 스낵바
- * 마크업: [data-sonner-toaster].damara-sonner-toaster
- */
-
 .damara-sonner-toaster {
   z-index: 120 !important;
 }
 
 .damara-sonner-toaster [data-sonner-toast] {
-  background: #191f28 !important;
-  color: #ffffff !important;
-  border-radius: 14px !important;
-  padding: 12px 16px !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  border: none !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.14) !important;
+  width: min(360px, calc(100vw - 32px)) !important;
+  overflow: hidden !important;
+  padding: 13px 16px 13px 18px !important;
+  border: 1px solid rgba(229, 232, 239, 0.92) !important;
+  border-radius: 18px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: #191f28 !important;
+  box-shadow:
+    0 18px 42px rgba(31, 45, 70, 0.14),
+    0 4px 12px rgba(49, 130, 246, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(16px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(145%) !important;
+}
+
+.damara-sonner-toaster [data-sonner-toast]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 4px;
+  border-radius: 999px;
+  background: #3182f6;
+  box-shadow: 0 0 18px rgba(49, 130, 246, 0.28);
+}
+
+.damara-sonner-toaster [data-sonner-toast][data-type="error"]::before {
+  background: #e5484d;
+  box-shadow: 0 0 18px rgba(229, 72, 77, 0.22);
+}
+
+.damara-sonner-toaster [data-sonner-toast][data-type="warning"]::before {
+  background: #f59f00;
+  box-shadow: 0 0 18px rgba(245, 159, 0, 0.2);
 }
 
 .damara-sonner-toaster [data-sonner-toast] [data-title],
 .damara-sonner-toaster [data-sonner-toast] .damara-toast-title {
-  color: #ffffff !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
+  color: #191f28 !important;
+  font-size: 13.5px !important;
+  font-weight: 760 !important;
   line-height: 1.45 !important;
+  letter-spacing: -0.02em !important;
 }
 
 .damara-sonner-toaster [data-sonner-toast] [data-description],
 .damara-sonner-toaster [data-sonner-toast] .damara-toast-description {
-  color: rgba(255, 255, 255, 0.78) !important;
-  font-size: 13px !important;
-  font-weight: 400 !important;
+  margin-top: 2px !important;
+  color: #6b7684 !important;
+  font-size: 12.5px !important;
+  font-weight: 560 !important;
+  line-height: 1.45 !important;
 }
 
 @keyframes damara-toast-in {
   from {
     opacity: 0;
-    transform: translate3d(0, 6px, 0);
+    transform: translate3d(0, 10px, 0) scale(0.985);
+    filter: blur(2px);
   }
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
   }
 }
 
 .damara-sonner-toaster [data-sonner-toast][data-visible="true"] {
-  animation: damara-toast-in 0.22s ease-out both;
+  animation: damara-toast-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }

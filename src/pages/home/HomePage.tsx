@@ -7,6 +7,7 @@ import HomeCategoryChips from "./components/HomeCategoryChips";
 import HomePopularList from "./components/HomePopularList";
 import HomeSortTabs, { type SortKey } from "./components/HomeSortTabs";
 import HomePostList from "./components/HomePostList";
+import HomeTutorialOverlay from "./components/HomeTutorialOverlay";
 
 import { ROUTES } from "../../app/router/routes";
 import { getPosts } from "../../features/group-buy/api/groupBuyApi";
@@ -124,6 +125,7 @@ export default function HomePage() {
           />
         </section>
       </main>
+      <HomeTutorialOverlay />
     </div>
   );
 }

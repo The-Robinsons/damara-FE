@@ -123,7 +123,7 @@ export default function HomeBanner() {
             alt={banner.alt}
             decoding="async"
             loading="eager"
-            fetchPriority={idx === 0 ? "high" : "auto"}
+            {...({ fetchpriority: idx === 0 ? "high" : "auto" } as React.ImgHTMLAttributes<HTMLImageElement>)}
             draggable={false}
             onLoad={() => setLoaded((prev) => ({ ...prev, [banner.src]: true }))}
             style={{
