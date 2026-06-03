@@ -49,6 +49,8 @@ type ApiPost = {
   deadline?: string;
   pickupLocation?: string;
   category?: string;
+  groupBuyType?: string | null;
+  type?: string | null;
   images?: Array<string | { imageUrl?: string; url?: string }>;
   image?: string;
   isFavorite?: boolean;
@@ -76,6 +78,14 @@ function parseCatParam(value: string | null): FilterId {
   if (value === "stationery") return "school";
   if (value && FILTER_IDS.has(value as FilterId)) return value as FilterId;
   return "all";
+}
+
+function getTradeBadge(post: ApiPost) {
+  const raw = String(post.groupBuyType ?? post.type ?? "").toLowerCase();
+  if (raw === "post_recruit" || raw === "post_purchase" || raw === "post_purchase_recruit") {
+    return { label: "나눔구매", color: "#5B67F1", background: "rgba(91, 103, 241, 0.11)" };
+  }
+  return { label: "함께구매", color: BRAND_PRIMARY, background: "rgba(49, 130, 246, 0.1)" };
 }
 
 function extractPosts(data: unknown): ApiPost[] {
@@ -192,9 +202,6 @@ export default function CategoryPage() {
             <h1 style={{ margin: 0, color: grey900, fontSize: 21, lineHeight: "29px", fontWeight: 900, letterSpacing: 0 }}>
               카테고리
             </h1>
-            <p style={{ margin: "2px 0 0", color: TEXT_META, fontSize: 12, lineHeight: "17px", fontWeight: 650 }}>
-              실제 등록된 공구 {loading ? "" : `${visible.length}개`}
-            </p>
           </div>
         </div>
 
@@ -268,6 +275,7 @@ export default function CategoryPage() {
                 key={String(post.id)}
                 post={post}
                 tint={THUMB_BG[index % THUMB_BG.length]}
+                index={index}
                 onClick={() => nav(ROUTES.GROUP_BUY_DETAIL.replace(":id", String(post.id)))}
               />
             ))}
@@ -278,16 +286,18 @@ export default function CategoryPage() {
   );
 }
 
-function CategoryCard({ post, tint, onClick }: { post: ApiPost; tint: string; onClick: () => void }) {
+function CategoryCard({ post, tint, index, onClick }: { post: ApiPost; tint: string; index: number; onClick: () => void }) {
   const [imgError, setImgError] = useState(false);
   const current = Number(post.currentQuantity ?? 0);
   const max = Number(post.minParticipants ?? 0);
   const progress = getProgress(post);
   const closed = isClosed(post);
   const imageUrl = getImageUrl(getFirstImage(post));
+  const tradeBadge = getTradeBadge(post);
 
   return (
     <article
+      data-list-item
       role="button"
       tabIndex={0}
       onClick={onClick}
@@ -298,7 +308,7 @@ function CategoryCard({ post, tint, onClick }: { post: ApiPost; tint: string; on
         }
       }}
       className="transition-[transform,background-color] duration-150 ease-out active:scale-[0.98]"
-      style={{ borderRadius: 16, border: `1px solid rgba(229, 232, 235, 0.92)`, backgroundColor: "#fff", overflow: "hidden", cursor: "pointer", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.035)" }}
+      style={{ borderRadius: 16, border: `1px solid rgba(229, 232, 235, 0.92)`, backgroundColor: "#fff", overflow: "hidden", cursor: "pointer", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.035)", animationDelay: `${Math.min(index, 7) * 90}ms` }}
     >
       <div className="relative" style={{ height: 124, background: `linear-gradient(145deg, ${tint} 0%, ${blue50} 100%)` }}>
         <span style={{ position: "absolute", left: 8, top: 8, height: 19, padding: "0 8px", borderRadius: UI_R_BADGE, backgroundColor: closed ? BADGE_URGENT_BG : BADGE_INFO_BG, color: closed ? BADGE_URGENT_TEXT : BADGE_INFO_TEXT, fontSize: 9.5, fontWeight: UI_BADGE_FW, lineHeight: "19px", zIndex: 2 }}>
@@ -324,7 +334,7 @@ function CategoryCard({ post, tint, onClick }: { post: ApiPost; tint: string; on
           />
         </div>
         {!imgError && imageUrl && imageUrl !== "/placeholder.png" ? (
-          <img src={imageUrl} alt="" onError={() => setImgError(true)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img data-damara-image src={imageUrl} alt="" onError={() => setImgError(true)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           <div className="flex items-center justify-center" style={{ width: "100%", height: "100%", color: grey400 }} aria-hidden>
             <ImageIcon size={36} strokeWidth={1.5} />
@@ -335,6 +345,21 @@ function CategoryCard({ post, tint, onClick }: { post: ApiPost; tint: string; on
         <p style={{ margin: 0, fontSize: 13, fontWeight: 850, color: grey900, lineHeight: "18px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
           {post.title || "제목 없는 공구"}
         </p>
+        <span
+          style={{
+            width: "fit-content",
+            height: 18,
+            padding: "0 7px",
+            borderRadius: UI_R_BADGE,
+            background: tradeBadge.background,
+            color: tradeBadge.color,
+            fontSize: 9.5,
+            fontWeight: UI_BADGE_FW,
+            lineHeight: "18px",
+          }}
+        >
+          {tradeBadge.label}
+        </span>
         <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: BRAND_PRIMARY, lineHeight: "20px", letterSpacing: 0 }}>
           {formatPrice(post.price)}
         </p>
@@ -360,11 +385,11 @@ function CardSkeletonGrid() {
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
       {[0, 1, 2, 3, 4, 5].map((item) => (
         <div key={item} style={{ height: 224, borderRadius: 16, background: "#fff", border: `1px solid ${HOME_BORDER}`, overflow: "hidden" }}>
-          <div style={{ height: 124, background: "linear-gradient(90deg, #f2f4f6 0%, #ffffff 50%, #f2f4f6 100%)", backgroundSize: "200% 100%" }} />
+          <div data-skeleton style={{ height: 124 }} />
           <div style={{ padding: 11, display: "grid", gap: 8 }}>
-            <span style={{ height: 14, borderRadius: 999, background: grey100 }} />
-            <span style={{ width: "70%", height: 18, borderRadius: 999, background: grey100 }} />
-            <span style={{ width: "86%", height: 12, borderRadius: 999, background: grey100 }} />
+            <span data-skeleton style={{ height: 14, borderRadius: 999 }} />
+            <span data-skeleton style={{ width: "70%", height: 18, borderRadius: 999 }} />
+            <span data-skeleton style={{ width: "86%", height: 12, borderRadius: 999 }} />
           </div>
         </div>
       ))}

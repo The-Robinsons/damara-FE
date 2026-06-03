@@ -117,6 +117,7 @@ export default function HomeSortTabs({
 
         <button
           type="button"
+          data-tutorial-target="filter"
           onClick={onFilterClick}
           aria-label="필터"
           className="relative flex items-center justify-center"

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Camera,
@@ -15,10 +15,10 @@ import {
   Utensils,
   X,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
-import { createPost } from "../../features/group-buy/api/groupBuyApi";
+import { createPost, getPostDetail, updatePost } from "../../features/group-buy/api/groupBuyApi";
 import { getImageUploadErrorMessage, uploadImage } from "../../shared/api/uploadApi";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import { getCreatePostErrorFeedback } from "../../shared/utils/apiError";
@@ -64,6 +64,13 @@ function toDeadlineIso(value: string) {
   return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 }
 
+function toDateInputValue(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+  return date.toISOString().slice(0, 10);
+}
+
 function toPickupTimeRange(value: string) {
   const matches = Array.from(value.matchAll(/(오전|오후)?\s*(\d{1,2})(?::(\d{2}))?\s*시?/g));
   const to24Hour = (match?: RegExpMatchArray) => {
@@ -83,6 +90,8 @@ function toPickupTimeRange(value: string) {
 
 export default function GroupBuyCreatePage() {
   const nav = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("edit");
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [step, setStep] = useState(1);
@@ -102,6 +111,46 @@ export default function GroupBuyCreatePage() {
 
   const progress = useMemo(() => Math.round((step / 5) * 100), [step]);
   const categoryLabel = CATEGORIES.find((item) => item.value === category)?.label ?? "생활용품";
+
+  const isEditMode = Boolean(editId);
+
+  useEffect(() => {
+    if (!editId) return;
+    const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+    let cancelled = false;
+
+    setLoading(true);
+    getPostDetail(editId, userId)
+      .then(({ data }) => {
+        if (cancelled) return;
+        setProductName(String(data.productName || data.title || ""));
+        setTitle(String(data.title || ""));
+        setTradeType(data.groupBuyType === "post_recruit" || data.groupBuyType === "post_purchase" ? "POST_PURCHASE" : "PRE_RECRUIT");
+        setCategory(String(data.category || "daily"));
+        setPrice(String(Math.floor(Number(data.price || 0))));
+        setPeople(String(data.minParticipants || ""));
+        setLocation(String(data.pickupLocation || ""));
+        setPickupDate(toDateInputValue(data.pickupDate));
+        setDeadline(toDateInputValue(data.deadline));
+        setPickupTime([data.pickupStartTime, data.pickupEndTime].filter(Boolean).join(" ~ "));
+        setDescription(String(data.content || ""));
+        const loadedImages = Array.isArray(data.images)
+          ? data.images
+              .map((img: any) => getImageUrl(img?.imageUrl || img?.url || img))
+              .filter(Boolean)
+              .map((url: string) => ({ preview: url, url }))
+          : [];
+        setImages(loadedImages);
+      })
+      .catch(() => toast.error("수정할 공구 정보를 불러오지 못했어요."))
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editId]);
 
   const canGoNext = () => {
     if (step === 1) return productName.trim() && title.trim();
@@ -163,7 +212,7 @@ export default function GroupBuyCreatePage() {
     try {
       setLoading(true);
       const pickupTimes = toPickupTimeRange(pickupTime);
-      await createPost({
+      const payload = {
         title,
         productName,
         content: description || title,
@@ -174,15 +223,21 @@ export default function GroupBuyCreatePage() {
         pickupLocation: location,
         pickupDate,
         ...pickupTimes,
-        groupBuyType: tradeType === "PRE_RECRUIT" ? "pre_recruit" : "post_purchase",
+        groupBuyType: tradeType === "PRE_RECRUIT" ? "pre_recruit" : "post_recruit",
         groupBuyMode: "normal",
         authorId: userId,
         images: images.map((img) => img.url).filter(Boolean),
         category,
-      });
+      };
 
-      toast.success("공구가 등록됐어요.");
-      nav("/home");
+      if (editId) {
+        await updatePost(editId, payload, userId);
+      } else {
+        await createPost(payload);
+      }
+
+      toast.success(editId ? "공구가 수정됐어요." : "공구가 등록됐어요.");
+      nav(editId ? `/post/${editId}` : "/home", { replace: true });
     } catch (err) {
       console.error("공구 등록 실패", err);
       const feedback = getCreatePostErrorFeedback(err);

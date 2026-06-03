@@ -13,10 +13,26 @@ export const getImageUrl = (imagePath: string | null | undefined): string => {
   if (!imagePath) return "/placeholder.png";
 
   const rawPath = imagePath.trim();
+  const normalizedPath = rawPath.replace(/^\/+/, "");
+
+  if (
+    !rawPath ||
+    normalizedPath === "placeholder.png" ||
+    normalizedPath === "uploads/images/placeholder.png"
+  ) {
+    return "/placeholder.png";
+  }
+
+  if (rawPath.startsWith("data:") || rawPath.startsWith("blob:")) {
+    return rawPath;
+  }
 
   if (rawPath.startsWith("http://") || rawPath.startsWith("https://")) {
     try {
       const url = new URL(rawPath);
+      if (url.pathname.endsWith("/placeholder.png")) {
+        return "/placeholder.png";
+      }
       if (isIpHost(url.hostname) || url.hostname.includes("ec2-")) {
         return toApiUploadUrl(url);
       }

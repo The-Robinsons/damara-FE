@@ -7,13 +7,11 @@ function Block({ w, h, r = 8 }: { w: string | number; h: number; r?: number }) {
   return (
     <div
       aria-hidden
+      data-skeleton
       style={{
         width: w,
         height: h,
         borderRadius: r,
-        background: `linear-gradient(90deg, ${grey100} 0%, ${grey50} 50%, ${grey100} 100%)`,
-        backgroundSize: "200% 100%",
-        animation: "damara-shimmer 1.2s ease-in-out infinite",
       }}
     />
   );

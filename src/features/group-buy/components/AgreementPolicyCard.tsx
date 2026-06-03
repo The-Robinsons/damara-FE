@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { EnhancedPostFields } from "../utils/enhancedPostMapper";
+import type { EnhancedPostFields } from "../utils/enhancedPostMapper";
 
 interface AgreementPolicyCardProps {
   data: EnhancedPostFields;

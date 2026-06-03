@@ -44,6 +44,14 @@ function getPopularDisplay(post: any, idx: number) {
   };
 }
 
+function getTradeBadge(post: any) {
+  const raw = String(post.groupBuyType ?? post.type ?? "").toLowerCase();
+  if (raw === "post_recruit" || raw === "post_purchase" || raw === "post_purchase_recruit") {
+    return { label: "나눔구매", color: "#5B67F1", background: "rgba(91, 103, 241, 0.11)" };
+  }
+  return { label: "함께구매", color: BRAND_PRIMARY, background: "rgba(49, 130, 246, 0.1)" };
+}
+
 export default function HomePopularList({ posts, onItemClick }: HomePopularListProps) {
   if (posts.length === 0) return null;
 
@@ -92,10 +100,12 @@ export default function HomePopularList({ posts, onItemClick }: HomePopularListP
           const current = Number(post.currentQuantity ?? 0);
           const max = Number(post.minParticipants ?? 2);
           const display = getPopularDisplay(post, idx);
+          const tradeBadge = getTradeBadge(post);
 
           return (
-            <li key={post.id} style={{ width: 272, flex: "0 0 272px" }}>
+            <li key={post.id} data-list-item style={{ width: 272, flex: "0 0 272px", animationDelay: `${Math.min(idx, 7) * 90}ms` }}>
               <article
+                data-tutorial-target={idx === 0 ? "popular" : undefined}
                 role="button"
                 tabIndex={0}
                 onClick={() => onItemClick(post.id)}
@@ -158,6 +168,7 @@ export default function HomePopularList({ posts, onItemClick }: HomePopularListP
                   ) : null}
                   {imgUrl && imgUrl !== "/placeholder.png" ? (
                     <img
+                      data-damara-image
                       src={imgUrl}
                       alt=""
                       style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 17 }}
@@ -172,20 +183,37 @@ export default function HomePopularList({ posts, onItemClick }: HomePopularListP
 
                 <div style={{ minWidth: 0, flex: 1, padding: "1px 0 0" }}>
                   <div className="flex items-center justify-between" style={{ gap: 5 }}>
-                    <span
-                      style={{
-                        height: 18,
-                        padding: "0 7px",
-                        borderRadius: 999,
-                        backgroundColor: BADGE_INFO_BG,
-                        color: BADGE_INFO_TEXT,
-                        fontSize: 9.5,
-                        fontWeight: 850,
-                        lineHeight: "18px",
-                      }}
-                    >
-                      모집중
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+                      <span
+                        style={{
+                          height: 18,
+                          padding: "0 7px",
+                          borderRadius: 999,
+                          backgroundColor: BADGE_INFO_BG,
+                          color: BADGE_INFO_TEXT,
+                          fontSize: 9.5,
+                          fontWeight: 850,
+                          lineHeight: "18px",
+                        }}
+                      >
+                        모집중
+                      </span>
+                      <span
+                        style={{
+                          height: 18,
+                          padding: "0 7px",
+                          borderRadius: 999,
+                          backgroundColor: tradeBadge.background,
+                          color: tradeBadge.color,
+                          fontSize: 9.5,
+                          fontWeight: 850,
+                          lineHeight: "18px",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {tradeBadge.label}
+                      </span>
+                    </div>
                     <FavoriteHeartButton
                       postId={post.id}
                       initialIsFavorite={Boolean(post.isFavorite)}

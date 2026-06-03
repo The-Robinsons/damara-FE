@@ -18,6 +18,7 @@ export default function HomeCategoryChips({
   return (
     <div style={{ padding: `8px ${UI_PAGE_PAD_X}px 13px` }}>
       <div
+        data-tutorial-target="category"
         role="tablist"
         aria-label="홈 카테고리 필터"
         className="no-scrollbar flex items-center overflow-x-auto"

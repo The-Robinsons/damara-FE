@@ -9,6 +9,8 @@ import {
   CheckCheck,
   Cookie,
   Droplets,
+  Flag,
+  LogOut,
   MapPin,
   MessageCircle,
   MoreVertical,
@@ -295,9 +297,10 @@ function ChatThumb({ type, imageUrl }: { type: ChatPreview["thumbType"]; imageUr
           flexShrink: 0,
         }}
       >
-        <img
-          src={imageUrl}
-          alt=""
+      <img
+        data-damara-image
+        src={imageUrl}
+        alt=""
           loading="lazy"
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
@@ -439,6 +442,7 @@ function ChatDetailOverlay({ chat, currentUserId, onClose }: { chat: ChatPreview
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [isParticipant, setIsParticipant] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const messageListRef = useRef<HTMLElement | null>(null);
   const mountedRef = useRef(true);
   const metaParts = chat.locationLabel.split(" · ");
@@ -449,6 +453,14 @@ function ChatDetailOverlay({ chat, currentUserId, onClose }: { chat: ChatPreview
     if (!chat.postId) return;
     onClose();
     nav(ROUTES.GROUP_BUY_DETAIL.replace(":id", chat.postId));
+  };
+  const reportChat = () => {
+    setShowMenu(false);
+    toast.message("신고하기 기능은 곧 연결돼요.");
+  };
+  const leaveChat = () => {
+    setShowMenu(false);
+    toast.message("채팅방 나가기 기능은 곧 연결돼요.");
   };
 
   useEffect(() => {
@@ -577,9 +589,27 @@ function ChatDetailOverlay({ chat, currentUserId, onClose }: { chat: ChatPreview
             <h1 style={{ margin: 0, color: grey900, fontSize: 16, lineHeight: "22px", fontWeight: 850, letterSpacing: "-0.02em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{chat.title}</h1>
             <p style={{ margin: 0, color: C_TEXT_META, fontSize: 11, lineHeight: "16px", fontWeight: 600 }}>공동구매 채팅방</p>
           </div>
-          <button type="button" onClick={() => toast.message("메뉴는 곧 연결돼요.")} aria-label="더보기" style={{ width: 36, height: 36, flexShrink: 0, border: 0, background: "transparent", borderRadius: 999, display: "grid", placeItems: "center", cursor: "pointer" }}>
-            <MoreVertical size={17} strokeWidth={2} color={C_TEXT_META} />
-          </button>
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <button type="button" onClick={() => setShowMenu((open) => !open)} aria-label="더보기" style={{ width: 36, height: 36, border: 0, background: "transparent", borderRadius: 999, display: "grid", placeItems: "center", cursor: "pointer" }}>
+              <MoreVertical size={17} strokeWidth={2} color={C_TEXT_META} />
+            </button>
+            {showMenu ? (
+              <div style={chatMenuStyle}>
+                <button type="button" onClick={moveToPost} disabled={!chat.postId} style={chatMenuItemStyle}>
+                  <Package size={14} strokeWidth={2.1} aria-hidden />
+                  게시물 보기
+                </button>
+                <button type="button" onClick={reportChat} style={chatMenuItemStyle}>
+                  <Flag size={14} strokeWidth={2.1} aria-hidden />
+                  신고하기
+                </button>
+                <button type="button" onClick={leaveChat} style={{ ...chatMenuItemStyle, color: "#E5484D" }}>
+                  <LogOut size={14} strokeWidth={2.1} aria-hidden />
+                  채팅방 나가기
+                </button>
+              </div>
+            ) : null}
+          </div>
         </header>
 
         <div style={{ padding: `10px ${UI_PAGE_PAD_X}px 4px` }}>
@@ -746,23 +776,13 @@ export default function ChatListPage() {
     const matchedChat =
       sourceChats.find((chat) => String(chat.id) === String(roomId || postId)) ||
       sourceChats.find((chat) => title && chat.title === title);
-    const fallbackId = Number(roomId || postId);
 
-    setOpenedChat(
-      matchedChat ?? {
-        id: roomId || (Number.isFinite(fallbackId) ? fallbackId : Date.now()),
-        postId: postId || undefined,
-        title: title || "공동구매 채팅",
-        status: "ongoing",
-        timeLabel: "방금",
-        locationLabel: locationLabel || "공동구매",
-        locationKind: "people",
-        preview: "공구 관련 대화를 시작해보세요.",
-        unreadCount: 0,
-        thumbType: "box",
-      }
-    );
-  }, [routeLocation.search, chats]);
+    if (matchedChat) {
+      setOpenedChat(matchedChat);
+    } else if (!loading && chats.length > 0) {
+      toast.error("채팅방을 찾을 수 없어요.");
+    }
+  }, [routeLocation.search, chats, loading]);
 
   const displayChats = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -901,43 +921,54 @@ export default function ChatListPage() {
             description={searchQuery.trim() ? "다른 상품명으로 다시 검색해 보세요." : error || "공동구매에 참여하면 작성자·참여자와 여기서 대화할 수 있어요."}
           />
         ) : (
-          visibleChats.map((chat) => {
+          visibleChats.map((chat, index) => {
+            const hasUnread = chat.unreadCount > 0;
             return (
             <button
+              data-list-item
               key={chat.id}
               type="button"
               onClick={() => {
                 damaraToast.show(damaraToastMessages.chatRoomEntered);
                 setOpenedChat(chat);
+                if (chat.unreadCount > 0) {
+                  setChats((prev) => prev.map((item) => (String(item.id) === String(chat.id) ? { ...item, unreadCount: 0 } : item)));
+                }
               }}
               className="transition-[transform,background-color] duration-150 ease-out active:scale-[0.98]"
               style={{
                 width: `calc(100% - ${UI_PAGE_PAD_X * 2}px)`,
                 margin: `0 ${UI_PAGE_PAD_X}px 10px`,
                 minHeight: 112,
-                border: "1px solid #EEF2F6",
+                border: hasUnread ? "1px solid rgba(49, 130, 246, 0.34)" : "1px solid #EEF2F6",
                 borderRadius: 24,
-                background: "#fff",
+                background: hasUnread ? "linear-gradient(135deg, #F4F8FF 0%, #FFFFFF 58%)" : "#fff",
                 display: "flex",
                 alignItems: "stretch",
                 gap: 12,
                 padding: "14px",
                 textAlign: "left",
                 cursor: "pointer",
-                boxShadow: "0 7px 22px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.022)",
+                boxShadow: hasUnread
+                  ? "0 10px 28px rgba(49, 130, 246, 0.11), 0 1px 4px rgba(15, 23, 42, 0.035)"
+                  : "0 7px 22px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.022)",
                 position: "relative",
+                overflow: "hidden",
+                animationDelay: `${Math.min(index, 7) * 90}ms`,
               }}
             >
+              {hasUnread ? <span aria-hidden style={unreadGlowStyle} /> : null}
+              {hasUnread ? <span aria-hidden style={unreadSideBarStyle} /> : null}
               <ChatThumb type={chat.thumbType} imageUrl={chat.imageUrl} />
               <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7, width: "100%", paddingRight: 56 }}>
                   <strong
                     style={{
                       minWidth: 0,
-                      color: grey900,
+                      color: hasUnread ? "#123E8A" : grey900,
                       fontSize: 15.2,
                       lineHeight: "21px",
-                      fontWeight: 850,
+                      fontWeight: hasUnread ? 920 : 850,
                       letterSpacing: 0,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -965,10 +996,25 @@ export default function ChatListPage() {
                 <p style={{ margin: "6px 0 0", color: C_TEXT_META, fontSize: 12, lineHeight: "17px", fontWeight: 650, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {chat.locationLabel}
                 </p>
-                <p style={{ margin: "7px 0 0", color: C_TEXT_SUB, fontSize: 12.5, lineHeight: "18px", fontWeight: 550, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", paddingRight: chat.unreadCount > 0 ? 32 : 0 }}>
+                <p
+                  style={{
+                    margin: "7px 0 0",
+                    color: hasUnread ? "#2D5BA8" : C_TEXT_SUB,
+                    fontSize: 12.5,
+                    lineHeight: "18px",
+                    fontWeight: hasUnread ? 760 : 550,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    paddingRight: hasUnread ? 72 : 0,
+                  }}
+                >
                   {chat.preview}
                 </p>
-                  {chat.unreadCount > 0 ? (
+                  {hasUnread ? (
+                    <span style={newMessagePillStyle}>새 메시지</span>
+                  ) : null}
+                  {hasUnread ? (
                     <span
                       style={{
                         position: "absolute",
@@ -1001,3 +1047,65 @@ export default function ChatListPage() {
     </div>
   );
 }
+
+const chatMenuStyle: React.CSSProperties = {
+  position: "absolute",
+  top: 40,
+  right: 0,
+  zIndex: 130,
+  minWidth: 140,
+  padding: 6,
+  borderRadius: 15,
+  border: "1px solid rgba(229, 232, 235, 0.92)",
+  background,
+  boxShadow: "0 14px 34px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.06)",
+};
+
+const chatMenuItemStyle: React.CSSProperties = {
+  width: "100%",
+  height: 38,
+  padding: "0 10px",
+  border: 0,
+  borderRadius: 11,
+  display: "flex",
+  alignItems: "center",
+  gap: 7,
+  background: "transparent",
+  color: grey900,
+  fontSize: 12.5,
+  fontWeight: 800,
+  cursor: "pointer",
+  textAlign: "left",
+};
+
+const unreadGlowStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  pointerEvents: "none",
+  background: "radial-gradient(circle at 86% 74%, rgba(49,130,246,0.15) 0%, rgba(49,130,246,0.05) 34%, transparent 62%)",
+};
+
+const unreadSideBarStyle: React.CSSProperties = {
+  position: "absolute",
+  left: 0,
+  top: 18,
+  bottom: 18,
+  width: 3,
+  borderRadius: 999,
+  background: BRAND_PRIMARY,
+  boxShadow: "0 0 12px rgba(49,130,246,0.35)",
+};
+
+const newMessagePillStyle: React.CSSProperties = {
+  position: "absolute",
+  right: 42,
+  bottom: 13,
+  height: 20,
+  padding: "0 8px",
+  borderRadius: UI_R_BADGE,
+  background: "rgba(49,130,246,0.1)",
+  color: BRAND_PRIMARY,
+  fontSize: 10.5,
+  fontWeight: 850,
+  lineHeight: "20px",
+};

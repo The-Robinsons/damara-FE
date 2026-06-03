@@ -27,6 +27,7 @@ export default function AppHeader() {
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationFilter, setNotificationFilter] = useState<NotificationFilter>("all");
+  const [isScrolled, setIsScrolled] = useState(false);
   const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
   const filteredNotifications = useMemo(
     () => notifications.filter((notification) => matchesNotificationFilter(notification, notificationFilter)),
@@ -39,6 +40,13 @@ export default function AppHeader() {
       .then(({ data }) => setUnreadCount(Number(data?.unreadCount) || 0))
       .catch(() => setUnreadCount(0));
   }, [userId]);
+
+  useEffect(() => {
+    const updateScrolled = () => setIsScrolled(window.scrollY > 8);
+    updateScrolled();
+    window.addEventListener("scroll", updateScrolled, { passive: true });
+    return () => window.removeEventListener("scroll", updateScrolled);
+  }, []);
 
   useEffect(() => {
     if (activePanel === "search") searchInputRef.current?.focus();
@@ -131,15 +139,15 @@ export default function AppHeader() {
 
   return (
     <>
-      <header className="fixed left-0 right-0 top-0 z-50 mx-auto max-w-[430px]" style={headerStyle}>
+      <header className="fixed left-0 right-0 top-0 z-50 mx-auto max-w-[430px]" style={{ ...headerStyle, ...(isScrolled ? headerScrolledStyle : {}) }}>
         <div className="flex items-center justify-between" style={{ height: APP_HEADER_HEIGHT_PX, paddingLeft: 22, paddingRight: 22 }}>
           <button type="button" style={brandMarkStyle} aria-label="홈으로 이동" onClick={() => nav(ROUTES.HOME)}>
             <img src={damaraMark} alt="" aria-hidden style={headerLogoStyle} />
           </button>
 
           <div className="flex shrink-0 items-center" style={{ gap: 7 }}>
-            <HeaderIcon label="검색" onClick={() => setActivePanel("search")}><Search size={20} strokeWidth={2.05} /></HeaderIcon>
-            <HeaderIcon label="알림" onClick={() => void openNotifications()} showDot={unreadCount > 0}><Bell size={20} strokeWidth={2.05} /></HeaderIcon>
+            <HeaderIcon label="검색" tutorialTarget="search" onClick={() => setActivePanel("search")}><Search size={20} strokeWidth={2.05} /></HeaderIcon>
+            <HeaderIcon label="알림" tutorialTarget="notification" onClick={() => void openNotifications()} showDot={unreadCount > 0} alert={unreadCount > 0}><Bell size={20} strokeWidth={2.05} /></HeaderIcon>
           </div>
         </div>
       </header>
@@ -153,10 +161,10 @@ export default function AppHeader() {
             {query ? <button type="button" aria-label="검색어 지우기" onClick={() => setQuery("")} style={plainIconStyle}><X size={16} /></button> : null}
           </div>
           <div style={panelBodyStyle}>
-            {!query.trim() ? <PanelEmpty icon={<PackageSearch size={25} />} title="어떤 상품을 찾고 있나요?" description="상품명을 입력하면 비슷한 공동구매를 찾아드려요." /> : searching ? <PanelEmpty icon={<Search size={24} />} title="검색 중이에요" description="잠시만 기다려 주세요." /> : searchResults.length === 0 ? <PanelEmpty icon={<PackageSearch size={25} />} title="검색 결과가 없어요" description="다른 상품명으로 다시 검색해 보세요." /> : searchResults.map((post) => (
+            {!query.trim() ? <PanelEmpty icon={<PackageSearch size={25} />} title="어떤 상품을 찾고 있나요?" description="상품명을 입력하면 비슷한 공동구매를 찾아드려요." /> : searching ? <SearchLoading /> : searchResults.length === 0 ? <PanelEmpty icon={<PackageSearch size={25} />} title="검색 결과가 없어요" description="다른 상품명으로 다시 검색해 보세요." /> : searchResults.map((post) => (
               <button key={post.id} type="button" onClick={() => moveToPost(post.id)} style={resultRowStyle}>
                 <span style={thumbnailStyle}>
-                  {post.thumbnailUrl ? <img src={post.thumbnailUrl} alt="" style={thumbnailImageStyle} /> : <PackageSearch size={19} color={BRAND_PRIMARY} aria-hidden />}
+                  {post.thumbnailUrl ? <img data-damara-image src={post.thumbnailUrl} alt="" style={thumbnailImageStyle} /> : <PackageSearch size={19} color={BRAND_PRIMARY} aria-hidden />}
                 </span>
                 <span style={{ minWidth: 0, flex: 1 }}>
                   <strong style={rowTitleStyle}>{post.productName || post.title}</strong>
@@ -265,7 +273,7 @@ function NotificationPanel({
           <PanelEmpty icon={<Bell size={24} />} title="알림이 없어요" description="새로운 소식이 생기면 이곳에서 알려드릴게요." />
         ) : (
           notifications.map((notification) => (
-            <button key={notification.id} type="button" onClick={() => onOpen(notification)} style={notificationCardStyle}>
+            <button key={notification.id} type="button" onClick={() => onOpen(notification)} data-card-interactive style={notificationCardStyle}>
               {!notification.isRead ? <span style={unreadDotStyle} aria-hidden /> : null}
               <span style={notificationCardIconStyle}>{getNotificationIcon(notification.type)}</span>
               <span style={{ minWidth: 0, flex: 1 }}>
@@ -311,8 +319,45 @@ function PanelEmpty({ icon, title, description }: { icon: React.ReactNode; title
   );
 }
 
-function HeaderIcon({ label, onClick, children, showDot }: { label: string; onClick: () => void; children: React.ReactNode; showDot?: boolean }) {
-  return <button type="button" aria-label={label} style={headerIconStyle} onClick={onClick}>{children}{showDot ? <span aria-hidden style={dotStyle} /> : null}</button>;
+function SearchLoading() {
+  return (
+    <div style={searchLoadingStyle}>
+      <style>{`
+        @keyframes damara-search-pulse {
+          0%, 100% { transform: scale(0.82); opacity: 0.42; }
+          50% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes damara-search-sweep {
+          0% { transform: translateX(-68%); opacity: 0; }
+          28% { opacity: 1; }
+          100% { transform: translateX(168%); opacity: 0; }
+        }
+      `}</style>
+      <span style={searchLoadingIconStyle}>
+        <Search size={22} strokeWidth={2.2} aria-hidden />
+        <span style={searchSweepStyle} aria-hidden />
+      </span>
+      <strong style={emptyTitleStyle}>공구를 검색하는 중이에요</strong>
+      <p style={emptyDescriptionStyle}>비슷한 상품명을 빠르게 찾아보고 있어요.</p>
+      <span style={searchDotsStyle} aria-hidden>
+        {[0, 1, 2].map((index) => (
+          <i key={index} style={{ ...searchDotStyle, animationDelay: `${index * 120}ms` }} />
+        ))}
+      </span>
+    </div>
+  );
+}
+
+function HeaderIcon({ label, tutorialTarget, onClick, children, showDot, alert }: { label: string; tutorialTarget?: string; onClick: () => void; children: React.ReactNode; showDot?: boolean; alert?: boolean }) {
+  return (
+    <button type="button" data-tutorial-target={tutorialTarget} aria-label={label} className={alert ? "damara-header-alert" : undefined} style={headerIconStyle} onClick={onClick}>
+      {alert ? <span aria-hidden style={alertRippleStyle} /> : null}
+      <span className={alert ? "damara-header-alert-icon" : undefined} style={{ position: "relative", zIndex: 1, display: "grid", placeItems: "center" }}>
+        {children}
+      </span>
+      {showDot ? <span aria-hidden className="damara-header-alert-dot" style={dotStyle} /> : null}
+    </button>
+  );
 }
 
 function formatNotificationTime(value?: string) {
@@ -343,10 +388,12 @@ function getNotificationIcon(type: ApiNotification["type"]) {
 }
 
 const headerStyle: React.CSSProperties = { paddingTop: "env(safe-area-inset-top, 0px)", backgroundColor: "rgba(246, 248, 252, 0.86)", borderBottom: "1px solid rgba(229, 232, 239, 0.54)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" };
+const headerScrolledStyle: React.CSSProperties = { backgroundColor: "rgba(255, 255, 255, 0.94)", borderBottom: "1px solid rgba(213, 222, 238, 0.72)", boxShadow: "0 8px 24px rgba(31, 45, 70, 0.055)" };
 const brandMarkStyle: React.CSSProperties = { display: "flex", minWidth: 0, alignItems: "center", padding: 0, border: 0, background: "transparent", cursor: "pointer" };
 const headerLogoStyle: React.CSSProperties = { width: 34, height: 34, objectFit: "contain", display: "block" };
 const headerIconStyle: React.CSSProperties = { position: "relative", width: 34, height: 34, borderRadius: 999, border: 0, color: grey500, background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" };
 const dotStyle: React.CSSProperties = { position: "absolute", right: 7, top: 7, width: 6, height: 6, borderRadius: 999, background: BRAND_PRIMARY, boxShadow: `0 0 0 2px ${HOME_CANVAS}` };
+const alertRippleStyle: React.CSSProperties = { position: "absolute", inset: 4, borderRadius: 999, background: "rgba(49, 130, 246, 0.1)", boxShadow: "0 0 0 0 rgba(49,130,246,0.18)", animation: "damara-header-alert-ripple 1.8s ease-out infinite" };
 const backdropStyle: React.CSSProperties = { position: "fixed", inset: 0, zIndex: 60, background: "rgba(20, 38, 68, 0.22)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)" };
 const panelStyle: React.CSSProperties = { position: "fixed", zIndex: 70, top: "calc(68px + env(safe-area-inset-top, 0px))", left: "50%", width: "min(calc(100% - 20px), 410px)", maxHeight: "min(590px, calc(100dvh - 88px))", transform: "translateX(-50%)", overflow: "hidden", border: "1px solid rgba(205, 218, 239, 0.92)", borderRadius: 22, background: "rgba(255,255,255,0.985)", boxShadow: "0 24px 54px rgba(20, 50, 92, 0.2), 0 3px 10px rgba(24, 59, 105, 0.08)" };
 const panelHandleStyle: React.CSSProperties = { width: 34, height: 4, margin: "8px auto 0", borderRadius: 999, background: "#DDE6F2" };
@@ -371,6 +418,11 @@ const emptyStateStyle: React.CSSProperties = { padding: "34px 18px 38px", displa
 const emptyIconStyle: React.CSSProperties = { width: 54, height: 54, borderRadius: 18, background: "#EDF4FF", color: BRAND_PRIMARY, display: "grid", placeItems: "center" };
 const emptyTitleStyle: React.CSSProperties = { marginTop: 13, color: grey900, fontSize: 14, fontWeight: 820, lineHeight: "20px" };
 const emptyDescriptionStyle: React.CSSProperties = { margin: "5px 0 0", color: grey500, fontSize: 12, fontWeight: 590, lineHeight: "18px" };
+const searchLoadingStyle: React.CSSProperties = { padding: "34px 18px 36px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" };
+const searchLoadingIconStyle: React.CSSProperties = { position: "relative", width: 58, height: 58, borderRadius: 20, background: "linear-gradient(135deg, #EEF4FF 0%, #F8FBFF 100%)", color: BRAND_PRIMARY, display: "grid", placeItems: "center", overflow: "hidden", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.92)" };
+const searchSweepStyle: React.CSSProperties = { position: "absolute", inset: 0, width: "46%", background: "linear-gradient(90deg, transparent 0%, rgba(49,130,246,0.16) 50%, transparent 100%)", animation: "damara-search-sweep 1280ms ease-in-out infinite" };
+const searchDotsStyle: React.CSSProperties = { display: "flex", gap: 5, marginTop: 13 };
+const searchDotStyle: React.CSSProperties = { width: 6, height: 6, borderRadius: 999, background: BRAND_PRIMARY, animation: "damara-search-pulse 760ms ease-in-out infinite" };
 const notificationPanelStyle: React.CSSProperties = { position: "fixed", zIndex: 70, top: "calc(68px + env(safe-area-inset-top, 0px))", left: "50%", width: "min(calc(100% - 20px), 410px)", maxHeight: "min(660px, calc(100dvh - 82px))", transform: "translateX(-50%)", overflow: "hidden", border: "1px solid #E5E8EF", borderRadius: 24, background: "#FFFFFF", boxShadow: "0 20px 48px rgba(31, 45, 70, 0.16), 0 3px 10px rgba(31, 45, 70, 0.06)" };
 const notificationHeaderStyle: React.CSSProperties = { padding: "13px 17px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 };
 const notificationPanelTitleStyle: React.CSSProperties = { margin: 0, color: "#191F28", fontSize: 23, lineHeight: "30px", fontWeight: 900, letterSpacing: "-0.035em" };
@@ -381,7 +433,7 @@ const notificationFilterStyle: React.CSSProperties = { display: "flex", gap: 7, 
 const filterChipStyle: React.CSSProperties = { height: 30, padding: "0 12px", flexShrink: 0, border: "1px solid #E5E8EF", borderRadius: 999, color: "#8B95A1", background: "#FFFFFF", fontSize: 11.5, lineHeight: "28px", fontWeight: 700, cursor: "pointer", transition: "background-color 180ms ease, color 180ms ease, border-color 180ms ease" };
 const activeFilterChipStyle: React.CSSProperties = { borderColor: BRAND_PRIMARY, color: "#FFFFFF", background: BRAND_PRIMARY };
 const notificationListStyle: React.CSSProperties = { maxHeight: "min(500px, calc(100dvh - 226px))", padding: "3px 12px 14px", display: "grid", gap: 9, overflowY: "auto", background: "#FFFFFF" };
-const notificationCardStyle: React.CSSProperties = { position: "relative", width: "100%", minHeight: 91, padding: "12px 12px 12px 16px", display: "flex", alignItems: "center", gap: 10, border: "1px solid #E5E8EF", borderRadius: 18, color: "#191F28", background: "#FFFFFF", boxShadow: "0 4px 12px rgba(31, 45, 70, 0.045)", textAlign: "left", cursor: "pointer" };
+const notificationCardStyle: React.CSSProperties = { position: "relative", width: "100%", minHeight: 91, padding: "12px 12px 12px 16px", display: "flex", alignItems: "center", gap: 10, border: "1px solid #E5E8EF", borderRadius: 18, color: "#191F28", background: "#FFFFFF", boxShadow: "0 4px 12px rgba(31, 45, 70, 0.045)", textAlign: "left", cursor: "pointer", transition: "background-color 180ms ease, border-color 180ms ease, filter 180ms ease" };
 const notificationCardIconStyle: React.CSSProperties = { width: 44, height: 44, flexShrink: 0, display: "grid", placeItems: "center", borderRadius: 15, color: BRAND_PRIMARY, background: "#EEF4FF" };
 const notificationTitleRowStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 5, minWidth: 0 };
 const notificationCardTitleStyle: React.CSSProperties = { overflow: "hidden", color: "#191F28", fontSize: 13.5, lineHeight: "19px", fontWeight: 850, textOverflow: "ellipsis", whiteSpace: "nowrap" };

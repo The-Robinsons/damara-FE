@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   CalendarDays,
@@ -10,8 +10,10 @@ import {
   LockKeyhole,
   MapPin,
   MessageCircle,
+  MoreVertical,
   PackageCheck,
   Store,
+  Trash2,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -21,6 +23,7 @@ import {
   cancelParticipation,
   checkFavorite,
   checkParticipation,
+  deletePost,
   getParticipants,
   getPostDetail,
   participatePost,
@@ -50,18 +53,6 @@ import {
 } from "../../shared/constants/homeTheme";
 import { getImageUrl } from "../../shared/utils/imageUrl";
 
-const fallbackPost = {
-  title: "물티슈 공동구매",
-  price: 5900,
-  category: "생활용품",
-  pickupLocation: "명지대 정문앞",
-  deadline: "2026-04-17T23:59:59.000Z",
-  pickupDate: "4월 19일 오후",
-  currentQuantity: 1,
-  minParticipants: 3,
-  content:
-    "도톰한 엠보싱 원단으로 부드럽고 촉촉해요.\n100매 대용량으로 한 가족이 넉넉하게 사용할 수 있어요.\n캡 장착이라 간편하게 수령하세요.",
-};
 
 type Participant = {
   userId?: string;
@@ -89,7 +80,8 @@ export default function GroupBuyDetailPage() {
   const nav = useNavigate();
   const currentUserId = localStorage.getItem(STORAGE_KEYS.USER_ID);
 
-  const [post, setPost] = useState<any>(fallbackPost);
+  const [post, setPost] = useState<any | null>(null);
+  const [error, setError] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -97,6 +89,7 @@ export default function GroupBuyDetailPage() {
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [sellerTrust, setSellerTrust] = useState<SellerTrustSummary | null>(null);
+  const [showOwnerMenu, setShowOwnerMenu] = useState(false);
 
   useEffect(() => {
     const run = async () => {
@@ -109,7 +102,11 @@ export default function GroupBuyDetailPage() {
         ]);
 
         if (detailRes.status === "fulfilled") {
-          setPost({ ...fallbackPost, ...detailRes.value.data });
+          setPost(detailRes.value.data);
+          setError("");
+        } else {
+          setPost(null);
+          setError("게시글을 불러오지 못했어요.");
         }
         if (participantRes.status === "fulfilled") {
           const data = participantRes.value.data;
@@ -118,7 +115,8 @@ export default function GroupBuyDetailPage() {
         }
       } catch (err) {
         console.error(err);
-        setPost(fallbackPost);
+        setPost(null);
+        setError("게시글을 불러오지 못했어요.");
       } finally {
         setLoading(false);
       }
@@ -166,18 +164,18 @@ export default function GroupBuyDetailPage() {
     setImageLoadFailed(false);
   }, [imageUrls[0]]);
 
-  const title = post?.title || fallbackPost.title;
-  const price = post?.price ?? fallbackPost.price;
-  const category = normalizeCategory(post?.category || fallbackPost.category);
-  const location = post?.pickupLocation || fallbackPost.pickupLocation;
-  const deadline = formatDeadline(post?.deadline || fallbackPost.deadline);
+  const title = post?.title || post?.productName || "공동구매 상품";
+  const price = post?.price ?? 0;
+  const category = normalizeCategory(post?.category || "");
+  const location = post?.pickupLocation || "수령 장소 미정";
+  const deadline = formatDeadline(post?.deadline);
   const pickupDate = post?.pickupDate || "채팅으로 협의";
-  const current = Number(post?.currentQuantity ?? fallbackPost.currentQuantity);
-  const min = Number(post?.minParticipants ?? fallbackPost.minParticipants);
+  const current = Number(post?.currentQuantity ?? 0);
+  const min = Number(post?.minParticipants ?? 1);
   const isOwner = Boolean(currentUserId && (post?.isOwner || post?.authorId === currentUserId));
   const progress = Math.min(100, Math.round((current / Math.max(min, 1)) * 100));
   const remaining = Math.max(min - current, 0);
-  const content = post?.content || fallbackPost.content;
+  const content = post?.content || "작성자가 상품 소개를 아직 입력하지 않았어요.";
   const sellerNickname = post?.author?.nickname || "판매자";
   const sellerGrade = Number(sellerTrust?.trustGrade ?? post?.author?.trustGrade ?? 0).toFixed(1);
   const sellerGradeLabel = sellerTrust?.gradeLabel || "거래 이력 확인 중";
@@ -250,6 +248,31 @@ export default function GroupBuyDetailPage() {
     }
   };
 
+  const handleEdit = () => {
+    if (!id) return;
+    setShowOwnerMenu(false);
+    nav(`/create?edit=${encodeURIComponent(id)}`);
+  };
+
+  const handleDelete = async () => {
+    if (!id || !currentUserId) return;
+    const confirmed = window.confirm("이 공구를 삭제할까요? 삭제 후에는 되돌릴 수 없어요.");
+    if (!confirmed) return;
+
+    try {
+      setBusy(true);
+      setShowOwnerMenu(false);
+      await deletePost(id, currentUserId);
+      toast.success("공구가 삭제됐어요.");
+      nav("/home", { replace: true });
+    } catch (error) {
+      console.error(error);
+      toast.error("공구 삭제에 실패했어요.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div data-page="공구 상세" style={pageStyle}>
       <header style={headerStyle}>
@@ -257,14 +280,45 @@ export default function GroupBuyDetailPage() {
           <ChevronLeft size={22} strokeWidth={2.25} aria-hidden />
         </button>
         <h1 style={headerTitleStyle}>공구 상세</h1>
-        <button type="button" aria-label="관심 등록" onClick={handleFavorite} style={headerButtonStyle}>
-          <Heart size={21} strokeWidth={2.25} fill={isFavorite ? grey900 : "none"} aria-hidden />
-        </button>
+        {isOwner ? (
+          <div style={{ position: "relative" }}>
+            <button type="button" aria-label="게시글 관리" onClick={() => setShowOwnerMenu((open) => !open)} style={headerButtonStyle}>
+              <MoreVertical size={21} strokeWidth={2.25} aria-hidden />
+            </button>
+            {showOwnerMenu ? (
+              <div style={ownerMenuStyle}>
+                <button type="button" onClick={handleEdit} style={ownerMenuItemStyle}>
+                  수정하기
+                </button>
+                <button type="button" onClick={() => void handleDelete()} style={{ ...ownerMenuItemStyle, color: "#E5484D" }}>
+                  <Trash2 size={14} strokeWidth={2.1} aria-hidden />
+                  삭제하기
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <button type="button" aria-label="관심 등록" onClick={handleFavorite} style={headerButtonStyle}>
+            <Heart size={21} strokeWidth={2.25} fill={isFavorite ? grey900 : "none"} aria-hidden />
+          </button>
+        )}
       </header>
 
       {loading ? (
         <main style={{ padding: "16px 16px 100px" }}>
           <DetailSkeleton />
+        </main>
+      ) : error || !post ? (
+        <main style={mainStyle}>
+          <section style={{ ...contentCardStyle, textAlign: "center", padding: "34px 20px" }}>
+            <h2 style={{ margin: 0, color: grey900, fontSize: 17, fontWeight: 850 }}>게시글을 찾을 수 없어요</h2>
+            <p style={{ margin: "8px 0 0", color: grey500, fontSize: 13, lineHeight: "19px", fontWeight: 600 }}>
+              {error || "삭제되었거나 접근할 수 없는 공구예요."}
+            </p>
+            <button type="button" onClick={() => nav("/home", { replace: true })} style={{ ...chatButtonStyle, width: "100%", marginTop: 18 }}>
+              홈으로 돌아가기
+            </button>
+          </section>
         </main>
       ) : (
         <main style={mainStyle}>
@@ -273,6 +327,7 @@ export default function GroupBuyDetailPage() {
               <span style={statusBadgeStyle}>모집중</span>
               {imageUrls[0] && !imageLoadFailed ? (
                 <img
+                  data-damara-image
                   src={imageUrls[0]}
                   alt=""
                   onError={() => setImageLoadFailed(true)}
@@ -549,18 +604,17 @@ function ParticipantCard({ person, index }: { person: Participant; index: number
   );
 }
 
-function NoticeCard({ title, lines, icon, tone = "guide" }: { title: string; lines: string[]; icon: React.ReactNode; tone?: "guide" | "caution" }) {
-  const caution = tone === "caution";
+function NoticeCard({ title, lines, icon }: { title: string; lines: string[]; icon: React.ReactNode; tone?: "guide" | "caution" }) {
   return (
-    <section style={{ ...noticeCardStyle, background: caution ? "linear-gradient(135deg, #FFFCF7 0%, #FFFFFF 100%)" : noticeCardStyle.background }}>
+    <section style={noticeCardStyle}>
       <div style={noticeHeaderStyle}>
-        <span style={{ ...noticeIconStyle, color: caution ? "#B7793E" : blue600, background: caution ? "#FFF3E2" : blue50 }}>{icon}</span>
+        <span style={{ ...noticeIconStyle, color: blue600, background: "#F3F7FF" }}>{icon}</span>
         <h3 style={noticeTitleStyle}>{title}</h3>
       </div>
       <ul style={noticeListStyle}>
         {lines.map((line) => (
           <li key={line} style={noticeListItemStyle}>
-            <span style={{ ...noticeDotStyle, background: caution ? "#D8A166" : "#75A7FF" }} aria-hidden />
+            <span style={{ ...noticeDotStyle, background: "#75A7FF" }} aria-hidden />
             <span>{line}</span>
           </li>
         ))}
@@ -572,9 +626,9 @@ function NoticeCard({ title, lines, icon, tone = "guide" }: { title: string; lin
 function DetailSkeleton() {
   return (
     <div style={{ display: "grid", gap: 10 }}>
-      <div style={{ height: 250, borderRadius: 18, background: grey100 }} />
-      <div style={{ height: 120, borderRadius: 16, background: grey100 }} />
-      <div style={{ height: 110, borderRadius: 16, background: grey100 }} />
+      <div data-skeleton style={{ height: 250, borderRadius: 18 }} />
+      <div data-skeleton style={{ height: 120, borderRadius: 16 }} />
+      <div data-skeleton style={{ height: 110, borderRadius: 16 }} />
     </div>
   );
 }
@@ -611,6 +665,36 @@ const headerButtonStyle: React.CSSProperties = {
   display: "grid",
   placeItems: "center",
   cursor: "pointer",
+};
+
+const ownerMenuStyle: React.CSSProperties = {
+  position: "absolute",
+  top: 42,
+  right: 0,
+  zIndex: 40,
+  minWidth: 118,
+  padding: 6,
+  borderRadius: 14,
+  border: `1px solid ${grey200}`,
+  background,
+  boxShadow: "0 12px 30px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.06)",
+};
+
+const ownerMenuItemStyle: React.CSSProperties = {
+  width: "100%",
+  height: 36,
+  padding: "0 10px",
+  border: 0,
+  borderRadius: 10,
+  display: "flex",
+  alignItems: "center",
+  gap: 7,
+  background: "transparent",
+  color: grey900,
+  fontSize: 12.5,
+  fontWeight: 800,
+  cursor: "pointer",
+  textAlign: "left",
 };
 
 const headerTitleStyle: React.CSSProperties = {
@@ -1018,7 +1102,7 @@ const noticeGridStyle: React.CSSProperties = {
 const noticeCardStyle: React.CSSProperties = {
   ...cardBase,
   padding: "13px 14px",
-  background: "linear-gradient(135deg, #F8FBFF 0%, #FFFFFF 100%)",
+  background: "#FFFFFF",
 };
 
 const noticeHeaderStyle: React.CSSProperties = {

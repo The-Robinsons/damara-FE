@@ -92,7 +92,7 @@ export interface ApiPost {
   pickupGuide?: string | null;
   pickupType?: "damara_zone" | "custom" | string | null;
   pickupZoneId?: string | null;
-  groupBuyType?: "pre_recruit" | "post_purchase" | string | null;
+  groupBuyType?: "pre_recruit" | "post_recruit" | "post_purchase" | string | null;
   groupBuyMode?: "normal" | "price_unlock" | string | null;
   targetParticipants?: number | null;
   targetPrice?: number | null;
@@ -214,7 +214,7 @@ export interface ApiCreatePostInput {
   pickupStartTime?: string;
   pickupEndTime?: string;
   pickupGuide?: string;
-  groupBuyType?: "pre_recruit" | "post_purchase" | string;
+  groupBuyType?: "pre_recruit" | "post_recruit" | "post_purchase" | string;
   groupBuyMode?: "normal" | "price_unlock" | string;
   targetParticipants?: number;
   targetPrice?: number;
@@ -239,7 +239,7 @@ export interface ApiUpdatePostInput {
   pickupStartTime?: string;
   pickupEndTime?: string;
   pickupGuide?: string;
-  groupBuyType?: "pre_recruit" | "post_purchase" | string;
+  groupBuyType?: "pre_recruit" | "post_recruit" | "post_purchase" | string;
   groupBuyMode?: "normal" | "price_unlock" | string;
   targetParticipants?: number;
   targetPrice?: number;
