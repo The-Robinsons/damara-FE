@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { Bell, BellRing, ChevronRight, MapPin, MessageCircle, PackageSearch, Search, UsersRound, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -19,6 +19,7 @@ type NotificationFilter = "all" | "group-buy" | "chat" | "activity";
 export default function AppHeader() {
   const nav = useNavigate();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const unreadCountRef = useRef(0);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -26,6 +27,7 @@ export default function AppHeader() {
   const [notifications, setNotifications] = useState<ApiNotification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationSignal, setNotificationSignal] = useState(0);
   const [notificationFilter, setNotificationFilter] = useState<NotificationFilter>("all");
   const [isScrolled, setIsScrolled] = useState(false);
   const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
@@ -34,12 +36,51 @@ export default function AppHeader() {
     [notificationFilter, notifications]
   );
 
-  useEffect(() => {
+  const refreshUnreadCount = useCallback(() => {
     if (!userId) return;
     getUnreadCount(userId)
-      .then(({ data }) => setUnreadCount(Number(data?.unreadCount) || 0))
-      .catch(() => setUnreadCount(0));
+      .then(({ data }) => {
+        const nextCount = Number(data?.unreadCount) || 0;
+        if (nextCount > unreadCountRef.current) {
+          setNotificationSignal((signal) => signal + 1);
+        }
+        unreadCountRef.current = nextCount;
+        setUnreadCount(nextCount);
+      })
+      .catch(() => {
+        unreadCountRef.current = 0;
+        setUnreadCount(0);
+      });
   }, [userId]);
+
+  useEffect(() => {
+    refreshUnreadCount();
+  }, [refreshUnreadCount]);
+
+  useEffect(() => {
+    if (!userId) {
+      unreadCountRef.current = 0;
+      setUnreadCount(0);
+      return;
+    }
+
+    const intervalId = window.setInterval(refreshUnreadCount, 6000);
+    const refreshOnFocus = () => refreshUnreadCount();
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") refreshUnreadCount();
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisible);
+    window.addEventListener("damara:notifications-refresh", refreshOnFocus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+      window.removeEventListener("damara:notifications-refresh", refreshOnFocus);
+    };
+  }, [refreshUnreadCount, userId]);
 
   useEffect(() => {
     const updateScrolled = () => setIsScrolled(window.scrollY > 8);
@@ -86,7 +127,9 @@ export default function AppHeader() {
     try {
       const { data } = await getNotifications(userId);
       setNotifications(Array.isArray(data?.notifications) ? data.notifications : []);
-      setUnreadCount(Number(data?.unreadCount) || 0);
+      const nextCount = Number(data?.unreadCount) || 0;
+      unreadCountRef.current = nextCount;
+      setUnreadCount(nextCount);
     } catch {
       toast.error("알림을 불러오지 못했어요.");
     } finally {
@@ -99,6 +142,7 @@ export default function AppHeader() {
     try {
       await markAllAsRead(userId);
       setNotifications((items) => items.map((item) => ({ ...item, isRead: true })));
+      unreadCountRef.current = 0;
       setUnreadCount(0);
     } catch {
       toast.error("알림 읽음 처리에 실패했어요.");
@@ -116,7 +160,11 @@ export default function AppHeader() {
       try {
         await markAsRead(notification.id, userId);
         setNotifications((items) => items.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item)));
-        setUnreadCount((count) => Math.max(0, count - 1));
+        setUnreadCount((count) => {
+          const nextCount = Math.max(0, count - 1);
+          unreadCountRef.current = nextCount;
+          return nextCount;
+        });
       } catch {
         toast.error("알림 읽음 처리에 실패했어요.");
       }
@@ -147,7 +195,7 @@ export default function AppHeader() {
 
           <div className="flex shrink-0 items-center" style={{ gap: 7 }}>
             <HeaderIcon label="검색" tutorialTarget="search" onClick={() => setActivePanel("search")}><Search size={20} strokeWidth={2.05} /></HeaderIcon>
-            <HeaderIcon label="알림" tutorialTarget="notification" onClick={() => void openNotifications()} showDot={unreadCount > 0} alert={unreadCount > 0}><Bell size={20} strokeWidth={2.05} /></HeaderIcon>
+            <HeaderIcon label="알림" tutorialTarget="notification" onClick={() => void openNotifications()} showDot={unreadCount > 0} alert={unreadCount > 0} alertSignal={notificationSignal}><Bell size={20} strokeWidth={2.05} /></HeaderIcon>
           </div>
         </div>
       </header>
@@ -348,14 +396,14 @@ function SearchLoading() {
   );
 }
 
-function HeaderIcon({ label, tutorialTarget, onClick, children, showDot, alert }: { label: string; tutorialTarget?: string; onClick: () => void; children: React.ReactNode; showDot?: boolean; alert?: boolean }) {
+function HeaderIcon({ label, tutorialTarget, onClick, children, showDot, alert, alertSignal = 0 }: { label: string; tutorialTarget?: string; onClick: () => void; children: React.ReactNode; showDot?: boolean; alert?: boolean; alertSignal?: number }) {
   return (
     <button type="button" data-tutorial-target={tutorialTarget} aria-label={label} className={alert ? "damara-header-alert" : undefined} style={headerIconStyle} onClick={onClick}>
-      {alert ? <span aria-hidden style={alertRippleStyle} /> : null}
-      <span className={alert ? "damara-header-alert-icon" : undefined} style={{ position: "relative", zIndex: 1, display: "grid", placeItems: "center" }}>
+      {alert ? <span key={`ripple-${alertSignal}`} aria-hidden style={alertRippleStyle} /> : null}
+      <span key={`icon-${alertSignal}`} className={alert ? "damara-header-alert-icon" : undefined} style={{ position: "relative", zIndex: 1, display: "grid", placeItems: "center" }}>
         {children}
       </span>
-      {showDot ? <span aria-hidden className="damara-header-alert-dot" style={dotStyle} /> : null}
+      {showDot ? <span key={`dot-${alertSignal}`} aria-hidden className="damara-header-alert-dot" style={dotStyle} /> : null}
     </button>
   );
 }

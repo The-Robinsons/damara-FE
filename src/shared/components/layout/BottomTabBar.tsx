@@ -57,7 +57,14 @@ export default function BottomTabBar({ className, onCreateClick }: BottomTabBarP
 
   const renderTab = ({ Icon, to, label }: TabDef) => {
     const isActive = pathname === to;
-    const tutorialTarget = to === ROUTES.CHAT ? "chat-tab" : undefined;
+    const tutorialTarget =
+      to === ROUTES.CATEGORY
+        ? "category-tab"
+        : to === ROUTES.CHAT
+          ? "chat-tab"
+          : to === ROUTES.MYPAGE
+            ? "mypage-tab"
+            : undefined;
 
     return (
       <button

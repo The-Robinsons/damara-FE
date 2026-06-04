@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import damaraMark from "../../assets/damara-mark.png";
 import {
   addFavorite,
   cancelParticipation,
@@ -334,7 +335,7 @@ export default function GroupBuyDetailPage() {
                   style={heroProductImageStyle}
                 />
               ) : (
-                <ProductMock category={String(post?.category || "")} />
+                <ProductMock />
               )}
               <div style={heroOverlayStyle} aria-hidden />
               <div style={dotWrapStyle}>
@@ -495,33 +496,16 @@ function normalizeCategory(value: unknown) {
   return categoryMap[String(value)] || String(value || "기타");
 }
 
-function ProductMock({ category }: { category?: string }) {
-  const isBeauty = category === "beauty";
-  const isFood = category === "food";
-
+function ProductMock() {
   return (
-    <div style={productMockFrameStyle}>
+    <div style={productPlaceholderFrameStyle}>
       <div style={productMockGlowStyle} />
-      {isBeauty ? (
-        <>
-          <Bottle style={{ left: "21%", top: "18%", transform: "rotate(-7deg)" }} tone="#9BC8FF" label="SHAMPOO" />
-          <Bottle style={{ right: "23%", top: "26%", transform: "rotate(6deg) scale(.92)" }} tone="#A5E5C7" label="CARE" />
-        </>
-      ) : isFood ? (
-        <>
-          <FoodBox style={{ left: "16%", top: "30%", transform: "rotate(-5deg)" }} />
-          <FoodBox style={{ right: "16%", top: "26%", transform: "rotate(7deg) scale(.9)" }} />
-        </>
-      ) : (
-        <>
-          <Pack style={{ left: "3%", top: "16%", transform: "scale(.86)" }} />
-          <Pack style={{ right: "2%", top: "24%", transform: "scale(.78)" }} />
-          <Pack style={{ left: "23%", top: "45%", transform: "scale(1.05)" }} />
-        </>
-      )}
+      <span style={productPlaceholderLogoWrapStyle}>
+        <img src={damaraMark} alt="" aria-hidden style={productPlaceholderLogoStyle} />
+      </span>
       <span style={mockCaptionStyle}>
         <ImageIcon size={13} strokeWidth={2.1} aria-hidden />
-        이미지 준비중
+        상품 이미지 준비중
       </span>
     </div>
   );
@@ -1211,7 +1195,7 @@ const ownerBottomNoticeStyle: React.CSSProperties = {
   fontWeight: 850,
 };
 
-const productMockFrameStyle: React.CSSProperties = {
+const productPlaceholderFrameStyle: React.CSSProperties = {
   position: "relative",
   width: "100%",
   height: "100%",
@@ -1221,12 +1205,32 @@ const productMockFrameStyle: React.CSSProperties = {
 
 const productMockGlowStyle: React.CSSProperties = {
   position: "absolute",
-  width: 238,
-  height: 124,
+  width: 210,
+  height: 132,
   borderRadius: "50%",
-  background: "linear-gradient(90deg, rgba(49,130,246,0.08), rgba(32,201,151,0.08))",
-  filter: "blur(2px)",
-  transform: "translateY(20px)",
+  background: "radial-gradient(circle, rgba(49,130,246,0.14) 0%, rgba(49,130,246,0.06) 42%, rgba(49,130,246,0) 72%)",
+  filter: "blur(8px)",
+  transform: "translateY(2px)",
+};
+
+const productPlaceholderLogoWrapStyle: React.CSSProperties = {
+  position: "relative",
+  zIndex: 1,
+  width: 88,
+  height: 88,
+  borderRadius: 28,
+  display: "grid",
+  placeItems: "center",
+  background: "rgba(255, 255, 255, 0.72)",
+  border: "1px solid rgba(255, 255, 255, 0.88)",
+  boxShadow: "0 18px 40px rgba(49, 130, 246, 0.14), inset 0 1px 0 rgba(255,255,255,0.92)",
+};
+
+const productPlaceholderLogoStyle: React.CSSProperties = {
+  width: 52,
+  height: 52,
+  objectFit: "contain",
+  display: "block",
 };
 
 const mockCaptionStyle: React.CSSProperties = {

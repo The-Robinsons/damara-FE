@@ -3,14 +3,14 @@ import { createPortal } from "react-dom";
 
 import { STORAGE_KEYS } from "../../../shared/constants/storageKeys";
 
-type TutorialTarget = "search" | "notification" | "category" | "popular" | "filter" | "create-fab" | "chat-tab";
+type TutorialTarget = "search" | "notification" | "category" | "popular" | "filter" | "category-tab" | "create-fab" | "chat-tab" | "mypage-tab";
 
 type TutorialStep = {
-  target: TutorialTarget;
+  target?: TutorialTarget;
   label: string;
   title: string;
   description: string;
-  placement: "top" | "bottom";
+  placement: "top" | "bottom" | "center";
   highlightPad: number;
   highlightRadius: number;
 };
@@ -51,6 +51,15 @@ const STEPS: TutorialStep[] = [
     highlightRadius: 999,
   },
   {
+    target: "category-tab",
+    label: "카테고리 화면 안내",
+    title: "원하는 공구만 더 넓게 모아보세요",
+    description: "하단 카테고리에서는 먹거리, 생활용품, 뷰티·패션, 학용품처럼 필요한 공구를 화면 전체에서 탐색할 수 있어요.",
+    placement: "top",
+    highlightPad: 8,
+    highlightRadius: 999,
+  },
+  {
     target: "popular",
     label: "인기 공동구매 안내",
     title: "지금 인기 있는 공구를 확인해보세요",
@@ -86,10 +95,27 @@ const STEPS: TutorialStep[] = [
     highlightPad: 8,
     highlightRadius: 999,
   },
+  {
+    target: "mypage-tab",
+    label: "마이페이지 안내",
+    title: "내 공구와 활동 내역은 여기서 관리해요",
+    description: "내가 올린 공구, 참여한 공구, 관심목록, 공지사항까지 마이페이지에서 한 번에 확인할 수 있어요.",
+    placement: "top",
+    highlightPad: 8,
+    highlightRadius: 999,
+  },
+  {
+    label: "준비 완료",
+    title: "이제 시작해볼까요?",
+    description: "필요한 물건은 함께 사고, 나눌 수 있는 물건은 가볍게 나눠보세요. DAMARA가 캠퍼스 공구를 더 쉽게 이어줄게요.",
+    placement: "center",
+    highlightPad: 0,
+    highlightRadius: 24,
+  },
 ];
 
 const APP_MAX_W = 430;
-const TOOLTIP_W = 238;
+const TOOLTIP_W = 268;
 const SCREEN_PAD = 16;
 
 export default function HomeTutorialOverlay() {
@@ -113,13 +139,19 @@ export default function HomeTutorialOverlay() {
 
   const measureTarget = useCallback(() => {
     if (!visible) return;
+    if (!step.target) {
+      setTargetRect(null);
+      return;
+    }
+
     const target = document.querySelector<HTMLElement>(`[data-tutorial-target="${step.target}"]`);
     if (!target) {
       setTargetRect(null);
       return;
     }
 
-    target.scrollIntoView({ behavior: "smooth", block: step.target === "create-fab" ? "nearest" : "center" });
+    const isFixedFooterTarget = ["category-tab", "create-fab", "chat-tab", "mypage-tab"].includes(step.target);
+    target.scrollIntoView({ behavior: "smooth", block: isFixedFooterTarget ? "nearest" : "center" });
     window.setTimeout(() => {
       const rect = target.getBoundingClientRect();
       setTargetRect({
@@ -173,7 +205,7 @@ export default function HomeTutorialOverlay() {
     if (!highlightStyle) {
       return {
         left: "50%",
-        top: "50%",
+        top: "48%",
         transform: "translate(-50%, -50%)",
       } as React.CSSProperties;
     }
@@ -218,6 +250,8 @@ export default function HomeTutorialOverlay() {
         <strong style={topTitleStyle}>{step.label}</strong>
       </div>
 
+      {!highlightStyle ? <div aria-hidden style={centerDimStyle} /> : null}
+
       {highlightStyle ? (
         <div
           aria-hidden
@@ -246,7 +280,7 @@ export default function HomeTutorialOverlay() {
             건너뛰기
           </button>
           <button type="button" onClick={next} style={nextButtonStyle}>
-            {isLast ? "완료" : "다음"}
+            {isLast ? "시작하기" : "다음"}
           </button>
         </div>
       </section>
@@ -262,38 +296,57 @@ const overlayStyle: React.CSSProperties = {
   background: "transparent",
 };
 
+const centerDimStyle: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 151,
+  background: "radial-gradient(circle at 50% 34%, rgba(66, 112, 245, 0.18) 0%, rgba(14, 20, 32, 0.68) 48%, rgba(8, 13, 24, 0.74) 100%)",
+  pointerEvents: "none",
+};
+
 const topGuideStyle: React.CSSProperties = {
   position: "fixed",
-  top: "calc(18px + env(safe-area-inset-top, 0px))",
+  top: "calc(14px + env(safe-area-inset-top, 0px))",
   left: "50%",
   zIndex: 153,
   display: "flex",
-  flexDirection: "column",
+  flexDirection: "row",
   alignItems: "center",
-  gap: 5,
+  gap: 7,
+  minHeight: 34,
+  padding: "5px 9px 5px 6px",
+  border: "1px solid rgba(255, 255, 255, 0.18)",
+  borderRadius: 999,
+  background: "rgba(15, 23, 42, 0.36)",
+  boxShadow: "0 10px 28px rgba(0, 15, 38, 0.22), inset 0 1px 0 rgba(255,255,255,0.18)",
+  backdropFilter: "blur(14px) saturate(145%)",
+  WebkitBackdropFilter: "blur(14px) saturate(145%)",
   transform: "translateX(-50%)",
   pointerEvents: "none",
 };
 
 const progressPillStyle: React.CSSProperties = {
-  height: 21,
+  height: 24,
+  minWidth: 38,
   padding: "0 9px",
   borderRadius: 999,
-  background: "linear-gradient(180deg, #6F89FF 0%, #5876F4 100%)",
+  background: "linear-gradient(180deg, #7EA2FF 0%, #4F73F0 100%)",
   color: "#FFFFFF",
   fontSize: 11,
   fontWeight: 850,
-  lineHeight: "21px",
-  boxShadow: "0 7px 16px rgba(49, 87, 216, 0.26)",
+  lineHeight: "24px",
+  textAlign: "center",
+  boxShadow: "0 7px 16px rgba(49, 87, 216, 0.28), inset 0 1px 0 rgba(255,255,255,0.34)",
 };
 
 const topTitleStyle: React.CSSProperties = {
   color: "#FFFFFF",
-  fontSize: 15,
-  fontWeight: 850,
-  lineHeight: "21px",
+  fontSize: 12,
+  fontWeight: 800,
+  lineHeight: "17px",
+  whiteSpace: "nowrap",
   letterSpacing: "-0.02em",
-  textShadow: "0 2px 8px rgba(0,0,0,0.28)",
+  textShadow: "0 1px 5px rgba(0,0,0,0.18)",
 };
 
 const highlightBaseStyle: React.CSSProperties = {
@@ -301,9 +354,9 @@ const highlightBaseStyle: React.CSSProperties = {
   zIndex: 151,
   borderRadius: 22,
   pointerEvents: "none",
-  background: "rgba(255, 255, 255, 0.12)",
+  background: "rgba(255, 255, 255, 0.08)",
   boxShadow:
-    "0 0 0 9999px rgba(14, 20, 32, 0.62), 0 0 0 2px rgba(255,255,255,0.96), 0 0 0 7px rgba(49,130,246,0.18), 0 18px 40px rgba(49,130,246,0.28)",
+    "0 0 0 9999px rgba(14, 20, 32, 0.64), 0 0 0 1.5px rgba(255,255,255,0.96), 0 0 0 6px rgba(49,130,246,0.13), 0 18px 44px rgba(49,130,246,0.24), inset 0 1px 0 rgba(255,255,255,0.32)",
   transition: "top 280ms cubic-bezier(0.22, 1, 0.36, 1), left 280ms cubic-bezier(0.22, 1, 0.36, 1), width 280ms cubic-bezier(0.22, 1, 0.36, 1), height 280ms cubic-bezier(0.22, 1, 0.36, 1)",
 };
 
@@ -313,11 +366,13 @@ const tooltipBaseStyle: React.CSSProperties = {
   width: TOOLTIP_W,
   maxWidth: "calc(100vw - 32px)",
   boxSizing: "border-box",
-  padding: "15px 15px 13px",
-  borderRadius: 18,
-  border: "1px solid rgba(226, 232, 242, 0.92)",
-  background: "rgba(255, 255, 255, 0.98)",
-  boxShadow: "0 18px 44px rgba(0, 15, 38, 0.22), inset 0 1px 0 rgba(255,255,255,0.96)",
+  padding: "17px 16px 14px",
+  borderRadius: 22,
+  border: "1px solid rgba(230, 236, 247, 0.96)",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,251,255,0.985) 100%)",
+  boxShadow: "0 24px 54px rgba(0, 15, 38, 0.22), 0 2px 8px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255,255,255,0.98)",
+  backdropFilter: "blur(18px) saturate(130%)",
+  WebkitBackdropFilter: "blur(18px) saturate(130%)",
   transition: "top 280ms cubic-bezier(0.22, 1, 0.36, 1), left 280ms cubic-bezier(0.22, 1, 0.36, 1)",
 };
 
@@ -325,27 +380,27 @@ const tooltipArrowStyle: React.CSSProperties = {
   position: "absolute",
   width: 16,
   height: 16,
-  borderRadius: 3,
-  background: "rgba(255, 255, 255, 0.98)",
+  borderRadius: 4,
+  background: "rgba(255, 255, 255, 0.99)",
   borderLeft: "1px solid rgba(226, 232, 242, 0.92)",
   borderTop: "1px solid rgba(226, 232, 242, 0.92)",
 };
 
 const tooltipTitleStyle: React.CSSProperties = {
   display: "block",
-  color: "#4F73F0",
-  fontSize: 13,
+  color: "#191F28",
+  fontSize: 15,
   fontWeight: 900,
-  lineHeight: "19px",
+  lineHeight: "21px",
   letterSpacing: "-0.02em",
 };
 
 const tooltipDescriptionStyle: React.CSSProperties = {
-  margin: "6px 0 0",
+  margin: "7px 0 0",
   color: "#4E5968",
-  fontSize: 12,
+  fontSize: 12.5,
   fontWeight: 650,
-  lineHeight: "18px",
+  lineHeight: "19px",
   letterSpacing: "-0.015em",
 };
 
@@ -354,14 +409,14 @@ const buttonRowStyle: React.CSSProperties = {
   justifyContent: "space-between",
   alignItems: "center",
   gap: 8,
-  marginTop: 12,
+  marginTop: 14,
 };
 
 const doNotShowRowStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: 7,
-  marginTop: 12,
+  gap: 8,
+  marginTop: 13,
   color: "#6B7684",
   fontSize: 11.5,
   fontWeight: 700,
@@ -370,33 +425,34 @@ const doNotShowRowStyle: React.CSSProperties = {
 };
 
 const checkboxStyle: React.CSSProperties = {
-  width: 15,
-  height: 15,
+  width: 16,
+  height: 16,
   accentColor: "#3182F6",
   cursor: "pointer",
 };
 
 const skipButtonStyle: React.CSSProperties = {
-  height: 30,
-  padding: "0 10px",
-  border: 0,
+  height: 34,
+  padding: "0 12px",
+  border: "1px solid transparent",
   borderRadius: 999,
   background: "transparent",
   color: "#8B95A1",
   fontSize: 12,
-  fontWeight: 750,
+  fontWeight: 800,
   cursor: "pointer",
 };
 
 const nextButtonStyle: React.CSSProperties = {
-  height: 31,
-  padding: "0 14px",
+  height: 36,
+  minWidth: 74,
+  padding: "0 15px",
   border: "1px solid rgba(255,255,255,0.6)",
   borderRadius: 999,
-  background: "linear-gradient(180deg, #4B95FF 0%, #3182F6 100%)",
+  background: "linear-gradient(180deg, #5A9BFF 0%, #3182F6 100%)",
   color: "#FFFFFF",
-  fontSize: 12,
+  fontSize: 12.5,
   fontWeight: 850,
   cursor: "pointer",
-  boxShadow: "0 8px 18px rgba(49,130,246,0.22)",
+  boxShadow: "0 10px 22px rgba(49,130,246,0.26), inset 0 1px 0 rgba(255,255,255,0.3)",
 };
