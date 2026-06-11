@@ -122,15 +122,13 @@ export default function HomeTutorialOverlay() {
   const [visible, setVisible] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<Rect | null>(null);
-  const [doNotShowAgain, setDoNotShowAgain] = useState(false);
 
   const step = STEPS[stepIndex];
   const isLast = stepIndex === STEPS.length - 1;
 
   useEffect(() => {
-    const seen = localStorage.getItem(STORAGE_KEYS.HOME_TUTORIAL_SEEN);
     const shouldShowOnce = sessionStorage.getItem(STORAGE_KEYS.SHOW_HOME_TUTORIAL_ONCE) === "true";
-    if (seen !== "never" && shouldShowOnce) {
+    if (shouldShowOnce) {
       sessionStorage.removeItem(STORAGE_KEYS.SHOW_HOME_TUTORIAL_ONCE);
       const id = window.setTimeout(() => setVisible(true), 650);
       return () => window.clearTimeout(id);
@@ -175,11 +173,8 @@ export default function HomeTutorialOverlay() {
   }, [measureTarget]);
 
   const close = useCallback(() => {
-    if (doNotShowAgain) {
-      localStorage.setItem(STORAGE_KEYS.HOME_TUTORIAL_SEEN, "never");
-    }
     setVisible(false);
-  }, [doNotShowAgain]);
+  }, []);
 
   const next = () => {
     if (isLast) {
@@ -266,15 +261,6 @@ export default function HomeTutorialOverlay() {
         <span aria-hidden style={{ ...tooltipArrowStyle, ...arrowStyle }} />
         <strong style={tooltipTitleStyle}>{step.title}</strong>
         <p style={tooltipDescriptionStyle}>{step.description}</p>
-        <label style={doNotShowRowStyle}>
-          <input
-            type="checkbox"
-            checked={doNotShowAgain}
-            onChange={(event) => setDoNotShowAgain(event.target.checked)}
-            style={checkboxStyle}
-          />
-          <span>다시는 보지 않기</span>
-        </label>
         <div style={buttonRowStyle}>
           <button type="button" onClick={close} style={skipButtonStyle}>
             건너뛰기
@@ -410,25 +396,6 @@ const buttonRowStyle: React.CSSProperties = {
   alignItems: "center",
   gap: 8,
   marginTop: 14,
-};
-
-const doNotShowRowStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  marginTop: 13,
-  color: "#6B7684",
-  fontSize: 11.5,
-  fontWeight: 700,
-  lineHeight: "16px",
-  cursor: "pointer",
-};
-
-const checkboxStyle: React.CSSProperties = {
-  width: 16,
-  height: 16,
-  accentColor: "#3182F6",
-  cursor: "pointer",
 };
 
 const skipButtonStyle: React.CSSProperties = {
