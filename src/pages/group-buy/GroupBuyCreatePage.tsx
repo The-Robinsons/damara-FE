@@ -5,6 +5,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ExternalLink,
   GraduationCap,
   Home,
   Lightbulb,
@@ -33,12 +34,14 @@ import {
   grey400,
   grey500,
   grey600,
+  grey700,
   grey800,
   grey900,
 } from "../../shared/constants/homeTheme";
 import { getImageUrl } from "../../shared/utils/imageUrl";
 
 type TradeType = "PRE_RECRUIT" | "POST_PURCHASE";
+type SubmitState = "idle" | "submitting" | "success";
 
 const CATEGORIES = [
   { label: "생활용품", value: "daily", icon: Home },
@@ -88,6 +91,23 @@ function toPickupTimeRange(value: string) {
   };
 }
 
+function extractCreatedPostId(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const record = data as Record<string, any>;
+  const candidates = [
+    record.id,
+    record.postId,
+    record.post?.id,
+    record.post?.postId,
+    record.data?.id,
+    record.data?.postId,
+    record.data?.post?.id,
+    record.createdPost?.id,
+  ];
+  const found = candidates.find((value) => value !== undefined && value !== null && String(value).trim());
+  return found ? String(found) : null;
+}
+
 export default function GroupBuyCreatePage() {
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
@@ -108,6 +128,8 @@ export default function GroupBuyCreatePage() {
   const [pickupTime, setPickupTime] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitState, setSubmitState] = useState<SubmitState>("idle");
+  const [createdPostId, setCreatedPostId] = useState<string | null>(null);
 
   const progress = useMemo(() => Math.round((step / 5) * 100), [step]);
   const categoryLabel = CATEGORIES.find((item) => item.value === category)?.label ?? "생활용품";
@@ -211,6 +233,7 @@ export default function GroupBuyCreatePage() {
 
     try {
       setLoading(true);
+      setSubmitState("submitting");
       const pickupTimes = toPickupTimeRange(pickupTime);
       const payload = {
         title,
@@ -232,13 +255,15 @@ export default function GroupBuyCreatePage() {
 
       if (editId) {
         await updatePost(editId, payload, userId);
+        setCreatedPostId(editId);
       } else {
-        await createPost(payload);
+        const { data } = await createPost(payload);
+        setCreatedPostId(extractCreatedPostId(data));
       }
 
-      toast.success(editId ? "공구가 수정됐어요." : "공구가 등록됐어요.");
-      nav(editId ? `/post/${editId}` : "/home", { replace: true });
+      setSubmitState("success");
     } catch (err) {
+      setSubmitState("idle");
       console.error("공구 등록 실패", err);
       const feedback = getCreatePostErrorFeedback(err);
       toast.error(feedback.message);
@@ -260,6 +285,23 @@ export default function GroupBuyCreatePage() {
     }
     nav(-1);
   };
+
+  if (submitState === "success") {
+    return (
+      <CreateSuccessPage
+        isEditMode={isEditMode}
+        postId={createdPostId}
+        onGoPost={() => {
+          if (createdPostId) {
+            nav(`/post/${createdPostId}`, { replace: true });
+            return;
+          }
+          nav("/my-posts", { replace: true });
+        }}
+        onGoHome={() => nav("/home", { replace: true })}
+      />
+    );
+  }
 
   return (
     <div data-page="공구 등록" style={pageStyle}>
@@ -420,6 +462,82 @@ export default function GroupBuyCreatePage() {
           {step === 5 ? "등록하기" : "다음"}
         </button>
       </div>
+
+      {submitState === "submitting" ? <CreateSubmitOverlay isEditMode={isEditMode} /> : null}
+    </div>
+  );
+}
+
+function CreateSubmitOverlay({ isEditMode }: { isEditMode: boolean }) {
+  return (
+    <div role="status" aria-live="polite" style={submitOverlayStyle}>
+      <style>{createMotionStyle}</style>
+      <div style={submitCardStyle}>
+        <span style={submitOrbStyle}>
+          <span style={submitOrbRingStyle} />
+          <span style={submitOrbCoreStyle}>
+            <Check size={27} strokeWidth={3} aria-hidden />
+          </span>
+        </span>
+        <strong style={submitTitleStyle}>{isEditMode ? "공구를 수정하고 있어요" : "공구를 등록하고 있어요"}</strong>
+        <p style={submitDescStyle}>입력한 내용을 정리하고 게시물 화면을 준비하는 중이에요.</p>
+        <div style={submitProgressTrackStyle}>
+          <span style={submitProgressFillStyle} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CreateSuccessPage({
+  isEditMode,
+  postId,
+  onGoPost,
+  onGoHome,
+}: {
+  isEditMode: boolean;
+  postId: string | null;
+  onGoPost: () => void;
+  onGoHome: () => void;
+}) {
+  return (
+    <div data-page="공구 등록 완료" style={successPageStyle}>
+      <style>{createMotionStyle}</style>
+      <main style={successMainStyle}>
+        <section style={successCardStyle}>
+          <span style={successBadgeStyle}>
+            <span style={successPulseStyle} />
+            <Check size={34} strokeWidth={3.1} aria-hidden />
+          </span>
+          <span style={successEyebrowStyle}>{isEditMode ? "수정 완료" : "등록 완료"}</span>
+          <h1 style={successTitleStyle}>{isEditMode ? "공구 수정이 끝났어요" : "공구가 등록됐어요"}</h1>
+          <p style={successDescriptionStyle}>
+            {isEditMode
+              ? "변경한 내용이 게시물에 반영됐어요. 바로 상세 화면에서 확인해볼 수 있어요."
+              : "이제 참여자를 기다리면 돼요. 게시물 상세에서 모집 현황과 참여자를 바로 확인할 수 있어요."}
+          </p>
+
+          <div style={successInfoStyle}>
+            <span style={successInfoIconStyle}>
+              <Users size={18} strokeWidth={2.2} aria-hidden />
+            </span>
+            <span>
+              <strong style={successInfoTitleStyle}>다음 단계</strong>
+              <span style={successInfoDescStyle}>게시물 상세에서 참여 현황을 확인하고 채팅으로 수령 정보를 조율해보세요.</span>
+            </span>
+          </div>
+
+          <div style={successButtonGridStyle}>
+            <button type="button" onClick={onGoPost} style={successPrimaryButtonStyle}>
+              <ExternalLink size={17} strokeWidth={2.3} aria-hidden />
+              {postId ? "게시물 바로가기" : "내가 올린 공구 보기"}
+            </button>
+            <button type="button" onClick={onGoHome} style={successSecondaryButtonStyle}>
+              홈으로 이동
+            </button>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
@@ -1623,4 +1741,267 @@ const primaryButtonStyle: React.CSSProperties = {
   cursor: "pointer",
   boxShadow:
     "inset 0 1px 1px rgba(255,255,255,0.34), inset 0 -3px 7px rgba(18,87,190,0.16), 0 8px 18px rgba(49,130,246,0.22)",
+};
+
+const createMotionStyle = `
+  @keyframes damara-submit-orb {
+    0%, 100% { transform: scale(1); filter: saturate(1); }
+    45% { transform: scale(1.055); filter: saturate(1.08); }
+  }
+  @keyframes damara-submit-ring {
+    0% { opacity: 0.72; transform: scale(0.78); }
+    100% { opacity: 0; transform: scale(1.75); }
+  }
+  @keyframes damara-submit-fill {
+    0% { transform: translateX(-82%); }
+    100% { transform: translateX(112%); }
+  }
+  @keyframes damara-success-pop {
+    0% { opacity: 0; transform: translateY(10px) scale(0.96); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes damara-success-pulse {
+    0%, 100% { opacity: 0.42; transform: scale(0.92); }
+    50% { opacity: 0.08; transform: scale(1.42); }
+  }
+`;
+
+const submitOverlayStyle: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 180,
+  display: "grid",
+  placeItems: "center",
+  padding: 22,
+  background: "rgba(14, 20, 32, 0.48)",
+  backdropFilter: "blur(14px) saturate(130%)",
+  WebkitBackdropFilter: "blur(14px) saturate(130%)",
+};
+
+const submitCardStyle: React.CSSProperties = {
+  width: "min(100%, 318px)",
+  padding: "27px 22px 22px",
+  borderRadius: 28,
+  border: "1px solid rgba(234, 240, 249, 0.94)",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,250,255,0.96) 100%)",
+  boxShadow: "0 26px 68px rgba(0, 20, 52, 0.26), inset 0 1px 0 rgba(255,255,255,0.98)",
+  textAlign: "center",
+  boxSizing: "border-box",
+};
+
+const submitOrbStyle: React.CSSProperties = {
+  position: "relative",
+  width: 74,
+  height: 74,
+  margin: "0 auto 16px",
+  display: "grid",
+  placeItems: "center",
+};
+
+const submitOrbRingStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  borderRadius: 999,
+  background: "rgba(49, 130, 246, 0.18)",
+  animation: "damara-submit-ring 1280ms ease-out infinite",
+};
+
+const submitOrbCoreStyle: React.CSSProperties = {
+  position: "relative",
+  zIndex: 1,
+  width: 62,
+  height: 62,
+  borderRadius: 22,
+  display: "grid",
+  placeItems: "center",
+  color: "#FFFFFF",
+  background: "linear-gradient(180deg, #6EA2FF 0%, #3182F6 100%)",
+  boxShadow: "0 14px 28px rgba(49,130,246,0.28), inset 0 1px 0 rgba(255,255,255,0.38)",
+  animation: "damara-submit-orb 980ms cubic-bezier(0.22, 1, 0.36, 1) infinite",
+};
+
+const submitTitleStyle: React.CSSProperties = {
+  display: "block",
+  color: grey900,
+  fontSize: 18,
+  fontWeight: 900,
+  lineHeight: "25px",
+  letterSpacing: "-0.03em",
+};
+
+const submitDescStyle: React.CSSProperties = {
+  margin: "7px 0 0",
+  color: grey500,
+  fontSize: 12.5,
+  fontWeight: 650,
+  lineHeight: "19px",
+};
+
+const submitProgressTrackStyle: React.CSSProperties = {
+  position: "relative",
+  height: 6,
+  marginTop: 19,
+  borderRadius: 999,
+  overflow: "hidden",
+  background: "rgba(221, 230, 243, 0.86)",
+};
+
+const submitProgressFillStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  width: "64%",
+  borderRadius: 999,
+  background: "linear-gradient(90deg, rgba(49,130,246,0) 0%, rgba(49,130,246,0.95) 45%, rgba(126,162,255,0) 100%)",
+  animation: "damara-submit-fill 1180ms ease-in-out infinite",
+};
+
+const successPageStyle: React.CSSProperties = {
+  minHeight: "100dvh",
+  background: "radial-gradient(circle at 50% -10%, rgba(49,130,246,0.16) 0%, rgba(246,248,252,0) 38%), #F6F8FC",
+  color: grey900,
+  display: "grid",
+  placeItems: "center",
+  padding: "24px 16px",
+  boxSizing: "border-box",
+};
+
+const successMainStyle: React.CSSProperties = {
+  width: "100%",
+  maxWidth: 430,
+};
+
+const successCardStyle: React.CSSProperties = {
+  position: "relative",
+  overflow: "hidden",
+  padding: "34px 20px 20px",
+  borderRadius: 30,
+  border: "1px solid rgba(234, 240, 249, 0.96)",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,252,255,0.96) 100%)",
+  boxShadow: "0 22px 58px rgba(30, 64, 175, 0.12), 0 2px 8px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255,255,255,0.98)",
+  textAlign: "center",
+  animation: "damara-success-pop 420ms cubic-bezier(0.22, 1, 0.36, 1)",
+};
+
+const successBadgeStyle: React.CSSProperties = {
+  position: "relative",
+  width: 82,
+  height: 82,
+  margin: "0 auto 17px",
+  borderRadius: 28,
+  display: "grid",
+  placeItems: "center",
+  color: "#FFFFFF",
+  background: "linear-gradient(180deg, #73A5FF 0%, #3182F6 100%)",
+  boxShadow: "0 18px 38px rgba(49,130,246,0.28), inset 0 1px 0 rgba(255,255,255,0.4)",
+};
+
+const successPulseStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: -10,
+  borderRadius: 34,
+  background: "rgba(49, 130, 246, 0.24)",
+  animation: "damara-success-pulse 1600ms ease-in-out infinite",
+};
+
+const successEyebrowStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  height: 26,
+  padding: "0 11px",
+  borderRadius: 999,
+  color: blue600,
+  background: "rgba(234,242,255,0.94)",
+  fontSize: 11.5,
+  fontWeight: 900,
+};
+
+const successTitleStyle: React.CSSProperties = {
+  margin: "12px 0 0",
+  color: grey900,
+  fontSize: 23,
+  fontWeight: 950,
+  lineHeight: "31px",
+  letterSpacing: "-0.04em",
+};
+
+const successDescriptionStyle: React.CSSProperties = {
+  margin: "9px auto 0",
+  maxWidth: 300,
+  color: grey600,
+  fontSize: 13,
+  fontWeight: 650,
+  lineHeight: "20px",
+};
+
+const successInfoStyle: React.CSSProperties = {
+  marginTop: 22,
+  padding: 14,
+  borderRadius: 20,
+  display: "flex",
+  gap: 11,
+  textAlign: "left",
+  background: "rgba(246, 249, 255, 0.92)",
+  border: "1px solid rgba(229, 235, 246, 0.92)",
+};
+
+const successInfoIconStyle: React.CSSProperties = {
+  width: 38,
+  height: 38,
+  borderRadius: 15,
+  display: "grid",
+  placeItems: "center",
+  flexShrink: 0,
+  color: blue600,
+  background: "#FFFFFF",
+  boxShadow: "0 5px 14px rgba(49,130,246,0.08)",
+};
+
+const successInfoTitleStyle: React.CSSProperties = {
+  display: "block",
+  color: grey900,
+  fontSize: 13,
+  fontWeight: 900,
+  lineHeight: "19px",
+};
+
+const successInfoDescStyle: React.CSSProperties = {
+  display: "block",
+  marginTop: 3,
+  color: grey500,
+  fontSize: 11.5,
+  fontWeight: 650,
+  lineHeight: "17px",
+};
+
+const successButtonGridStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 9,
+  marginTop: 20,
+};
+
+const successPrimaryButtonStyle: React.CSSProperties = {
+  height: 48,
+  border: 0,
+  borderRadius: 17,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 7,
+  color: "#FFFFFF",
+  background: "linear-gradient(180deg, #4F95FF 0%, #3182F6 100%)",
+  fontSize: 14,
+  fontWeight: 900,
+  boxShadow: "0 12px 24px rgba(49,130,246,0.24), inset 0 1px 0 rgba(255,255,255,0.28)",
+  cursor: "pointer",
+};
+
+const successSecondaryButtonStyle: React.CSSProperties = {
+  height: 46,
+  border: "1px solid rgba(222, 229, 240, 0.96)",
+  borderRadius: 17,
+  color: grey700,
+  background: "#FFFFFF",
+  fontSize: 13.5,
+  fontWeight: 850,
+  cursor: "pointer",
 };

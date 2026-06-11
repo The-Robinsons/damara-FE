@@ -64,9 +64,8 @@ export default function SignupPage() {
         const userData = loginResponse.data;
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
         localStorage.setItem(STORAGE_KEYS.USER_ID, userData.id);
-        if (localStorage.getItem(STORAGE_KEYS.HOME_TUTORIAL_SEEN) !== "never") {
-          sessionStorage.setItem(STORAGE_KEYS.SHOW_HOME_TUTORIAL_ONCE, "true");
-        }
+        localStorage.removeItem(STORAGE_KEYS.HOME_TUTORIAL_SEEN);
+        sessionStorage.setItem(STORAGE_KEYS.SHOW_HOME_TUTORIAL_ONCE, "true");
         nav("/home");
       } catch {
         toast.success("회원가입이 완료되었어요. 로그인해 주세요.");

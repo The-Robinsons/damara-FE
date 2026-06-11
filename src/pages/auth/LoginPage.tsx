@@ -44,9 +44,8 @@ export default function LoginPage() {
       const userData = response.data;
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
       localStorage.setItem(STORAGE_KEYS.USER_ID, userData.id);
-      if (localStorage.getItem(STORAGE_KEYS.HOME_TUTORIAL_SEEN) !== "never") {
-        sessionStorage.setItem(STORAGE_KEYS.SHOW_HOME_TUTORIAL_ONCE, "true");
-      }
+      localStorage.removeItem(STORAGE_KEYS.HOME_TUTORIAL_SEEN);
+      sessionStorage.setItem(STORAGE_KEYS.SHOW_HOME_TUTORIAL_ONCE, "true");
       nav("/home");
     } catch (err) {
       console.error("로그인 실패:", err);
