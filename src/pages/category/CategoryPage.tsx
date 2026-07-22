@@ -15,7 +15,6 @@ import {
   BRAND_PRIMARY,
   HOME_BORDER,
   HOME_CANVAS,
-  SCRIM_LIGHT,
   TEXT_META,
   blue50,
   green50,

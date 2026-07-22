@@ -15,12 +15,12 @@ import {
   TEXT_TITLE,
   blue50,
   grey100,
-  grey400,
   grey500,
   grey900,
 } from "../../shared/constants/homeTheme";
 import { UI_PAGE_PAD_X, UI_TRANSITION } from "../../shared/constants/damaraUISystem";
 import { SkeletonGroupBuyRow } from "../../shared/components/damara/Skeleton";
+import type { GroupBuyListPost } from "./myGroupBuyPosts";
 
 type Accent = "blue";
 
@@ -31,7 +31,7 @@ type MyGroupBuyListViewProps = {
   heroDescription: string;
   Icon: LucideIcon;
   accent?: Accent;
-  posts: any[];
+  posts: GroupBuyListPost[];
   loading: boolean;
   error: string | null;
   emptyTitle: string;
@@ -192,7 +192,7 @@ function Metric({
 }
 
 function isOpenPost(status: unknown): boolean {
-  return ["open", "recruiting", "in_progress", "RECRUITING", "AVAILABLE", undefined, null].includes(status as any);
+  return status == null || ["open", "recruiting", "in_progress", "RECRUITING", "AVAILABLE"].includes(String(status));
 }
 
 function isDonePost(status: unknown): boolean {
@@ -227,25 +227,6 @@ function ListEmpty({
       </button>
     </section>
   );
-}
-
-export function normalizeFavoritePosts(data: any): any[] {
-  const raw = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.posts)
-      ? data.posts
-      : Array.isArray(data?.favorites)
-        ? data.favorites
-        : Array.isArray(data?.data)
-          ? data.data
-          : [];
-
-  return raw.map((item: any) => item.post ?? item).filter(Boolean);
-}
-
-export function normalizeJoinedPosts(data: any): any[] {
-  const raw = Array.isArray(data) ? data : Array.isArray(data?.posts) ? data.posts : Array.isArray(data?.data) ? data.data : [];
-  return raw.map((item: any) => item.post ?? item).filter(Boolean);
 }
 
 export function CreatePostShortcut() {

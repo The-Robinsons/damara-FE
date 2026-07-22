@@ -54,9 +54,7 @@ import {
   grey900,
   HOME_BORDER,
   HOME_CANVAS,
-  HOME_CONTROL_TEXT,
   orange50,
-  orange500,
   orange600,
   purple50,
   purple500,
@@ -94,6 +92,16 @@ type DetailMessage = {
   text: string;
   time: string;
 };
+
+type ApiRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): ApiRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as ApiRecord : {};
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
 
 const C_PRIMARY = BRAND_PRIMARY;
 const C_TEXT_MAIN = TEXT_TITLE;
@@ -147,34 +155,36 @@ function formatMessageTime(value?: string): string {
   return `${hours < 12 ? "오전" : "오후"} ${hours % 12 || 12}:${minutes}`;
 }
 
-function extractChatRooms(data: unknown): any[] {
-  if (Array.isArray(data)) return data;
+function extractChatRooms(data: unknown): ApiRecord[] {
+  if (Array.isArray(data)) return data.map(asRecord);
   if (!data || typeof data !== "object") return [];
-  const record = data as Record<string, unknown>;
+  const record = asRecord(data);
   const candidates = [record.chatRooms, record.rooms, record.items, record.data, record.rows];
   const found = candidates.find(Array.isArray);
-  if (found) return found as any[];
+  if (found) return found.map(asRecord);
   return record.data && typeof record.data === "object" ? extractChatRooms(record.data) : [];
 }
 
-function extractMessages(data: unknown): any[] {
-  if (Array.isArray(data)) return data;
+function extractMessages(data: unknown): ApiRecord[] {
+  if (Array.isArray(data)) return data.map(asRecord);
   if (!data || typeof data !== "object") return [];
-  const record = data as Record<string, unknown>;
+  const record = asRecord(data);
   const candidates = [record.messages, record.items, record.data, record.rows];
   const found = candidates.find(Array.isArray);
-  if (found) return found as any[];
+  if (found) return found.map(asRecord);
   return record.data && typeof record.data === "object" ? extractMessages(record.data) : [];
 }
 
-function getPostImage(post: any): string | undefined {
-  const firstImage = Array.isArray(post?.images) ? post.images[0] : undefined;
+function getPostImage(post: ApiRecord): string | undefined {
+  const images = post.images;
+  const firstImage = Array.isArray(images) ? images[0] : undefined;
+  const imageRecord = asRecord(firstImage);
   return (
     (typeof firstImage === "string" ? firstImage : undefined) ||
-    firstImage?.imageUrl ||
-    firstImage?.url ||
-    post?.imageUrl ||
-    post?.image
+    asString(imageRecord.imageUrl) ||
+    asString(imageRecord.url) ||
+    asString(post.imageUrl) ||
+    asString(post.image)
   );
 }
 
@@ -193,7 +203,7 @@ function formatDeadlineLabel(value?: string): string {
   return `D-${diffDays}`;
 }
 
-function getParticipantCount(room: any, post: any): number | null {
+function getParticipantCount(room: ApiRecord, post: ApiRecord): number | null {
   const value =
     post.currentQuantity ??
     post.currentParticipants ??
@@ -205,47 +215,49 @@ function getParticipantCount(room: any, post: any): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (Array.isArray(post.participants)) return post.participants.length;
   if (Array.isArray(room.participants)) {
-    return room.participants.filter((participant: any) => participant?.userId !== post.authorId).length;
+    return room.participants.filter((participant) => asRecord(participant).userId !== post.authorId).length;
   }
   return null;
 }
 
-function mapPostStatusToRoomStatus(post: any): RoomStatus {
-  const deadlineLabel = formatDeadlineLabel(post?.deadline);
+function mapPostStatusToRoomStatus(post: ApiRecord): RoomStatus {
+  const deadlineLabel = formatDeadlineLabel(asString(post.deadline));
   return deadlineLabel === "오늘 마감" || deadlineLabel === "D-1" ? "closing" : "ongoing";
 }
 
-function mapRoomToPreview(room: any): ChatPreview {
-  const post = room.post ?? {};
-  const lastMessage = room.lastMessage ?? {};
+function mapRoomToPreview(room: ApiRecord): ChatPreview {
+  const post = asRecord(room.post);
+  const lastMessage = asRecord(room.lastMessage);
   const rawImage = getPostImage(post);
   const participantCount = getParticipantCount(room, post);
-  const deadlineLabel = formatDeadlineLabel(post.deadline);
-  const pickupLocation = post.pickupLocation || post.location || room.pickupLocation || room.location || "장소 미정";
+  const deadlineLabel = formatDeadlineLabel(asString(post.deadline));
+  const pickupLocation = asString(post.pickupLocation) || asString(post.location) || asString(room.pickupLocation) || asString(room.location) || "장소 미정";
+  const author = asRecord(post.author);
   return {
     id: String(room.id ?? room.chatRoomId ?? room.postId ?? post.id ?? Date.now()),
-    postId: room.postId ?? post.id,
-    authorId: String(post.authorId ?? post.author?.id ?? room.authorId ?? ""),
-    title: post.title || room.title || "공동구매 채팅",
+    postId: asString(room.postId) ?? asString(post.id),
+    authorId: String(post.authorId ?? author.id ?? room.authorId ?? ""),
+    title: asString(post.title) || asString(room.title) || "공동구매 채팅",
     status: mapPostStatusToRoomStatus(post),
-    timeLabel: formatChatTime(lastMessage.createdAt || room.updatedAt || room.createdAt) || "방금",
+    timeLabel: formatChatTime(asString(lastMessage.createdAt) || asString(room.updatedAt) || asString(room.createdAt)) || "방금",
     locationLabel: `${pickupLocation} · ${participantCount ?? 0}명 참여 · ${deadlineLabel}`,
     locationKind: "people",
-    preview: lastMessage.content || room.preview || "아직 대화가 없어요.",
+    preview: asString(lastMessage.content) || asString(room.preview) || "아직 대화가 없어요.",
     unreadCount: Number(room.unreadCount ?? 0),
     thumbType: "box",
     imageUrl: rawImage ? getImageUrl(rawImage) : undefined,
   };
 }
 
-function mapMessageToDetail(message: any, currentUserId: string, authorId?: string): DetailMessage {
-  const senderId = String(message.senderId ?? message.sender?.id ?? "");
+function mapMessageToDetail(message: ApiRecord, currentUserId: string, authorId?: string): DetailMessage {
+  const sender = asRecord(message.sender);
+  const senderId = String(message.senderId ?? sender.id ?? "");
   const isMe = Boolean(currentUserId && senderId === currentUserId);
-  const senderName = message.sender?.nickname || message.nickname || (isMe ? "나" : "상대");
-  const senderRole = String(message.sender?.role ?? message.senderRole ?? "").toLowerCase();
+  const senderName = asString(sender.nickname) || asString(message.nickname) || (isMe ? "나" : "상대");
+  const senderRole = String(sender.role ?? message.senderRole ?? "").toLowerCase();
   const isSeller =
     Boolean(authorId && senderId === authorId) ||
-    Boolean(message.sender?.isAuthor ?? message.isAuthor) ||
+    Boolean(sender.isAuthor ?? message.isAuthor) ||
     senderRole === "seller" ||
     senderRole === "author";
   return {
@@ -254,8 +266,8 @@ function mapMessageToDetail(message: any, currentUserId: string, authorId?: stri
     senderId,
     senderLabel: isMe ? "나" : senderName,
     subLabel: !isMe && isSeller ? "공구장" : "",
-    text: message.content || "",
-    time: formatMessageTime(message.createdAt) || "",
+    text: asString(message.content) || "",
+    time: formatMessageTime(asString(message.createdAt)) || "",
   };
 }
 
@@ -768,8 +780,6 @@ export default function ChatListPage() {
     const roomId = params.get("roomId");
     const postId = params.get("postId");
     const title = params.get("title");
-    const locationLabel = params.get("location");
-
     if (!roomId && !postId && !title) return;
 
     const sourceChats = chats;

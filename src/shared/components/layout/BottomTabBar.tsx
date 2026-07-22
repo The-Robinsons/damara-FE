@@ -29,8 +29,6 @@ const RIGHT_TABS: TabDef[] = [
   { to: ROUTES.MYPAGE, label: "마이페이지", Icon: User },
 ];
 
-const ALL_TABS = [...LEFT_TABS, ...RIGHT_TABS];
-
 export default function BottomTabBar({ className, onCreateClick }: BottomTabBarProps) {
   const nav = useNavigate();
   const { pathname } = useLocation();

@@ -1,6 +1,6 @@
 import React from "react";
 
-import { grey100, grey50, HOME_BORDER } from "../../constants/homeTheme";
+import { HOME_BORDER } from "../../constants/homeTheme";
 import { UI_R_CARD, UI_R_THUMB } from "../../constants/damaraUISystem";
 
 function Block({ w, h, r = 8 }: { w: string | number; h: number; r?: number }) {

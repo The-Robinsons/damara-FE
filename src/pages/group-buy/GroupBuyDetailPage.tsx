@@ -39,13 +39,10 @@ import {
   blue50,
   blue500,
   blue600,
-  green50,
   green600,
   grey50,
-  grey100,
   grey200,
   grey300,
-  grey400,
   grey500,
   grey600,
   grey700,
@@ -53,6 +50,7 @@ import {
   grey900,
 } from "../../shared/constants/homeTheme";
 import { getImageUrl } from "../../shared/utils/imageUrl";
+import type { ApiPost } from "../../shared/api/swaggerTypes";
 
 
 type Participant = {
@@ -76,12 +74,16 @@ type SellerTrustSummary = {
   badges?: string[];
 };
 
+type DetailPost = ApiPost & {
+  author?: Participant;
+};
+
 export default function GroupBuyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const currentUserId = localStorage.getItem(STORAGE_KEYS.USER_ID);
 
-  const [post, setPost] = useState<any | null>(null);
+  const [post, setPost] = useState<DetailPost | null>(null);
   const [error, setError] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,15 +105,15 @@ export default function GroupBuyDetailPage() {
         ]);
 
         if (detailRes.status === "fulfilled") {
-          setPost(detailRes.value.data);
+          setPost(detailRes.value.data as DetailPost);
           setError("");
         } else {
           setPost(null);
           setError("게시글을 불러오지 못했어요.");
         }
         if (participantRes.status === "fulfilled") {
-          const data = participantRes.value.data;
-          const list = Array.isArray(data) ? data : data?.participants;
+          const data: unknown = participantRes.value.data;
+          const list = Array.isArray(data) ? data : (data as { participants?: unknown }).participants;
           setParticipants(Array.isArray(list) ? list : []);
         }
       } catch (err) {
@@ -123,10 +125,11 @@ export default function GroupBuyDetailPage() {
       }
     };
     run();
-  }, [id]);
+  }, [id, currentUserId]);
 
+  const postAuthorId = post?.authorId;
   useEffect(() => {
-    const authorId = post?.authorId;
+    const authorId = postAuthorId;
     if (!authorId) return;
 
     let cancelled = false;
@@ -141,7 +144,7 @@ export default function GroupBuyDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [post?.authorId]);
+  }, [postAuthorId]);
 
   useEffect(() => {
     if (!id || !currentUserId) return;
@@ -156,14 +159,15 @@ export default function GroupBuyDetailPage() {
   const imageUrls = useMemo(
     () =>
       (post?.images ?? [])
-        .map((img: any) => getImageUrl(img?.imageUrl || img?.url || img))
+        .map((img) => getImageUrl(typeof img === "string" ? img : img.imageUrl))
         .filter(Boolean),
     [post?.images]
   );
+  const primaryImageUrl = imageUrls[0];
 
   useEffect(() => {
     setImageLoadFailed(false);
-  }, [imageUrls[0]]);
+  }, [primaryImageUrl]);
 
   const title = post?.title || post?.productName || "공동구매 상품";
   const price = post?.price ?? 0;
@@ -234,12 +238,12 @@ export default function GroupBuyDetailPage() {
       if (isParticipant) {
         await cancelParticipation(id, currentUserId);
         setIsParticipant(false);
-        setPost((prev: any) => ({ ...prev, currentQuantity: Math.max(Number(prev.currentQuantity ?? 1) - 1, 0) }));
+        setPost((prev) => prev && ({ ...prev, currentQuantity: Math.max(Number(prev.currentQuantity ?? 1) - 1, 0) }));
         toast.success("참여를 취소했어요.");
       } else {
         await participatePost(id, currentUserId);
         setIsParticipant(true);
-        setPost((prev: any) => ({ ...prev, currentQuantity: Number(prev.currentQuantity ?? 0) + 1 }));
+        setPost((prev) => prev && ({ ...prev, currentQuantity: Number(prev.currentQuantity ?? 0) + 1 }));
         toast.success("공구에 참여했어요.");
       }
     } catch {
@@ -507,37 +511,6 @@ function ProductMock() {
         <ImageIcon size={13} strokeWidth={2.1} aria-hidden />
         상품 이미지 준비중
       </span>
-    </div>
-  );
-}
-
-function Bottle({ style, tone, label }: { style: React.CSSProperties; tone: string; label: string }) {
-  return (
-    <div style={{ ...bottleStyle, ...style }}>
-      <span style={{ ...bottleCapStyle, background: tone }} />
-      <span style={{ ...bottleBodyStyle, borderColor: tone }}>
-        <span style={{ ...bottleLabelStyle, background: tone }}>{label}</span>
-      </span>
-    </div>
-  );
-}
-
-function FoodBox({ style }: { style: React.CSSProperties }) {
-  return (
-    <div style={{ ...foodBoxStyle, ...style }}>
-      <span style={foodBoxLeafStyle} />
-      <span style={foodBoxLabelStyle}>DAMARA</span>
-    </div>
-  );
-}
-
-function Pack({ style }: { style: React.CSSProperties }) {
-  return (
-    <div style={{ position: "absolute", width: 178, height: 76, borderRadius: "18px 18px 24px 24px", background: "#fff", boxShadow: "0 14px 32px rgba(30,64,175,.13)", overflow: "hidden", ...style }}>
-      <div style={{ position: "absolute", left: -8, top: -8, width: 72, height: 94, background: "#9bd38c", transform: "rotate(18deg)" }} />
-      <div style={{ position: "absolute", right: -8, bottom: -14, width: 90, height: 48, borderRadius: "50%", background: "#9bd38c" }} />
-      <div style={{ position: "absolute", left: 50, top: 17, right: 50, height: 32, borderRadius: 999, border: `1px solid ${grey200}`, background: "#fff", display: "grid", placeItems: "center", color: grey500, fontSize: 11, fontWeight: 900 }}>WIPES</div>
-      <span style={{ position: "absolute", left: 16, bottom: 10, color: green600, fontSize: 9, fontWeight: 900 }}>100매</span>
     </div>
   );
 }
@@ -1250,70 +1223,4 @@ const mockCaptionStyle: React.CSSProperties = {
   fontSize: 10.5,
   fontWeight: 850,
   boxShadow: "0 8px 22px rgba(15, 23, 42, 0.07)",
-};
-
-const bottleStyle: React.CSSProperties = {
-  position: "absolute",
-  width: 66,
-  height: 120,
-  display: "grid",
-  justifyItems: "center",
-  filter: "drop-shadow(0 16px 22px rgba(49, 130, 246, 0.14))",
-};
-
-const bottleCapStyle: React.CSSProperties = {
-  width: 28,
-  height: 16,
-  borderRadius: "7px 7px 3px 3px",
-  border: "1px solid rgba(255,255,255,.8)",
-};
-
-const bottleBodyStyle: React.CSSProperties = {
-  width: 60,
-  height: 94,
-  borderRadius: "19px 19px 16px 16px",
-  background: "linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.82))",
-  border: "2px solid",
-  display: "grid",
-  placeItems: "center",
-};
-
-const bottleLabelStyle: React.CSSProperties = {
-  width: 44,
-  height: 32,
-  borderRadius: 12,
-  display: "grid",
-  placeItems: "center",
-  color: "#fff",
-  fontSize: 7,
-  fontWeight: 950,
-};
-
-const foodBoxStyle: React.CSSProperties = {
-  position: "absolute",
-  width: 112,
-  height: 78,
-  borderRadius: 22,
-  background: "#fff",
-  boxShadow: "0 16px 28px rgba(49, 130, 246, 0.13)",
-  overflow: "hidden",
-};
-
-const foodBoxLeafStyle: React.CSSProperties = {
-  position: "absolute",
-  right: -18,
-  top: -20,
-  width: 68,
-  height: 74,
-  borderRadius: "50%",
-  background: "#A5E5C7",
-};
-
-const foodBoxLabelStyle: React.CSSProperties = {
-  position: "absolute",
-  left: 18,
-  top: 24,
-  color: blue600,
-  fontSize: 12,
-  fontWeight: 950,
 };

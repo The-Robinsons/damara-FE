@@ -12,7 +12,6 @@ import {
   blue400,
   blue500,
   blue600,
-  blue700,
   green50,
   green600,
   grey100,

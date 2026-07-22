@@ -5,27 +5,29 @@ import { Package } from "lucide-react";
 import { BRAND_PRIMARY, TEXT_META, TEXT_TITLE } from "../../../shared/constants/homeTheme";
 import { getImageUrl } from "../../../shared/utils/imageUrl";
 import type { SortKey } from "./HomeSortTabs";
+import type { HomePost } from "../types";
 
 interface HomePostListProps {
-  posts: any[];
+  posts: HomePost[];
   sortBy?: SortKey;
   emptyText?: string;
   loading?: boolean;
   onItemClick: (id: number | string) => void;
 }
 
-function getFirstImage(post: any): string {
+function getFirstImage(post: HomePost): string {
   const firstImage = post.images?.[0];
+  const imageRecord = typeof firstImage === "object" ? firstImage : undefined;
   return (
     (typeof firstImage === "string" ? firstImage : undefined) ||
-    firstImage?.imageUrl ||
-    firstImage?.url ||
+    imageRecord?.imageUrl ||
+    imageRecord?.url ||
     post.image ||
     "/placeholder.png"
   );
 }
 
-function getTradeBadge(post: any) {
+function getTradeBadge(post: HomePost) {
   const raw = String(post.groupBuyType ?? post.type ?? "").toLowerCase();
   if (raw === "post_recruit" || raw === "post_purchase" || raw === "post_purchase_recruit") {
     return { label: "나눔구매", color: "#5B67F1", background: "rgba(91, 103, 241, 0.11)" };
@@ -33,7 +35,7 @@ function getTradeBadge(post: any) {
   return { label: "함께구매", color: BRAND_PRIMARY, background: "rgba(49, 130, 246, 0.1)" };
 }
 
-function sortPosts(posts: any[], sortBy?: SortKey): any[] {
+function sortPosts(posts: HomePost[], sortBy?: SortKey): HomePost[] {
   if (!sortBy) return posts;
   const arr = [...posts];
   arr.sort((a, b) => {
@@ -45,12 +47,12 @@ function sortPosts(posts: any[], sortBy?: SortKey): any[] {
     if (sortBy === "popular") {
       return (b.currentQuantity ?? 0) - (a.currentQuantity ?? 0);
     }
-    return (b.id ?? 0) - (a.id ?? 0);
+    return Number(b.id) - Number(a.id);
   });
   return arr;
 }
 
-function getDisplayInfo(post: any) {
+function getDisplayInfo(post: HomePost) {
   const rawTitle = String(post.title ?? "").trim();
   const productName = String(post.productName ?? "").trim();
 

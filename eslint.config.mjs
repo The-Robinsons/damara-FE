@@ -42,7 +42,17 @@ export default tseslint.config(
       "no-empty-pattern": "warn",
       "react-refresh/only-export-components": [
         "warn",
-        { allowConstantExport: true },
+        {
+          allowConstantExport: true,
+          allowExportNames: [
+            "badgeVariants",
+            "buttonVariants",
+            "serviceCard",
+            "sectionTitle",
+            "bodyText",
+            "softInfoBox",
+          ],
+        },
       ],
     },
   },

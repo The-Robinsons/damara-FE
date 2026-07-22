@@ -14,6 +14,7 @@ import { getPosts } from "../../features/group-buy/api/groupBuyApi";
 import { HOME_CANVAS } from "../../shared/constants/homeTheme";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import type { HomeCategoryId } from "./constants/homeCategoryChipsData";
+import type { HomePost } from "./types";
 
 const CATEGORY_API_MAP: Partial<Record<HomeCategoryId, string>> = {
   food: "food",
@@ -22,10 +23,12 @@ const CATEGORY_API_MAP: Partial<Record<HomeCategoryId, string>> = {
   stationery: "school",
 };
 
-function getPostsPayload(data: unknown): any[] {
+function getPostsPayload(data: unknown): HomePost[] {
   if (Array.isArray(data)) return data;
-  if (data && typeof data === "object" && Array.isArray((data as any).posts)) return (data as any).posts;
-  if (data && typeof data === "object" && Array.isArray((data as any).items)) return (data as any).items;
+  if (!data || typeof data !== "object") return [];
+  const record = data as { posts?: unknown; items?: unknown };
+  if (Array.isArray(record.posts)) return record.posts as HomePost[];
+  if (Array.isArray(record.items)) return record.items as HomePost[];
   return [];
 }
 
@@ -33,7 +36,7 @@ export default function HomePage() {
   const nav = useNavigate();
   const [activeCategory, setActiveCategory] = useState<HomeCategoryId>("all");
   const [sortBy, setSortBy] = useState<SortKey>("latest");
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<HomePost[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 

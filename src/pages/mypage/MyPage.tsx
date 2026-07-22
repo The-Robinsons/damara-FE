@@ -27,7 +27,6 @@ import {
   TEXT_TITLE,
   blue50,
   grey400,
-  grey900,
 } from "../../shared/constants/homeTheme";
 import { UI_PAGE_PAD_X, UI_TRANSITION } from "../../shared/constants/damaraUISystem";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";

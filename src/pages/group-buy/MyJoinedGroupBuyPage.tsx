@@ -4,10 +4,11 @@ import { Users } from "lucide-react";
 import { ROUTES } from "../../app/router/routes";
 import { getMyPosts } from "../../features/user/api/userApi";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
-import MyGroupBuyListView, { normalizeJoinedPosts } from "./MyGroupBuyListView";
+import MyGroupBuyListView from "./MyGroupBuyListView";
+import { normalizeJoinedPosts, type GroupBuyListPost } from "./myGroupBuyPosts";
 
 export default function MyJoinedGroupBuyPage() {
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<GroupBuyListPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

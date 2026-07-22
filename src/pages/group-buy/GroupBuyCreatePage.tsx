@@ -24,13 +24,10 @@ import { getImageUploadErrorMessage, uploadImage } from "../../shared/api/upload
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import { getCreatePostErrorFeedback } from "../../shared/utils/apiError";
 import {
-  blue50,
   blue500,
   blue600,
   grey50,
   grey100,
-  grey200,
-  grey300,
   grey400,
   grey500,
   grey600,
@@ -39,6 +36,7 @@ import {
   grey900,
 } from "../../shared/constants/homeTheme";
 import { getImageUrl } from "../../shared/utils/imageUrl";
+import type { ApiPost } from "../../shared/api/swaggerTypes";
 
 type TradeType = "PRE_RECRUIT" | "POST_PURCHASE";
 type SubmitState = "idle" | "submitting" | "success";
@@ -93,16 +91,24 @@ function toPickupTimeRange(value: string) {
 
 function extractCreatedPostId(data: unknown): string | null {
   if (!data || typeof data !== "object") return null;
-  const record = data as Record<string, any>;
+  const record = data as Record<string, unknown>;
+  const post = typeof record.post === "object" && record.post ? record.post as Record<string, unknown> : undefined;
+  const nestedData = typeof record.data === "object" && record.data ? record.data as Record<string, unknown> : undefined;
+  const nestedPost = nestedData && typeof nestedData.post === "object" && nestedData.post
+    ? nestedData.post as Record<string, unknown>
+    : undefined;
+  const createdPost = typeof record.createdPost === "object" && record.createdPost
+    ? record.createdPost as Record<string, unknown>
+    : undefined;
   const candidates = [
     record.id,
     record.postId,
-    record.post?.id,
-    record.post?.postId,
-    record.data?.id,
-    record.data?.postId,
-    record.data?.post?.id,
-    record.createdPost?.id,
+    post?.id,
+    post?.postId,
+    nestedData?.id,
+    nestedData?.postId,
+    nestedPost?.id,
+    createdPost?.id,
   ];
   const found = candidates.find((value) => value !== undefined && value !== null && String(value).trim());
   return found ? String(found) : null;
@@ -143,7 +149,7 @@ export default function GroupBuyCreatePage() {
 
     setLoading(true);
     getPostDetail(editId, userId)
-      .then(({ data }) => {
+      .then(({ data }: { data: ApiPost }) => {
         if (cancelled) return;
         setProductName(String(data.productName || data.title || ""));
         setTitle(String(data.title || ""));
@@ -158,7 +164,7 @@ export default function GroupBuyCreatePage() {
         setDescription(String(data.content || ""));
         const loadedImages = Array.isArray(data.images)
           ? data.images
-              .map((img: any) => getImageUrl(img?.imageUrl || img?.url || img))
+              .map((img) => getImageUrl(typeof img === "string" ? img : img.imageUrl))
               .filter(Boolean)
               .map((url: string) => ({ preview: url, url }))
           : [];
@@ -836,46 +842,6 @@ function CategoryPill({
   );
 }
 
-function TypeCard({ active, title, badge, desc, onClick }: { active: boolean; title: string; badge: string; desc: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        border: `1px solid ${active ? "rgba(49, 130, 246, 0.26)" : "rgba(229, 233, 239, 0.92)"}`,
-        borderRadius: 16,
-        background: active ? "#f7fbff" : "#fff",
-        padding: 14,
-        textAlign: "left",
-        cursor: "pointer",
-        display: "flex",
-        gap: 10,
-        boxShadow: active ? "0 8px 20px rgba(49, 130, 246, 0.09)" : "0 4px 14px rgba(15, 23, 42, 0.035)",
-        transition: "border-color 160ms ease, background 160ms ease, box-shadow 160ms ease",
-      }}
-    >
-      <span style={{ ...checkCircleStyle, borderColor: active ? blue500 : grey300, background: active ? blue500 : "#fff" }}>
-        {active ? <Check size={12} strokeWidth={2.5} color="#fff" aria-hidden /> : null}
-      </span>
-      <span style={{ minWidth: 0 }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-          <strong style={{ color: grey900, fontSize: 14, fontWeight: 850, lineHeight: "20px" }}>{title}</strong>
-          <span style={badgeStyle}>{badge}</span>
-        </span>
-        <span style={{ display: "block", marginTop: 6, color: grey600, fontSize: 12, lineHeight: "17px" }}>{desc}</span>
-      </span>
-    </button>
-  );
-}
-
-function Chip({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} style={{ minHeight: 31, borderRadius: 999, border: `1px solid ${active ? "rgba(49,130,246,0.24)" : "transparent"}`, background: active ? "#edf6ff" : "#f4f6f8", color: active ? blue600 : grey600, padding: "0 12px", fontSize: 12, fontWeight: 750, boxShadow: active ? "inset 0 0 0 1px rgba(49,130,246,0.02)" : "none" }}>
-      {children}
-    </button>
-  );
-}
-
 function InfoBox({ title, desc }: { title: string; desc: string }) {
   return (
     <div style={{ marginTop: 12, borderRadius: 16, background: "#f1f7ff", padding: 13, display: "flex", gap: 10 }}>
@@ -1513,82 +1479,6 @@ const sectionCardStyle: React.CSSProperties = {
   WebkitBackdropFilter: "blur(16px) saturate(150%)",
 };
 
-const heroInputCardStyle: React.CSSProperties = {
-  ...sectionCardStyle,
-  marginTop: 16,
-  padding: 12,
-};
-
-const imageUploadStyle: React.CSSProperties = {
-  width: "100%",
-  minHeight: 124,
-  border: "1px dashed rgba(143, 159, 181, 0.46)",
-  borderRadius: 18,
-  background:
-    "linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(247,249,252,0.74) 100%)",
-  color: blue500,
-  display: "grid",
-  placeItems: "center",
-  cursor: "pointer",
-  boxShadow: "inset 0 1px 1px rgba(255,255,255,0.9)",
-};
-
-const uploadIconStyle: React.CSSProperties = {
-  width: 38,
-  height: 38,
-  borderRadius: 14,
-  background: "rgba(234,242,255,0.94)",
-  color: blue500,
-  display: "grid",
-  placeItems: "center",
-  margin: "0 auto",
-  boxShadow: "inset 0 1px 1px rgba(255,255,255,0.9), 0 5px 14px rgba(49,130,246,0.08)",
-};
-
-const uploadTitleStyle: React.CSSProperties = {
-  color: blue600,
-  fontSize: 13.5,
-  fontWeight: 850,
-  lineHeight: "19px",
-};
-
-const uploadDescStyle: React.CSSProperties = {
-  color: grey500,
-  fontSize: 11,
-  lineHeight: "16px",
-};
-
-const imageGridStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 10,
-  marginTop: 12,
-  overflowX: "auto",
-};
-
-const previewStyle: React.CSSProperties = {
-  position: "relative",
-  width: 60,
-  height: 60,
-  borderRadius: 12,
-  overflow: "hidden",
-  background: grey100,
-  flexShrink: 0,
-};
-
-const removeImageStyle: React.CSSProperties = {
-  position: "absolute",
-  right: 4,
-  top: 4,
-  width: 18,
-  height: 18,
-  borderRadius: 999,
-  border: 0,
-  background: "rgba(25,31,40,0.78)",
-  color: "#fff",
-  display: "grid",
-  placeItems: "center",
-};
-
 const fieldGroupStyle: React.CSSProperties = {
   marginTop: 12,
   border: "1px solid rgba(255,255,255,0.78)",
@@ -1630,29 +1520,6 @@ const fieldInputStyle: React.CSSProperties = {
   fontWeight: 750,
   lineHeight: "21px",
   background: "transparent",
-};
-
-const checkCircleStyle: React.CSSProperties = {
-  width: 20,
-  height: 20,
-  borderRadius: 999,
-  border: `1.5px solid ${grey300}`,
-  display: "grid",
-  placeItems: "center",
-  flexShrink: 0,
-  marginTop: 1,
-};
-
-const badgeStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  height: 20,
-  borderRadius: 999,
-  padding: "0 8px",
-  color: blue600,
-  background: "#edf6ff",
-  fontSize: 10.5,
-  fontWeight: 800,
 };
 
 const locationTipStyle: React.CSSProperties = {

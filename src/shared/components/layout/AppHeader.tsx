@@ -226,28 +226,6 @@ export default function AppHeader() {
         </HeaderPanel>
       ) : null}
 
-      {false && activePanel === "notifications" ? (
-        <HeaderPanel title="알림" subtitle={unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개` : "새로운 소식을 확인해 보세요"} onClose={() => setActivePanel(null)}>
-          <div style={panelBodyStyle}>
-            {loadingNotifications ? <PanelEmpty icon={<Bell size={24} />} title="알림을 불러오는 중이에요" description="잠시만 기다려 주세요." /> : notifications.length === 0 ? <PanelEmpty icon={<Bell size={24} />} title="새로운 알림이 없어요" description="공구 소식이 생기면 이곳에서 알려드릴게요." /> : notifications.map((notification) => (
-              <button key={notification.id} type="button" onClick={() => void openNotification(notification)} style={{ ...resultRowStyle, background: notification.isRead ? "transparent" : "rgba(49, 130, 246, 0.055)" }}>
-                <span style={{ ...notificationIconStyle, background: notification.isRead ? "#F2F5F9" : "rgba(49, 130, 246, 0.12)", color: notification.isRead ? grey500 : BRAND_PRIMARY }}>
-                  {notification.type === "new_participant" ? <UsersRound size={18} aria-hidden /> : <BellRing size={18} aria-hidden />}
-                </span>
-                <span style={{ minWidth: 0, flex: 1 }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <strong style={rowTitleStyle}>{notification.title}</strong>
-                    {!notification.isRead ? <span style={newBadgeStyle}>NEW</span> : null}
-                  </span>
-                  <span style={rowDescriptionStyle}>{notification.message}</span>
-                  <span style={notificationTimeStyle}>{formatNotificationTime(notification.createdAt)}</span>
-                </span>
-                {(notification.postId || notification.actionUrl) ? <ChevronRight size={17} color={grey400} aria-hidden /> : null}
-              </button>
-            ))}
-          </div>
-        </HeaderPanel>
-      ) : null}
       {activePanel === "notifications" ? (
         <NotificationPanel
           notifications={filteredNotifications}
@@ -456,7 +434,6 @@ const panelBodyStyle: React.CSSProperties = { maxHeight: "min(448px, calc(100dvh
 const resultRowStyle: React.CSSProperties = { width: "100%", minHeight: 76, padding: "11px 14px", display: "flex", alignItems: "center", gap: 11, border: 0, borderBottom: `1px solid ${grey200}`, background: "transparent", textAlign: "left", cursor: "pointer" };
 const thumbnailStyle: React.CSSProperties = { width: 50, height: 50, flexShrink: 0, overflow: "hidden", borderRadius: 14, background: "#EDF4FF", display: "grid", placeItems: "center" };
 const thumbnailImageStyle: React.CSSProperties = { width: "100%", height: "100%", objectFit: "cover", display: "block" };
-const notificationIconStyle: React.CSSProperties = { width: 42, height: 42, flexShrink: 0, borderRadius: 14, display: "grid", placeItems: "center" };
 const rowTitleStyle: React.CSSProperties = { display: "block", overflow: "hidden", color: grey900, fontSize: 14, fontWeight: 780, lineHeight: "20px", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 const rowDescriptionStyle: React.CSSProperties = { display: "block", overflow: "hidden", marginTop: 2, color: grey700, fontSize: 12, fontWeight: 560, lineHeight: "17px", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 const rowMetaStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 3, marginTop: 3, color: grey500, fontSize: 11, fontWeight: 620, lineHeight: "15px" };

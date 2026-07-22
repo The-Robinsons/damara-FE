@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useId, useState } from "react";
+import { isAxiosError } from "axios";
 
 import { addFavorite, checkFavorite, removeFavorite } from "../api/groupBuyApi";
 import { readFavoriteFlag } from "../utils/favoriteResponse";
@@ -75,13 +76,13 @@ export default function FavoriteHeartButton({
         else await removeFavorite(String(postId), userId);
 
         damaraToast.show(next ? damaraToastMessages.favoriteAdded : damaraToastMessages.favoriteRemoved);
-      } catch (err: any) {
-        if (next && err?.response?.status === 400) {
+      } catch (err: unknown) {
+        if (next && isAxiosError(err) && err.response?.status === 400) {
           setIsFavorite(true);
           damaraToast.show(damaraToastMessages.favoriteAdded);
           return;
         }
-        if (!next && err?.response?.status === 404) {
+        if (!next && isAxiosError(err) && err.response?.status === 404) {
           setIsFavorite(false);
           damaraToast.show(damaraToastMessages.favoriteRemoved);
           return;

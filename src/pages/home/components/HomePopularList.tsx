@@ -2,6 +2,7 @@ import { Flame, ImageIcon, MapPin } from "lucide-react";
 
 import FavoriteHeartButton from "../../../features/group-buy/components/FavoriteHeartButton";
 import { getImageUrl } from "../../../shared/utils/imageUrl";
+import type { HomePost } from "../types";
 import {
   BADGE_INFO_BG,
   BADGE_INFO_TEXT,
@@ -14,23 +15,24 @@ import {
 } from "../../../shared/constants/homeTheme";
 
 interface HomePopularListProps {
-  posts: any[];
+  posts: HomePost[];
   onItemClick: (id: number | string) => void;
 }
 
-function getFirstImageUrl(post: any): string | null {
+function getFirstImageUrl(post: HomePost): string | null {
   const firstImage = post.images?.[0];
+  const imageRecord = typeof firstImage === "object" ? firstImage : undefined;
   const img =
     (typeof firstImage === "string" ? firstImage : undefined) ||
-    firstImage?.imageUrl ||
-    firstImage?.url ||
+    imageRecord?.imageUrl ||
+    imageRecord?.url ||
     post.image ||
     null;
   if (!img) return null;
   return getImageUrl(img);
 }
 
-function getPopularDisplay(post: any, idx: number) {
+function getPopularDisplay(post: HomePost, idx: number) {
   const current = Number(post.currentQuantity ?? 0);
   const max = Number(post.minParticipants ?? 2);
   const progress = max > 0 ? Math.min(Math.round((current / max) * 100), 100) : 0;
@@ -44,7 +46,7 @@ function getPopularDisplay(post: any, idx: number) {
   };
 }
 
-function getTradeBadge(post: any) {
+function getTradeBadge(post: HomePost) {
   const raw = String(post.groupBuyType ?? post.type ?? "").toLowerCase();
   if (raw === "post_recruit" || raw === "post_purchase" || raw === "post_purchase_recruit") {
     return { label: "나눔구매", color: "#5B67F1", background: "rgba(91, 103, 241, 0.11)" };

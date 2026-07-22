@@ -36,9 +36,6 @@ export function VerificationBadge({
 }) {
   if (!status) return null;
 
-  const showCheck =
-    status === "FULLY_VERIFIED" || status === "STUDENT_ID_VERIFIED";
-
   return (
     <span data-verification-status={status}>
       
@@ -62,7 +59,7 @@ export function TradeMethodBadge({
   );
 }
 
-export function DamaraZoneBadge({}: { size?: BadgeSize } = {}) {
+export function DamaraZoneBadge(_props: { size?: BadgeSize } = {}) {
   return (
     <span data-damara-zone="true">
       

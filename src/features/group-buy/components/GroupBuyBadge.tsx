@@ -8,10 +8,9 @@ import {
 interface GroupBuyTypeBadgeProps {
   type?: GroupBuyType | string | null;
   size?: "sm" | "md";
-  showIcon?: boolean;
 }
 
-export function GroupBuyTypeBadge({ type, showIcon = false }: GroupBuyTypeBadgeProps) {
+export function GroupBuyTypeBadge({ type }: GroupBuyTypeBadgeProps) {
   if (!type) return null;
 
   const isPreRecruit = type === "PRE_RECRUIT";

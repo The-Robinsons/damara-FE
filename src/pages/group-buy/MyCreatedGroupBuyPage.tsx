@@ -5,9 +5,10 @@ import { ROUTES } from "../../app/router/routes";
 import { getMyPosts } from "../../features/user/api/userApi";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import MyGroupBuyListView, { CreatePostShortcut } from "./MyGroupBuyListView";
+import type { GroupBuyListPost } from "./myGroupBuyPosts";
 
 export default function MyCreatedGroupBuyPage() {
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<GroupBuyListPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

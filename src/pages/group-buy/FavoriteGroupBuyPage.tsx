@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
+import { isAxiosError } from "axios";
 import { Heart } from "lucide-react";
 
 import { ROUTES } from "../../app/router/routes";
 import { getMyPosts } from "../../features/user/api/userApi";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
-import MyGroupBuyListView, { normalizeFavoritePosts } from "./MyGroupBuyListView";
+import MyGroupBuyListView from "./MyGroupBuyListView";
+import { normalizeFavoritePosts, type GroupBuyListPost } from "./myGroupBuyPosts";
 
 export default function FavoriteGroupBuyPage() {
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<GroupBuyListPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,9 +26,9 @@ export default function FavoriteGroupBuyPage() {
         setLoading(true);
         const res = await getMyPosts(userId, { tab: "favorites" });
         setPosts(normalizeFavoritePosts(res.data?.items));
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
-        if (err.response?.status === 404) {
+        if (isAxiosError(err) && err.response?.status === 404) {
           setPosts([]);
           setError(null);
           return;

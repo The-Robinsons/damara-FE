@@ -1,5 +1,4 @@
 import {
-  BRAND_PRIMARY,
   TEXT_META,
 } from "../../../shared/constants/homeTheme";
 import { UI_IX_BUTTON, UI_IX_HOVER_GREY50, UI_PAGE_PAD_X, UI_R_BADGE } from "../../../shared/constants/damaraUISystem";
