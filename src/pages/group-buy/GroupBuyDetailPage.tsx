@@ -51,6 +51,9 @@ import {
 } from "../../shared/constants/homeTheme";
 import { getImageUrl } from "../../shared/utils/imageUrl";
 import type { ApiPost } from "../../shared/api/swaggerTypes";
+import ActionButton from "../../shared/components/damara/ActionButton";
+import SectionHeader from "../../shared/components/damara/SectionHeader";
+import SurfaceCard from "../../shared/components/damara/SurfaceCard";
 
 
 type Participant = {
@@ -315,15 +318,15 @@ export default function GroupBuyDetailPage() {
         </main>
       ) : error || !post ? (
         <main style={mainStyle}>
-          <section style={{ ...contentCardStyle, textAlign: "center", padding: "34px 20px" }}>
+          <SurfaceCard style={{ textAlign: "center" }} padding="34px 20px">
             <h2 style={{ margin: 0, color: grey900, fontSize: 17, fontWeight: 850 }}>게시글을 찾을 수 없어요</h2>
             <p style={{ margin: "8px 0 0", color: grey500, fontSize: 13, lineHeight: "19px", fontWeight: 600 }}>
               {error || "삭제되었거나 접근할 수 없는 공구예요."}
             </p>
-            <button type="button" onClick={() => nav("/home", { replace: true })} style={{ ...chatButtonStyle, width: "100%", marginTop: 18 }}>
+            <ActionButton onClick={() => nav("/home", { replace: true })} style={{ width: "100%", marginTop: 18 }}>
               홈으로 돌아가기
-            </button>
-          </section>
+            </ActionButton>
+          </SurfaceCard>
         </main>
       ) : (
         <main style={mainStyle}>
@@ -416,22 +419,19 @@ export default function GroupBuyDetailPage() {
             </div>
           </section>
 
-          <section style={contentCardStyle}>
-            <h3 style={sectionTitleStyle}>참여자 {Math.max(current, participantList.length)}명</h3>
+          <SurfaceCard padding={15}>
+            <SectionHeader title={`참여자 ${Math.max(current, participantList.length)}명`} />
             <div style={participantGridStyle}>
               {participantList.slice(0, 4).map((person, index) => (
                 <ParticipantCard key={person.userId || `${person.nickname}-${index}`} person={person} index={index} />
               ))}
             </div>
-          </section>
+          </SurfaceCard>
 
-          <section style={contentCardStyle}>
-            <div style={sectionHeaderStyle}>
-              <h3 style={sectionTitleStyle}>상품 소개</h3>
-              <PackageCheck size={18} color={blue600} strokeWidth={2.1} />
-            </div>
+          <SurfaceCard padding={15}>
+            <SectionHeader title="상품 소개" action={<PackageCheck size={18} color={blue600} strokeWidth={2.1} />} />
             <p style={contentTextStyle}>{content}</p>
-          </section>
+          </SurfaceCard>
 
           <div style={noticeGridStyle}>
             <NoticeCard
@@ -462,13 +462,13 @@ export default function GroupBuyDetailPage() {
           <div style={ownerBottomNoticeStyle}>내가 작성한 공구입니다</div>
         ) : (
           <>
-            <button type="button" onClick={handleChat} style={chatButtonStyle}>
+            <ActionButton variant="secondary" size="compact" onClick={handleChat} style={{ height: 46, borderColor: blue500, color: blue600 }}>
               <MessageCircle size={19} strokeWidth={2.15} aria-hidden />
               채팅
-            </button>
-            <button type="button" disabled={busy} onClick={handleParticipate} style={participateButtonStyle}>
+            </ActionButton>
+            <ActionButton size="compact" disabled={busy} onClick={handleParticipate} style={{ height: 46 }}>
               {isParticipant ? "참여취소" : "참여하기"}
-            </button>
+            </ActionButton>
           </>
         )}
       </div>
@@ -977,25 +977,6 @@ const mannerRankStyle: React.CSSProperties = {
   fontWeight: 700,
 };
 
-const contentCardStyle: React.CSSProperties = {
-  ...cardBase,
-  padding: 15,
-};
-
-const sectionHeaderStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-};
-
-const sectionTitleStyle: React.CSSProperties = {
-  margin: 0,
-  color: grey900,
-  fontSize: 14,
-  fontWeight: 950,
-  lineHeight: "20px",
-};
-
 const participantGridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
@@ -1126,33 +1107,6 @@ const bottomBarStyle: React.CSSProperties = {
   zIndex: 30,
   backdropFilter: "blur(18px)",
   WebkitBackdropFilter: "blur(18px)",
-};
-
-const chatButtonStyle: React.CSSProperties = {
-  height: 46,
-  borderRadius: 14,
-  border: `1.5px solid ${blue500}`,
-  background: "#fff",
-  color: blue600,
-  fontSize: 13,
-  fontWeight: 900,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 6,
-  cursor: "pointer",
-};
-
-const participateButtonStyle: React.CSSProperties = {
-  height: 46,
-  borderRadius: 14,
-  border: 0,
-  background: blue500,
-  color: "#fff",
-  fontSize: 14,
-  fontWeight: 900,
-  boxShadow: "0 10px 22px rgba(49, 130, 246, 0.22)",
-  cursor: "pointer",
 };
 
 const ownerBottomNoticeStyle: React.CSSProperties = {

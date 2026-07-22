@@ -37,6 +37,8 @@ import {
 } from "../../shared/constants/homeTheme";
 import { getImageUrl } from "../../shared/utils/imageUrl";
 import type { ApiPost } from "../../shared/api/swaggerTypes";
+import ActionButton from "../../shared/components/damara/ActionButton";
+import SurfaceCard from "../../shared/components/damara/SurfaceCard";
 
 type TradeType = "PRE_RECRUIT" | "POST_PURCHASE";
 type SubmitState = "idle" | "submitting" | "success";
@@ -326,7 +328,7 @@ export default function GroupBuyCreatePage() {
           <section>
             <StepTitle title="어떤 상품을 함께 구매할까요?" desc="사진과 상품명만 먼저 입력해 주세요." />
 
-            <div style={stepOnePanelStyle}>
+            <SurfaceCard as="div" padding="18px 15px 16px" style={stepOnePanelStyle}>
               <ImageUploadCard
                 images={images}
                 fileRef={fileRef}
@@ -342,7 +344,7 @@ export default function GroupBuyCreatePage() {
                 onProductNameChange={(value) => setProductName(value.slice(0, 50))}
                 onTitleChange={(value) => setTitle(value.slice(0, 30))}
               />
-            </div>
+            </SurfaceCard>
 
           </section>
         ) : null}
@@ -393,11 +395,11 @@ export default function GroupBuyCreatePage() {
         {step === 3 ? (
           <section>
             <StepTitle title="가격과 인원을 입력해 주세요" desc="참여자가 바로 이해할 수 있게 간단히 적어요." />
-            <div style={{ ...fieldGroupStyle, marginTop: 16 }}>
+            <SurfaceCard as="div" padding={0} style={{ marginTop: 16, overflow: "hidden" }}>
               <LabeledInput label="1인당 가격" value={money(price)} onChange={(value) => setPrice(onlyDigits(value))} placeholder="예: 5,900" suffix="원" inputMode="numeric" />
               <Divider />
               <LabeledInput label="모집 인원" value={onlyDigits(people)} onChange={(value) => setPeople(onlyDigits(value))} placeholder="예: 3" suffix="명" inputMode="numeric" plain />
-            </div>
+            </SurfaceCard>
             <InfoBox title="목표 인원이 모이면" desc="참여자에게 채팅으로 수령 안내를 진행하면 돼요." />
           </section>
         ) : null}
@@ -405,7 +407,7 @@ export default function GroupBuyCreatePage() {
         {step === 4 ? (
           <section>
             <StepTitle title="수령 정보를 알려주세요" desc="장소와 날짜는 나중에 채팅으로 조율할 수도 있어요." />
-            <div style={{ ...fieldGroupStyle, marginTop: 16 }}>
+            <SurfaceCard as="div" padding={0} style={{ marginTop: 16, overflow: "hidden" }}>
               <LabeledInput label="수령 장소" value={location} onChange={setLocation} placeholder="예: 명지대 정문 앞" />
               <Divider />
               <DateInput label="마감일" value={deadline} onChange={setDeadline} />
@@ -413,7 +415,7 @@ export default function GroupBuyCreatePage() {
               <DateInput label="수령 예정일" value={pickupDate} onChange={setPickupDate} />
               <Divider />
               <LabeledInput label="예상 수령 시간" value={pickupTime} onChange={setPickupTime} placeholder="예: 오후 12시 ~ 오후 6시" plain />
-            </div>
+            </SurfaceCard>
             <div style={locationTipStyle}>
               <span style={tipIconStyle}>
                 <MapPin size={15} fill="rgba(49,130,246,0.12)" aria-hidden />
@@ -442,7 +444,7 @@ export default function GroupBuyCreatePage() {
               <p style={{ margin: "6px 2px 0", textAlign: "right", color: grey500, fontSize: 11 }}>{description.length} / 500</p>
             </div>
 
-            <div style={{ marginTop: 14, ...sectionCardStyle, background: grey50 }}>
+            <SurfaceCard as="div" padding={13} style={{ marginTop: 14, background: grey50 }}>
               <p style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 850 }}>등록 전 확인</p>
               <Review label="상품명" value={productName} />
               <Review label="공구 제목" value={title} />
@@ -455,18 +457,18 @@ export default function GroupBuyCreatePage() {
               <Review label="수령 예정일" value={pickupDate} />
               <Review label="수령 시간" value={pickupTime} />
               <Review label="상세 설명" value={description} multiline />
-            </div>
+            </SurfaceCard>
           </section>
         ) : null}
       </main>
 
       <div style={ctaWrap}>
-        <button type="button" onClick={goBack} disabled={loading} style={secondaryButtonStyle}>
+        <ActionButton variant="secondary" size="compact" onClick={goBack} disabled={loading} style={{ width: "100%" }}>
           이전
-        </button>
-        <button type="button" onClick={step === 5 ? handleSubmit : handleNext} disabled={loading} style={{ ...primaryButtonStyle, opacity: loading ? 0.62 : 1 }}>
+        </ActionButton>
+        <ActionButton size="compact" onClick={step === 5 ? handleSubmit : handleNext} disabled={loading} style={{ width: "100%" }}>
           {step === 5 ? "등록하기" : "다음"}
-        </button>
+        </ActionButton>
       </div>
 
       {submitState === "submitting" ? <CreateSubmitOverlay isEditMode={isEditMode} /> : null}
@@ -510,7 +512,7 @@ function CreateSuccessPage({
     <div data-page="공구 등록 완료" style={successPageStyle}>
       <style>{createMotionStyle}</style>
       <main style={successMainStyle}>
-        <section style={successCardStyle}>
+        <SurfaceCard padding="32px 24px 24px" style={successCardStyle}>
           <span style={successBadgeStyle}>
             <span style={successPulseStyle} />
             <Check size={34} strokeWidth={3.1} aria-hidden />
@@ -534,15 +536,15 @@ function CreateSuccessPage({
           </div>
 
           <div style={successButtonGridStyle}>
-            <button type="button" onClick={onGoPost} style={successPrimaryButtonStyle}>
+            <ActionButton size="compact" onClick={onGoPost} style={successPrimaryButtonStyle}>
               <ExternalLink size={17} strokeWidth={2.3} aria-hidden />
               {postId ? "게시물 바로가기" : "내가 올린 공구 보기"}
-            </button>
-            <button type="button" onClick={onGoHome} style={successSecondaryButtonStyle}>
+            </ActionButton>
+            <ActionButton variant="secondary" size="compact" onClick={onGoHome} style={successSecondaryButtonStyle}>
               홈으로 이동
-            </button>
+            </ActionButton>
           </div>
-        </section>
+        </SurfaceCard>
       </main>
     </div>
   );
@@ -899,15 +901,7 @@ const stepDescStyle: React.CSSProperties = {
   lineHeight: "17px",
 };
 
-const stepOnePanelStyle: React.CSSProperties = {
-  marginTop: 16,
-  borderRadius: 24,
-  background: "rgba(255,255,255,0.94)",
-  border: "1px solid rgba(235,240,247,0.96)",
-  boxShadow: "0 14px 34px rgba(30, 64, 175, 0.055), 0 2px 8px rgba(15, 23, 42, 0.025)",
-  padding: "18px 15px 16px",
-  boxSizing: "border-box",
-};
+const stepOnePanelStyle: React.CSSProperties = { marginTop: 16 };
 
 const stepOneSectionStyle: React.CSSProperties = {
   margin: 0,
@@ -1467,29 +1461,6 @@ const categoryHelperStyle: React.CSSProperties = {
   lineHeight: "16px",
 };
 
-const sectionCardStyle: React.CSSProperties = {
-  width: "100%",
-  border: "1px solid rgba(255,255,255,0.78)",
-  borderRadius: 20,
-  background: "rgba(255,255,255,0.72)",
-  padding: 13,
-  boxSizing: "border-box",
-  boxShadow: "0 10px 26px rgba(15, 23, 42, 0.05), inset 0 1px 1px rgba(255,255,255,0.86)",
-  backdropFilter: "blur(16px) saturate(150%)",
-  WebkitBackdropFilter: "blur(16px) saturate(150%)",
-};
-
-const fieldGroupStyle: React.CSSProperties = {
-  marginTop: 12,
-  border: "1px solid rgba(255,255,255,0.78)",
-  borderRadius: 20,
-  background: "rgba(255,255,255,0.72)",
-  overflow: "hidden",
-  boxShadow: "0 10px 26px rgba(15, 23, 42, 0.05), inset 0 1px 1px rgba(255,255,255,0.86)",
-  backdropFilter: "blur(16px) saturate(150%)",
-  WebkitBackdropFilter: "blur(16px) saturate(150%)",
-};
-
 const fieldShellStyle: React.CSSProperties = {
   display: "block",
   width: "100%",
@@ -1585,30 +1556,6 @@ const ctaWrap: React.CSSProperties = {
   gap: 8,
 };
 
-const secondaryButtonStyle: React.CSSProperties = {
-  height: 44,
-  border: 0,
-  borderRadius: 16,
-  background: "rgba(255,255,255,0.66)",
-  color: grey800,
-  fontSize: 14,
-  fontWeight: 850,
-  cursor: "pointer",
-  boxShadow: "inset 0 1px 1px rgba(255,255,255,0.9)",
-};
-
-const primaryButtonStyle: React.CSSProperties = {
-  height: 44,
-  border: 0,
-  borderRadius: 16,
-  background: "rgba(49, 130, 246, 0.92)",
-  color: "#fff",
-  fontSize: 14,
-  fontWeight: 850,
-  cursor: "pointer",
-  boxShadow:
-    "inset 0 1px 1px rgba(255,255,255,0.34), inset 0 -3px 7px rgba(18,87,190,0.16), 0 8px 18px rgba(49,130,246,0.22)",
-};
 
 const createMotionStyle = `
   @keyframes damara-submit-orb {
