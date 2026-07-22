@@ -18,8 +18,12 @@ import {
   grey500,
   grey900,
 } from "../../shared/constants/homeTheme";
-import { UI_PAGE_PAD_X, UI_TRANSITION } from "../../shared/constants/damaraUISystem";
+import { UI_PAGE_PAD_X } from "../../shared/constants/damaraUISystem";
+import ActionButton from "../../shared/components/damara/ActionButton";
+import FilterChip from "../../shared/components/damara/FilterChip";
+import SectionHeader from "../../shared/components/damara/SectionHeader";
 import { SkeletonGroupBuyRow } from "../../shared/components/damara/Skeleton";
+import SurfaceCard from "../../shared/components/damara/SurfaceCard";
 import type { GroupBuyListPost } from "./myGroupBuyPosts";
 
 type Accent = "blue";
@@ -81,7 +85,7 @@ export default function MyGroupBuyListView({
       </header>
 
       <main style={{ padding: `14px ${UI_PAGE_PAD_X}px 100px`, display: "flex", flexDirection: "column", gap: 14 }}>
-        <section style={{ ...heroStyle, borderColor: `${tone.fg}24`, background: `linear-gradient(145deg, #ffffff 0%, ${tone.soft} 100%)` }}>
+        <SurfaceCard padding={15} tone="soft" style={{ borderColor: `${tone.fg}24`, background: `linear-gradient(145deg, #ffffff 0%, ${tone.soft} 100%)` }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
             <span style={{ ...heroIconStyle, color: tone.fg, backgroundColor: tone.soft }}>
               <Icon size={21} strokeWidth={2.2} aria-hidden />
@@ -97,7 +101,7 @@ export default function MyGroupBuyListView({
             <Metric label="진행중" value={openCount} tone={tone} />
             <Metric label="완료" value={doneCount} tone={tone} />
           </div>
-        </section>
+        </SurfaceCard>
 
         <nav aria-label="마이 공구 메뉴" style={pageSwitchStyle}>
           {[
@@ -108,12 +112,17 @@ export default function MyGroupBuyListView({
             const active = item.key === activeKey;
             const SwitchIcon = item.Icon;
             return (
-              <button
+              <FilterChip
                 key={item.key}
-                type="button"
+                size="compact"
+                active={active}
                 onClick={() => nav(item.route)}
                 style={{
-                  ...pageSwitchButtonStyle,
+                  width: "100%",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
                   color: active ? tone.fg : grey500,
                   backgroundColor: active ? "#fff" : "transparent",
                   boxShadow: active ? "0 3px 10px rgba(15, 23, 42, 0.06)" : "none",
@@ -121,7 +130,7 @@ export default function MyGroupBuyListView({
               >
                 <SwitchIcon size={14} strokeWidth={2.15} aria-hidden />
                 {item.label}
-              </button>
+              </FilterChip>
             );
           })}
         </nav>
@@ -152,10 +161,7 @@ export default function MyGroupBuyListView({
           />
         ) : (
           <section style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-            <div style={listHeaderStyle}>
-              <span>{title}</span>
-              <span>{posts.length}개</span>
-            </div>
+            <SectionHeader title={title} action={<span style={{ color: grey500, fontSize: 11, fontWeight: 800 }}>{posts.length}개</span>} style={listHeaderStyle} />
             <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
               {posts.map((post, index) => (
                 <li key={String(post.id)} data-list-item style={{ animationDelay: `${Math.min(index, 7) * 90}ms` }}>
@@ -221,10 +227,10 @@ function ListEmpty({
       </span>
       <h2 style={emptyTitleStyle}>{title}</h2>
       <p style={emptyDescStyle}>{description}</p>
-      <button type="button" onClick={onAction} style={{ ...emptyButtonStyle, backgroundColor: tone.bg }}>
+      <ActionButton size="compact" onClick={onAction} style={{ marginTop: 18, backgroundColor: tone.bg }}>
         {actionLabel}
         <ChevronRight size={15} strokeWidth={2.2} aria-hidden />
-      </button>
+      </ActionButton>
     </section>
   );
 }
@@ -232,9 +238,9 @@ function ListEmpty({
 export function CreatePostShortcut() {
   const nav = useNavigate();
   return (
-    <button type="button" onClick={() => nav(ROUTES.GROUP_BUY_CREATE)} style={createShortcutStyle}>
+    <ActionButton size="icon" aria-label="공구 등록" onClick={() => nav(ROUTES.GROUP_BUY_CREATE)} style={createShortcutStyle}>
       <Plus size={18} strokeWidth={2.4} aria-hidden />
-    </button>
+    </ActionButton>
   );
 }
 
@@ -280,14 +286,6 @@ const subtitleStyle: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 650,
   lineHeight: "16px",
-};
-
-const heroStyle: React.CSSProperties = {
-  border: `1px solid ${HOME_BORDER}`,
-  borderRadius: 18,
-  background: "linear-gradient(180deg, #ffffff 0%, #fbfdff 100%)",
-  padding: 15,
-  boxShadow: "0 8px 24px rgba(15, 23, 42, 0.045)",
 };
 
 const heroIconStyle: React.CSSProperties = {
@@ -356,22 +354,6 @@ const pageSwitchStyle: React.CSSProperties = {
   gap: 4,
 };
 
-const pageSwitchButtonStyle: React.CSSProperties = {
-  minWidth: 0,
-  border: 0,
-  borderRadius: 12,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 4,
-  cursor: "pointer",
-  fontSize: 11,
-  fontWeight: 850,
-  lineHeight: "16px",
-  letterSpacing: 0,
-  transition: UI_TRANSITION,
-};
-
 const listHeaderStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -422,35 +404,11 @@ const emptyDescStyle: React.CSSProperties = {
   lineHeight: "18px",
 };
 
-const emptyButtonStyle: React.CSSProperties = {
-  marginTop: 18,
-  height: 42,
-  padding: "0 16px",
-  border: 0,
-  borderRadius: 14,
-  color: "#fff",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 4,
-  fontSize: 13,
-  fontWeight: 850,
-  cursor: "pointer",
-  transition: UI_TRANSITION,
-};
-
 const createShortcutStyle: React.CSSProperties = {
   position: "fixed",
   right: 20,
   bottom: 26,
   width: 48,
   height: 48,
-  border: 0,
-  borderRadius: 17,
-  color: "#fff",
-  backgroundColor: BRAND_PRIMARY,
-  boxShadow: "0 12px 28px rgba(49, 130, 246, 0.28)",
-  display: "grid",
-  placeItems: "center",
-  cursor: "pointer",
   zIndex: 20,
 };
