@@ -1,6 +1,7 @@
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { loadEnv } from "vite";
 
 function normalizeProxyTarget(value?: string) {
   const fallback = "https://damara.bluerack.org";
@@ -28,6 +29,12 @@ export default defineConfig(({ mode }) => {
     build: {
       target: "esnext",
       outDir: "dist",
+    },
+    test: {
+      environment: "jsdom",
+      globals: true,
+      setupFiles: "./src/test/setup.ts",
+      css: true,
     },
     server: {
       port: 3000,

@@ -184,7 +184,7 @@ export default function GroupBuyDetailPage() {
   const sellerResponseRate = sellerTrust?.responseRate;
   const sellerResponseMinutes = sellerTrust?.avgResponseMinutes;
   const sellerBadges = sellerTrust?.badges?.length ? sellerTrust.badges.slice(0, 3) : ["거래 정보를 확인해 보세요"];
-  const participantList = participants.length
+  const participantList: Participant[] = participants.length
     ? participants
     : Array.from({ length: Math.min(current, 2) }, (_, index) => ({
         nickname: `참여자 ${index + 1}`,

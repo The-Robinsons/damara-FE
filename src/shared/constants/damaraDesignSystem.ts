@@ -8,6 +8,7 @@
  * - 원시 팔레트: `tdsMobileColors.ts`
  * - 시맨틱 색·그림자·HOME_*: `homeTheme.ts` (내부에서 팔레트 조합)
  * - Toast API·문구: `damaraToast`, `damaraToastMessages` (`../lib/damaraToast`, Sonner 스타일은 `damara-toast.css`)
+ */
 
 
 export * from "./damaraUISystem";

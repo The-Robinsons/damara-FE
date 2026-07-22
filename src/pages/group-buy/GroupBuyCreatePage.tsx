@@ -112,7 +112,7 @@ export default function GroupBuyCreatePage() {
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get("edit");
-  const fileRef = useRef<HTMLInputElement | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState(1);
   const [images, setImages] = useState<{ preview: string; url: string }[]>([]);
@@ -585,7 +585,7 @@ function ImageUploadCard({
   onRemove,
 }: {
   images: { preview: string; url: string }[];
-  fileRef: React.RefObject<HTMLInputElement | null>;
+  fileRef: React.RefObject<HTMLInputElement>;
   onSelectFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemove: (index: number) => void;
 }) {
