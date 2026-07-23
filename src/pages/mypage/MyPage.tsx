@@ -29,6 +29,8 @@ import {
   grey400,
 } from "../../shared/constants/homeTheme";
 import { UI_PAGE_PAD_X, UI_TRANSITION } from "../../shared/constants/damaraUISystem";
+import SectionHeader from "../../shared/components/damara/SectionHeader";
+import SurfaceCard from "../../shared/components/damara/SurfaceCard";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 
 type UserLite = {
@@ -177,7 +179,7 @@ export default function MyPage() {
   return (
     <div data-page="마이페이지" style={{ minHeight: "100dvh", backgroundColor: HOME_CANVAS }}>
       <main style={{ padding: `14px ${UI_PAGE_PAD_X}px 96px`, display: "flex", flexDirection: "column", gap: 14 }}>
-        <section style={profileCardStyle}>
+        <SurfaceCard padding={18} style={profileCardStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
             <div style={avatarStyle}>
               <span style={{ fontSize: 24, fontWeight: 900, lineHeight: 1 }}>{initial}</span>
@@ -208,10 +210,10 @@ export default function MyPage() {
             </span>
             <span style={trustMiniPillStyle}>보기</span>
           </button>
-        </section>
+        </SurfaceCard>
 
         <Section title="나의 공구">
-          <div style={activityPanelStyle}>
+          <SurfaceCard as="div" padding={0} style={activityPanelStyle}>
             {tradeItems.map((item, index) => (
               <ActivityCard
                 key={item.title}
@@ -222,7 +224,7 @@ export default function MyPage() {
                 onClick={() => nav(item.route)}
               />
             ))}
-          </div>
+          </SurfaceCard>
         </Section>
 
         <Section title="편의 기능">
@@ -248,7 +250,7 @@ export default function MyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <h2 style={sectionTitleStyle}>{title}</h2>
+      <SectionHeader title={title} style={{ margin: "4px 2px 0" }} />
       {children}
     </section>
   );
@@ -434,15 +436,6 @@ const trustMiniPillStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-};
-
-const sectionTitleStyle: React.CSSProperties = {
-  margin: "4px 2px 0",
-  color: TEXT_TITLE,
-  fontSize: 13,
-  fontWeight: 900,
-  lineHeight: "19px",
-  letterSpacing: 0,
 };
 
 const activityPanelStyle: React.CSSProperties = {

@@ -5,6 +5,8 @@ import { toast } from "sonner";
 
 import { getNotice, getNotices } from "../../features/user/api/serviceApi";
 import type { ApiNotice } from "../../shared/api/swaggerTypes";
+import SectionHeader from "../../shared/components/damara/SectionHeader";
+import SurfaceCard from "../../shared/components/damara/SurfaceCard";
 import {
   BRAND_PRIMARY,
   HOME_CANVAS,
@@ -54,7 +56,7 @@ export default function NoticePage() {
 
   return (
     <AccountServiceShell title="공지사항" subtitle="DAMARA의 새로운 소식과 이용 안내를 확인해 보세요.">
-      <section style={introCardStyle}>
+      <SurfaceCard padding="15px 14px" style={introCardStyle}>
         <span style={introIconStyle}>
           <Megaphone size={18} strokeWidth={2.1} aria-hidden />
         </span>
@@ -62,12 +64,9 @@ export default function NoticePage() {
           <strong style={introTitleStyle}>알아두면 좋은 소식</strong>
           <p style={introDescriptionStyle}>중요한 서비스 변경과 안전한 거래 안내를 모아두었어요.</p>
         </div>
-      </section>
+      </SurfaceCard>
 
-      <div style={sectionHeaderStyle}>
-        <h2 style={sectionTitleStyle}>최근 소식</h2>
-        {!loading ? <span style={countBadgeStyle}>{notices.length}개</span> : null}
-      </div>
+      <SectionHeader title="최근 소식" action={!loading ? <span style={countBadgeStyle}>{notices.length}개</span> : null} style={sectionHeaderStyle} />
 
       <div style={{ display: "grid", gap: 10 }}>
         {loading ? (
@@ -199,7 +198,6 @@ const introIconStyle: React.CSSProperties = { width: 38, height: 38, borderRadiu
 const introTitleStyle: React.CSSProperties = { display: "block", color: grey900, fontSize: 13.5, lineHeight: "19px", fontWeight: 850 };
 const introDescriptionStyle: React.CSSProperties = { margin: "4px 0 0", color: grey500, fontSize: 11.5, lineHeight: "17px", fontWeight: 600 };
 const sectionHeaderStyle: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", margin: "21px 2px 10px" };
-const sectionTitleStyle: React.CSSProperties = { margin: 0, color: grey900, fontSize: 14.5, lineHeight: "20px", fontWeight: 850 };
 const countBadgeStyle: React.CSSProperties = { padding: "3px 8px", borderRadius: 999, color: blue500, background: blue50, fontSize: 10.5, fontWeight: 800 };
 
 const noticeCardStyle: React.CSSProperties = {
