@@ -5,10 +5,12 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { ROUTES } from "../../app/router/routes";
+import ActionButton from "../../shared/components/damara/ActionButton";
+import SurfaceCard from "../../shared/components/damara/SurfaceCard";
 import { deleteUser } from "../../features/user/api/userApi";
 import { DANGER, DANGER_BG, grey500, grey700, grey900 } from "../../shared/constants/homeTheme";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
-import { AccountServiceShell, bodyText, serviceCard } from "./AccountServiceShell";
+import { AccountServiceShell, bodyText } from "./AccountServiceShell";
 
 export default function WithdrawPage() {
   const nav = useNavigate();
@@ -41,7 +43,7 @@ export default function WithdrawPage() {
 
   return (
     <AccountServiceShell title="회원 탈퇴" subtitle="계정과 연결된 기록을 삭제해요.">
-      <section style={{ ...serviceCard, padding: 18 }}>
+      <SurfaceCard padding={18}>
         <div style={{ width: 46, height: 46, borderRadius: 14, background: DANGER_BG, color: DANGER, display: "grid", placeItems: "center" }}>
           <ShieldAlert size={24} />
         </div>
@@ -51,13 +53,13 @@ export default function WithdrawPage() {
         <p style={{ ...bodyText, marginTop: 8, color: grey700 }}>
           탈퇴하면 계정 정보와 연결 기록이 삭제되며, 복구가 어려울 수 있어요.
         </p>
-      </section>
+      </SurfaceCard>
 
-      <section style={{ ...serviceCard, marginTop: 12, padding: "14px 16px", display: "grid", gap: 12 }}>
+      <SurfaceCard padding="14px 16px" style={{ marginTop: 12, display: "grid", gap: 12 }}>
         <Warn text="진행 중인 공구가 있다면 먼저 거래를 마무리해 주세요." />
         <Warn text="작성한 게시글, 참여 기록, 관심목록이 계정에서 분리돼요." />
         <Warn text="탈퇴 후 같은 계정으로 다시 로그인하려면 재가입이 필요할 수 있어요." />
-      </section>
+      </SurfaceCard>
 
       <button
         type="button"
@@ -99,12 +101,12 @@ export default function WithdrawPage() {
       </button>
 
       <div style={{ display: "grid", gap: 8, marginTop: 18 }}>
-        <button type="button" disabled={!checked || loading} onClick={() => void withdraw()} style={{ ...dangerButton, opacity: !checked || loading ? 0.45 : 1 }}>
+        <ActionButton disabled={!checked || loading} onClick={() => void withdraw()} style={{ width: "100%", height: 48, background: DANGER }}>
           {loading ? "처리 중..." : "탈퇴하기"}
-        </button>
-        <button type="button" onClick={() => nav(-1)} style={ghostButton}>
+        </ActionButton>
+        <ActionButton variant="ghost" size="compact" onClick={() => nav(-1)} style={{ width: "100%", height: 46, color: grey500 }}>
           취소
-        </button>
+        </ActionButton>
       </div>
     </AccountServiceShell>
   );
@@ -118,25 +120,3 @@ function Warn({ text }: { text: string }) {
     </div>
   );
 }
-
-const dangerButton: React.CSSProperties = {
-  height: 48,
-  border: 0,
-  borderRadius: 10,
-  background: DANGER,
-  color: "#fff",
-  fontSize: 15,
-  fontWeight: 850,
-  cursor: "pointer",
-};
-
-const ghostButton: React.CSSProperties = {
-  height: 46,
-  border: 0,
-  borderRadius: 10,
-  background: "transparent",
-  color: grey500,
-  fontSize: 14,
-  fontWeight: 800,
-  cursor: "pointer",
-};

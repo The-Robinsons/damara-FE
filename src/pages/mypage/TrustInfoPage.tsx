@@ -4,8 +4,10 @@ import { AlertTriangle, BadgeCheck, CheckCircle, MessageSquare } from "lucide-re
 import { getUserTrustSummary } from "../../features/user/api/userApi";
 import type { ApiTrustSummaryResponse } from "../../shared/api/swaggerTypes";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
+import InfoBanner from "../../shared/components/damara/InfoBanner";
+import SurfaceCard from "../../shared/components/damara/SurfaceCard";
 import { blue500, grey500, grey900 } from "../../shared/constants/homeTheme";
-import { AccountServiceShell, bodyText, serviceCard, softInfoBox } from "./AccountServiceShell";
+import { AccountServiceShell, bodyText } from "./AccountServiceShell";
 
 const DEFAULT_TRUST: ApiTrustSummaryResponse = {
   trustScore: 0,
@@ -48,9 +50,9 @@ export default function TrustInfoPage() {
 
   return (
     <AccountServiceShell title="신뢰 정보" subtitle="거래 이력으로 계산한 현재 신뢰도를 확인해요.">
-      {error ? <div style={softInfoBox}>{error}</div> : null}
+      {error ? <InfoBanner>{error}</InfoBanner> : null}
 
-      <section style={{ ...serviceCard, padding: 18 }}>
+      <SurfaceCard padding={18}>
         <p style={{ margin: 0, color: grey500, fontSize: 12, fontWeight: 700 }}>현재 신뢰학점</p>
         <strong style={{ display: "block", marginTop: 6, color: grey900, fontSize: 34, lineHeight: "40px" }}>
           {loading ? "-" : trust.trustGrade.toFixed(1)}
@@ -60,22 +62,22 @@ export default function TrustInfoPage() {
         <p style={{ ...bodyText, marginTop: 8, color: blue500 }}>
           {trust.rankPercent > 0 ? `상위 ${trust.rankPercent}% · 평균 응답 ${trust.avgResponseMinutes}분` : "거래 이력을 쌓아 보세요."}
         </p>
-      </section>
+      </SurfaceCard>
 
       <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
         {stats.map(({ label, value, Icon }) => (
-          <div key={label} style={{ ...serviceCard, padding: 14 }}>
+          <SurfaceCard key={label} as="div" padding={14}>
             <Icon size={18} color={blue500} />
             <span style={{ display: "block", marginTop: 9, color: grey500, fontSize: 11 }}>{label}</span>
             <strong style={{ display: "block", marginTop: 3, color: grey900, fontSize: 17 }}>{loading ? "-" : value}</strong>
-          </div>
+          </SurfaceCard>
         ))}
       </section>
 
       {trust.badges.length > 0 ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 14 }}>
           {trust.badges.map((badge) => (
-            <span key={badge} style={{ ...softInfoBox, padding: "6px 9px" }}>{badge}</span>
+            <InfoBanner key={badge} as="span" style={{ padding: "6px 9px" }}>{badge}</InfoBanner>
           ))}
         </div>
       ) : null}

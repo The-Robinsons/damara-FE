@@ -3,9 +3,6 @@ import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import {
-  background,
-  blue50,
-  blue600,
   grey200,
   grey500,
   grey700,
@@ -74,36 +71,10 @@ export function AccountServiceShell({ title, subtitle, children }: ShellProps) {
   );
 }
 
-export const serviceCard: React.CSSProperties = {
-  border: `1px solid ${grey200}`,
-  borderRadius: 12,
-  background,
-  boxShadow: "0 8px 24px rgba(2, 32, 71, 0.05), 0 1px 2px rgba(2, 32, 71, 0.04)",
-  overflow: "hidden",
-};
-
-export const sectionTitle: React.CSSProperties = {
-  margin: "22px 2px 9px",
-  color: grey900,
-  fontSize: 14,
-  lineHeight: "20px",
-  fontWeight: 850,
-};
-
 export const bodyText: React.CSSProperties = {
   margin: 0,
   color: grey700,
   fontSize: 13,
   lineHeight: "20px",
   fontWeight: 500,
-};
-
-export const softInfoBox: React.CSSProperties = {
-  borderRadius: 12,
-  background: blue50,
-  color: blue600,
-  padding: "12px 14px",
-  fontSize: 12.5,
-  lineHeight: "19px",
-  fontWeight: 700,
 };

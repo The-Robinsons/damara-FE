@@ -7,7 +7,9 @@ import { getUserSettings, updateUserSettings } from "../../features/user/api/use
 import type { ApiUserSettings } from "../../shared/api/swaggerTypes";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import { blue500, grey500, grey900, HOME_BORDER } from "../../shared/constants/homeTheme";
-import { AccountServiceShell, bodyText, sectionTitle, serviceCard } from "./AccountServiceShell";
+import SectionHeader from "../../shared/components/damara/SectionHeader";
+import SurfaceCard from "../../shared/components/damara/SurfaceCard";
+import { AccountServiceShell, bodyText } from "./AccountServiceShell";
 
 const DEFAULT_SETTINGS: ApiUserSettings = {
   pushEnabled: true,
@@ -53,14 +55,14 @@ export default function SettingsPage() {
 
   return (
     <AccountServiceShell title="설정" subtitle="알림과 방해금지 시간을 관리해요.">
-      <h2 style={{ ...sectionTitle, marginTop: 0 }}>알림</h2>
-      <div style={serviceCard}>
+      <SectionHeader title="알림" style={{ marginBottom: 9 }} />
+      <SurfaceCard as="div" padding={0} style={{ overflow: "hidden" }}>
         <SettingToggle icon={<Bell size={18} color={blue500} />} title="전체 푸시 알림" checked={settings.pushEnabled} onChange={() => toggle("pushEnabled")} />
         <SettingToggle icon={<MessageCircle size={18} color={blue500} />} title="채팅 알림" checked={settings.chatNotificationEnabled} onChange={() => toggle("chatNotificationEnabled")} />
         <SettingToggle icon={<Package size={18} color={blue500} />} title="공구 알림" checked={settings.postNotificationEnabled} onChange={() => toggle("postNotificationEnabled")} />
         <SettingToggle icon={<Megaphone size={18} color={blue500} />} title="이벤트 알림" checked={settings.marketingNotificationEnabled} onChange={() => toggle("marketingNotificationEnabled")} />
         <SettingToggle icon={<Moon size={18} color={blue500} />} title="방해 금지" desc={`${settings.quietHoursStart} ~ ${settings.quietHoursEnd}`} checked={settings.quietHoursEnabled} onChange={() => toggle("quietHoursEnabled")} last />
-      </div>
+      </SurfaceCard>
       <p style={{ ...bodyText, margin: "14px 2px 0", color: grey500 }}>
         {saving ? "설정을 저장하는 중이에요." : "설정은 계정에 저장되어 다른 기기에서도 유지돼요."}
       </p>

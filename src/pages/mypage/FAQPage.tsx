@@ -5,8 +5,11 @@ import { toast } from "sonner";
 import { getFaqs } from "../../features/user/api/serviceApi";
 import type { ApiFaq } from "../../shared/api/swaggerTypes";
 import ListRow from "../../shared/components/damara/ListRow";
+import InfoBanner from "../../shared/components/damara/InfoBanner";
+import SectionHeader from "../../shared/components/damara/SectionHeader";
+import SurfaceCard from "../../shared/components/damara/SurfaceCard";
 import { blue500, grey400, grey700, HOME_BORDER } from "../../shared/constants/homeTheme";
-import { AccountServiceShell, bodyText, sectionTitle, serviceCard, softInfoBox } from "./AccountServiceShell";
+import { AccountServiceShell, bodyText } from "./AccountServiceShell";
 
 export default function FAQPage() {
   const [faqs, setFaqs] = useState<ApiFaq[]>([]);
@@ -26,9 +29,9 @@ export default function FAQPage() {
 
   return (
     <AccountServiceShell title="FAQ" subtitle="자주 묻는 질문을 빠르게 확인해요.">
-      <div style={softInfoBox}>거래 전 수령 장소와 마감일을 확인하면 대부분의 문제를 줄일 수 있어요.</div>
-      <h2 style={sectionTitle}>자주 묻는 질문</h2>
-      <div style={serviceCard}>
+      <InfoBanner>거래 전 수령 장소와 마감일을 확인하면 대부분의 문제를 줄일 수 있어요.</InfoBanner>
+      <SectionHeader title="자주 묻는 질문" style={{ margin: "22px 2px 9px" }} />
+      <SurfaceCard as="div" padding={0} style={{ overflow: "hidden" }}>
         {loading ? (
           <p style={{ ...bodyText, padding: 16 }}>FAQ를 불러오는 중이에요.</p>
         ) : faqs.length === 0 ? (
@@ -51,7 +54,7 @@ export default function FAQPage() {
             );
           })
         )}
-      </div>
+      </SurfaceCard>
     </AccountServiceShell>
   );
 }
