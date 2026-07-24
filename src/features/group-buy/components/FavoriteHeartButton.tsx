@@ -29,6 +29,7 @@ export default function FavoriteHeartButton({
   const hasInitialFavorite = typeof initialIsFavorite === "boolean";
   const [isFavorite, setIsFavorite] = useState(Boolean(initialIsFavorite));
   const [loading, setLoading] = useState(false);
+  const [motionKey, setMotionKey] = useState(0);
   const userId = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEYS.USER_ID) || "" : "";
 
   useEffect(() => {
@@ -69,6 +70,7 @@ export default function FavoriteHeartButton({
 
       const next = !isFavorite;
       setIsFavorite(next);
+      setMotionKey((value) => value + 1);
       setLoading(true);
 
       try {
@@ -108,10 +110,11 @@ export default function FavoriteHeartButton({
       style={style}
     >
       <svg
+        key={motionKey}
         viewBox="0 0 24 24"
         width={iconSize}
         height={iconSize}
-        className={iconClassName}
+        className={[iconClassName, motionKey > 0 ? "damara-favorite-heart-pop" : ""].filter(Boolean).join(" ")}
         fill="none"
         stroke={isFavorite ? DANGER : "currentColor"}
         strokeWidth={isFavorite ? 1.55 : 1.75}
