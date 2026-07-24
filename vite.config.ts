@@ -35,6 +35,7 @@ export default defineConfig(({ mode }) => {
       globals: true,
       setupFiles: "./src/test/setup.ts",
       css: true,
+      exclude: ["e2e/**", "**/node_modules/**", "**/dist/**"],
     },
     server: {
       port: 3000,
