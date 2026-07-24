@@ -1,5 +1,6 @@
 ﻿import FavoriteHeartButton from "../../../features/group-buy/components/FavoriteHeartButton";
 import EmptyState from "../../../shared/components/damara/EmptyState";
+import AnimatedProgressFill from "../../../shared/components/damara/AnimatedProgressFill";
 import { SkeletonGroupBuyRow } from "../../../shared/components/damara/Skeleton";
 import { Package } from "lucide-react";
 import { BRAND_PRIMARY, TEXT_META, TEXT_TITLE } from "../../../shared/constants/homeTheme";
@@ -221,14 +222,7 @@ export default function HomePostList({
                       background: "#EDF2FA",
                     }}
                   >
-                    <div
-                      style={{
-                        width: `${progressPercent}%`,
-                        height: "100%",
-                        borderRadius: 999,
-                        background: BRAND_PRIMARY,
-                      }}
-                    />
+                    <AnimatedProgressFill value={progressPercent} style={{ borderRadius: 999, background: BRAND_PRIMARY }} />
                   </div>
                   <span
                     style={{

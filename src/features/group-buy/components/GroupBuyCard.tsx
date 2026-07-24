@@ -3,6 +3,7 @@ import { ImageIcon } from "lucide-react";
 
 import { getImageUrl } from "../../../shared/utils/imageUrl";
 import FavoriteHeartButton from "./FavoriteHeartButton";
+import AnimatedProgressFill from "../../../shared/components/damara/AnimatedProgressFill";
 import {
   BADGE_INFO_BG,
   BADGE_INFO_TEXT,
@@ -296,13 +297,9 @@ export default function GroupBuyCard({
             backgroundColor: "#edf2fa",
           }}
         >
-          <div
-            style={{
-              height: "100%",
-              width: `${progressPercent}%`,
-              borderRadius: 999,
-              background: urgentBar ? `linear-gradient(90deg, ${orange500}, #ffb86b)` : `linear-gradient(90deg, ${BRAND_PRIMARY}, #70adff)`,
-            }}
+          <AnimatedProgressFill
+            value={progressPercent}
+            style={{ borderRadius: 999, background: urgentBar ? `linear-gradient(90deg, ${orange500}, #ffb86b)` : `linear-gradient(90deg, ${BRAND_PRIMARY}, #70adff)` }}
           />
         </div>
 

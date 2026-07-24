@@ -50,6 +50,7 @@ import {
   grey900,
 } from "../../shared/constants/homeTheme";
 import { getImageUrl } from "../../shared/utils/imageUrl";
+import AnimatedProgressFill from "../../shared/components/damara/AnimatedProgressFill";
 import type { ApiPost } from "../../shared/api/swaggerTypes";
 import ActionButton from "../../shared/components/damara/ActionButton";
 import SectionHeader from "../../shared/components/damara/SectionHeader";
@@ -377,14 +378,7 @@ export default function GroupBuyDetailPage() {
               </div>
               <span style={progressPercentPillStyle}>{progress}%</span>
               <div style={progressPanelTrackStyle}>
-                <div
-                  style={{
-                    width: `${progress}%`,
-                    height: "100%",
-                    borderRadius: 999,
-                    background: "linear-gradient(90deg, #3182F6 0%, #6EAEFF 100%)",
-                  }}
-                />
+                <AnimatedProgressFill value={progress} style={{ borderRadius: 999, background: "linear-gradient(90deg, #3182F6 0%, #6EAEFF 100%)" }} />
               </div>
             </div>
             <InfoRow icon={<MapPin />} label="수령 장소" value={location} />
