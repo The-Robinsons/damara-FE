@@ -29,6 +29,14 @@ export default defineConfig(({ mode }) => {
     build: {
       target: "esnext",
       outDir: "dist",
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            "react-vendor": ["react", "react-dom", "react-router-dom"],
+            "ui-vendor": ["lucide-react", "sonner"],
+          },
+        },
+      },
     },
     test: {
       environment: "jsdom",
