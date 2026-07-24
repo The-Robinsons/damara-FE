@@ -9,6 +9,10 @@ import { loginUser, registerUser } from "../../features/auth/api/authApi";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import { getAuthErrorMessage } from "../../shared/utils/apiError";
 
+function isValidPassword(value: string) {
+  return value.length >= 8 && /[A-Za-z]/.test(value) && /\d/.test(value);
+}
+
 export default function SignupPage() {
   const nav = useNavigate();
   const [nickname, setNickname] = useState("");
@@ -25,7 +29,9 @@ export default function SignupPage() {
   const email = `${normalizedEmailLocalPart}@mju.ac.kr`;
   const isStudentIdValid = /^\d{8}$/.test(normalizedStudentId);
   const isEmailLocalPartValid = /^[A-Za-z0-9._%+-]+$/.test(normalizedEmailLocalPart);
-  const canSubmit = Boolean(nickname.trim() && password && confirmPassword && isStudentIdValid && isEmailLocalPartValid);
+  const isPasswordValid = isValidPassword(password);
+  const passwordsMatch = Boolean(confirmPassword) && password === confirmPassword;
+  const canSubmit = Boolean(nickname.trim() && isPasswordValid && passwordsMatch && isStudentIdValid && isEmailLocalPartValid);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -51,6 +57,10 @@ export default function SignupPage() {
     }
     if (!isEmailLocalPartValid) {
       setError("명지대학교 이메일 아이디 형식을 확인해 주세요.");
+      return;
+    }
+    if (!isPasswordValid) {
+      setError("비밀번호는 영문과 숫자를 포함해 8자 이상으로 입력해 주세요.");
       return;
     }
     if (password !== confirmPassword) {
@@ -168,15 +178,25 @@ export default function SignupPage() {
               <span aria-hidden style={emailSuffixStyle}>@mju.ac.kr</span>
             </FieldWithIndicator>
 
-            <LineField icon={<Lock size={17} strokeWidth={2} aria-hidden />}>
-              <input className="damara-signup-input" type={showPassword ? "text" : "password"} autoComplete="new-password" aria-label="비밀번호" value={password} onChange={(event) => updateValue(event, setPassword)} placeholder="비밀번호" style={inputStyle} />
+            <FieldWithIndicator
+              icon={<Lock size={17} strokeWidth={2} aria-hidden />}
+              neutralIcon={Lock}
+              message={isPasswordValid ? "안전한 비밀번호 형식이에요." : "영문과 숫자를 포함해 8자 이상 입력해 주세요."}
+              status={password ? (isPasswordValid ? "valid" : "invalid") : "neutral"}
+            >
+              <input className="damara-signup-input" type={showPassword ? "text" : "password"} autoComplete="new-password" aria-label="비밀번호" value={password} onChange={(event) => updateValue(event, setPassword)} placeholder="비밀번호" minLength={8} style={inputStyle} />
               <EyeButton active={showPassword} onClick={() => setShowPassword((value) => !value)} label="비밀번호" />
-            </LineField>
+            </FieldWithIndicator>
 
-            <LineField icon={<Lock size={17} strokeWidth={2} aria-hidden />}>
+            <FieldWithIndicator
+              icon={<Lock size={17} strokeWidth={2} aria-hidden />}
+              neutralIcon={Lock}
+              message={passwordsMatch ? "비밀번호가 일치해요." : "비밀번호를 한 번 더 입력해 주세요."}
+              status={confirmPassword ? (passwordsMatch ? "valid" : "invalid") : "neutral"}
+            >
               <input className="damara-signup-input" type={showConfirm ? "text" : "password"} autoComplete="new-password" aria-label="비밀번호 확인" value={confirmPassword} onChange={(event) => updateValue(event, setConfirmPassword)} placeholder="비밀번호 확인" style={inputStyle} />
               <EyeButton active={showConfirm} onClick={() => setShowConfirm((value) => !value)} label="비밀번호 확인" />
-            </LineField>
+            </FieldWithIndicator>
 
             <button type="submit" disabled={isLoading || !canSubmit} className="damara-signup-submit" style={submitStyle}>
               {isLoading ? "처리 중..." : "회원가입"}

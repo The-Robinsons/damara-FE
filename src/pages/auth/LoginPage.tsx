@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type React from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, Eye, EyeOff, IdCard, Lock } from "lucide-react";
+import { Check, CircleAlert, CircleCheck, Eye, EyeOff, IdCard, Lock } from "lucide-react";
 
 import damaraLogo from "../../assets/damara-mark.png";
 import { loginUser } from "../../features/auth/api/authApi";
@@ -16,6 +16,8 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const normalizedStudentId = studentId.replace(/\D/g, "").slice(0, 8);
+  const isStudentIdValid = /^\d{8}$/.test(normalizedStudentId);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -35,12 +37,16 @@ export default function LoginPage() {
       setError("학번과 비밀번호를 입력해 주세요.");
       return;
     }
+    if (!isStudentIdValid) {
+      setError("학번은 숫자 8자리로 입력해 주세요.");
+      return;
+    }
 
     setIsLoading(true);
     setError("");
 
     try {
-      const response = await loginUser(studentId, password);
+      const response = await loginUser(normalizedStudentId, password);
       const userData = response.data;
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
       localStorage.setItem(STORAGE_KEYS.USER_ID, userData.id);
@@ -81,21 +87,26 @@ export default function LoginPage() {
             }}
             noValidate
           >
-            <LineField icon={<IdCard size={19} strokeWidth={2} aria-hidden />}>
-              <input
-                className="damara-login-input"
-                type="text"
-                autoComplete="username"
-                aria-label="학번"
-                value={studentId}
-                onChange={(event) => {
-                  setStudentId(event.target.value);
-                  setError("");
-                }}
-                placeholder="학번"
-                style={inputStyle}
-              />
-            </LineField>
+            <LoginFieldWithIndicator value={studentId} valid={isStudentIdValid}>
+              <LineField icon={<IdCard size={19} strokeWidth={2} aria-hidden />}>
+                <input
+                  className="damara-login-input"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="username"
+                  aria-label="학번 8자리"
+                  aria-invalid={studentId ? !isStudentIdValid : undefined}
+                  value={studentId}
+                  onChange={(event) => {
+                    setStudentId(event.target.value.replace(/\D/g, "").slice(0, 8));
+                    setError("");
+                  }}
+                  placeholder="학번 8자리"
+                  maxLength={8}
+                  style={inputStyle}
+                />
+              </LineField>
+            </LoginFieldWithIndicator>
 
             <LineField icon={<Lock size={18} strokeWidth={2} aria-hidden />}>
               <input
@@ -146,7 +157,7 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <button type="submit" disabled={isLoading} className="damara-login-submit" style={submitStyle}>
+            <button type="submit" disabled={isLoading || !isStudentIdValid || !password} className="damara-login-submit" style={submitStyle}>
               {isLoading ? "로그인 중..." : "로그인"}
             </button>
           </form>
@@ -159,6 +170,22 @@ export default function LoginPage() {
           </div>
         </section>
       </main>
+    </div>
+  );
+}
+
+function LoginFieldWithIndicator({ value, valid, children }: { value: string; valid: boolean; children: React.ReactNode }) {
+  const hasValue = Boolean(value);
+  const status = hasValue ? (valid ? "valid" : "invalid") : "neutral";
+  const Icon = status === "valid" ? CircleCheck : status === "invalid" ? CircleAlert : IdCard;
+
+  return (
+    <div style={fieldGroupStyle}>
+      {children}
+      <p style={{ ...indicatorStyle, color: status === "valid" ? "#2272eb" : status === "invalid" ? "#dc2626" : "#657084" }}>
+        <Icon size={13} strokeWidth={2.2} aria-hidden />
+        {valid ? "8자리 학번을 확인했어요." : `숫자 8자리로 입력해 주세요. (${value.length}/8)`}
+      </p>
     </div>
   );
 }
@@ -281,6 +308,23 @@ const fieldStyle: React.CSSProperties = {
   alignItems: "center",
   gap: 13,
   transition: "160ms ease-out",
+};
+
+const fieldGroupStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 5,
+};
+
+const indicatorStyle: React.CSSProperties = {
+  minHeight: 16,
+  margin: "0 2px",
+  display: "flex",
+  alignItems: "center",
+  gap: 5,
+  fontSize: 11,
+  fontWeight: 650,
+  lineHeight: "16px",
 };
 
 const fieldIconStyle: React.CSSProperties = {
