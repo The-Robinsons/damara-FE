@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type React from "react";
 
 import banner1 from "../../../assets/banner_1 1.png";
@@ -24,27 +24,37 @@ export default function HomeBanner() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [loaded, setLoaded] = useState<Record<string, boolean>>({});
+  const [requestedIndexes, setRequestedIndexes] = useState(() => new Set([0]));
   const startXRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    BANNERS.forEach((banner) => {
-      const image = new Image();
-      image.src = banner.src;
+  const requestBanner = useCallback((index: number) => {
+    const normalizedIndex = (index + BANNERS.length) % BANNERS.length;
+    setRequestedIndexes((previous) => {
+      if (previous.has(normalizedIndex)) return previous;
+      return new Set(previous).add(normalizedIndex);
     });
   }, []);
+
+  const goToBanner = useCallback((index: number) => {
+    const normalizedIndex = (index + BANNERS.length) % BANNERS.length;
+    requestBanner(normalizedIndex);
+    setActiveIndex(normalizedIndex);
+  }, [requestBanner]);
 
   useEffect(() => {
     if (isDragging) return;
 
-    const id = window.setInterval(() => {
-      setActiveIndex((idx) => (idx + 1) % BANNERS.length);
-    }, AUTO_PLAY_MS);
+    const preloadId = window.setTimeout(() => requestBanner(activeIndex + 1), 900);
+    const advanceId = window.setTimeout(() => goToBanner(activeIndex + 1), AUTO_PLAY_MS);
 
-    return () => window.clearInterval(id);
-  }, [isDragging]);
+    return () => {
+      window.clearTimeout(preloadId);
+      window.clearTimeout(advanceId);
+    };
+  }, [activeIndex, goToBanner, isDragging, requestBanner]);
 
   const moveBy = (delta: number) => {
-    setActiveIndex((idx) => (idx + delta + BANNERS.length) % BANNERS.length);
+    goToBanner(activeIndex + delta);
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
@@ -119,11 +129,11 @@ export default function HomeBanner() {
         {BANNERS.map((banner, idx) => (
           <img
             key={banner.src}
-            src={banner.src}
+            src={requestedIndexes.has(idx) ? banner.src : undefined}
             alt={banner.alt}
             decoding="async"
-            loading="eager"
-            {...({ fetchpriority: idx === 0 ? "high" : "auto" } as React.ImgHTMLAttributes<HTMLImageElement>)}
+            loading={idx === activeIndex ? "eager" : "lazy"}
+            {...({ fetchpriority: idx === activeIndex ? "high" : "low" } as React.ImgHTMLAttributes<HTMLImageElement>)}
             draggable={false}
             onLoad={() => setLoaded((prev) => ({ ...prev, [banner.src]: true }))}
             style={{
@@ -172,7 +182,7 @@ export default function HomeBanner() {
             key={`${banner.src}-dot`}
             type="button"
             aria-label={`${idx + 1}번 배너 보기`}
-            onClick={() => setActiveIndex(idx)}
+            onClick={() => goToBanner(idx)}
             style={{
               width: idx === activeIndex ? 15 : 5,
               height: 5,
