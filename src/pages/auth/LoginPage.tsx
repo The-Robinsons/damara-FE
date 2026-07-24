@@ -8,12 +8,17 @@ import { loginUser } from "../../features/auth/api/authApi";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import { getAuthErrorMessage } from "../../shared/utils/apiError";
 
+function getRememberedStudentId() {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(STORAGE_KEYS.REMEMBERED_STUDENT_ID)?.replace(/\D/g, "").slice(0, 8) ?? "";
+}
+
 export default function LoginPage() {
   const nav = useNavigate();
-  const [studentId, setStudentId] = useState("");
+  const [studentId, setStudentId] = useState(getRememberedStudentId);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberStudentId, setRememberStudentId] = useState(() => Boolean(getRememberedStudentId()));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const normalizedStudentId = studentId.replace(/\D/g, "").slice(0, 8);
@@ -48,6 +53,11 @@ export default function LoginPage() {
     try {
       const response = await loginUser(normalizedStudentId, password);
       const userData = response.data;
+      if (rememberStudentId) {
+        localStorage.setItem(STORAGE_KEYS.REMEMBERED_STUDENT_ID, normalizedStudentId);
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.REMEMBERED_STUDENT_ID);
+      }
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
       localStorage.setItem(STORAGE_KEYS.USER_ID, userData.id);
       localStorage.removeItem(STORAGE_KEYS.HOME_TUTORIAL_SEEN);
@@ -137,19 +147,20 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="damara-login-plain"
-                onClick={() => setRememberMe((value) => !value)}
+                aria-pressed={rememberStudentId}
+                onClick={() => setRememberStudentId((value) => !value)}
                 style={rememberStyle}
               >
                 <span
                   aria-hidden
                   style={{
                     ...checkboxStyle,
-                    background: rememberMe ? "linear-gradient(135deg, #4688FF, #2866F1)" : "rgba(255, 255, 255, 0.46)",
+                    background: rememberStudentId ? "linear-gradient(135deg, #4688FF, #2866F1)" : "rgba(255, 255, 255, 0.46)",
                   }}
                 >
-                  {rememberMe ? <Check size={13} strokeWidth={3} /> : null}
+                  {rememberStudentId ? <Check size={13} strokeWidth={3} /> : null}
                 </span>
-                로그인 유지
+                학번 기억
               </button>
 
               <button type="button" className="damara-login-plain" style={linkStyle}>

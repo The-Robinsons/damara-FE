@@ -2,6 +2,7 @@ export const STORAGE_KEYS = {
   TOKEN: "token",
   USER_ID: "userId",
   USER: "user",
+  REMEMBERED_STUDENT_ID: "damaraRememberedStudentId",
   HOME_TUTORIAL_SEEN: "damaraHomeTutorialSeen",
   SHOW_HOME_TUTORIAL_ONCE: "damaraShowHomeTutorialOnce",
 } as const;
