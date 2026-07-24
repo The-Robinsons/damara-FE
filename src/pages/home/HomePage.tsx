@@ -11,6 +11,8 @@ import HomeTutorialOverlay from "./components/HomeTutorialOverlay";
 
 import { ROUTES } from "../../app/router/routes";
 import { getPosts } from "../../features/group-buy/api/groupBuyApi";
+import SurfaceCard from "../../shared/components/damara/SurfaceCard";
+import SectionHeader from "../../shared/components/damara/SectionHeader";
 import { HOME_CANVAS } from "../../shared/constants/homeTheme";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import type { HomeCategoryId } from "./constants/homeCategoryChipsData";
@@ -100,17 +102,14 @@ export default function HomePage() {
           onItemClick={(id) => nav(ROUTES.GROUP_BUY_DETAIL.replace(":id", String(id)))}
         />
 
-        <section
+        <SurfaceCard
           aria-label="전체 공동구매 목록"
           style={{
             margin: "14px 14px 104px",
-            padding: "12px 12px 12px",
-            borderRadius: 28,
-            border: "1px solid #EEF2F6",
-            background: "#ffffff",
-            boxShadow: "0 8px 28px rgba(15, 23, 42, 0.04)",
+            padding: 12,
           }}
         >
+          <SectionHeader title="전체 공동구매" action={<span style={{ color: "#8b95a1", fontSize: 12, fontWeight: 700 }}>{posts.length}개</span>} style={{ padding: "2px 2px 10px" }} />
           <HomeSortTabs
             sortBy={sortBy}
             totalCount={posts.length}
@@ -126,7 +125,7 @@ export default function HomePage() {
             emptyText={errorMessage || undefined}
             onItemClick={(id) => nav(ROUTES.GROUP_BUY_DETAIL.replace(":id", String(id)))}
           />
-        </section>
+        </SurfaceCard>
       </main>
       <HomeTutorialOverlay />
     </div>
