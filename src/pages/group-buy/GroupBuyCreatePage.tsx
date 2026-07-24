@@ -51,6 +51,7 @@ const CATEGORIES = [
 ];
 
 const STEP_HINTS = ["상품 정보 입력", "공구 방식 선택", "조건 입력", "수령 정보 입력", "최종 확인"];
+const MAX_IMAGES = 5;
 const MAX_PRICE = 10_000_000;
 const MAX_PARTICIPANTS = 100;
 
@@ -97,6 +98,12 @@ function toPickupTimeRange(value: string) {
     pickupStartTime: to24Hour(matches[0]),
     pickupEndTime: to24Hour(matches[1]),
   };
+}
+
+function isValidPickupTime(value: string) {
+  if (!value.trim()) return true;
+  const { pickupStartTime, pickupEndTime } = toPickupTimeRange(value);
+  return Boolean(pickupStartTime && pickupEndTime);
 }
 
 function extractCreatedPostId(data: unknown): string | null {
@@ -205,12 +212,23 @@ export default function GroupBuyCreatePage() {
       if (!location.trim() || !deadline || !pickupDate) return "수령 장소와 날짜를 모두 입력해 주세요.";
       if (!isEditMode && deadline < today) return "마감일은 오늘 이후로 선택해 주세요.";
       if (pickupDate < deadline) return "수령 예정일은 마감일과 같거나 이후여야 해요.";
+      if (!isValidPickupTime(pickupTime)) return "수령 시간은 예: 오후 12시 ~ 오후 6시 형식으로 입력해 주세요.";
     }
     return null;
   };
 
   const handleSelectFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []).slice(0, 5 - images.length);
+    const selectedFiles = Array.from(e.target.files ?? []);
+    const availableSlots = MAX_IMAGES - images.length;
+    if (availableSlots <= 0) {
+      toast.error("이미지는 최대 5장까지 등록할 수 있어요.");
+      e.target.value = "";
+      return;
+    }
+    if (selectedFiles.length > availableSlots) {
+      toast.message(`이미지는 최대 5장까지 등록할 수 있어요. ${availableSlots}장만 추가했어요.`);
+    }
+    const files = selectedFiles.slice(0, availableSlots);
     if (files.length === 0) return;
 
     for (const file of files) {
@@ -225,6 +243,7 @@ export default function GroupBuyCreatePage() {
       } catch (err) {
         console.error("Image upload failed", err);
         toast.error(getImageUploadErrorMessage(err));
+        URL.revokeObjectURL(preview);
         setImages((prev) => prev.filter((img) => img.preview !== preview));
       } finally {
         setLoading(false);
@@ -232,6 +251,14 @@ export default function GroupBuyCreatePage() {
     }
 
     e.target.value = "";
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages((prev) => {
+      const image = prev[index];
+      if (image?.preview.startsWith("blob:")) URL.revokeObjectURL(image.preview);
+      return prev.filter((_, imageIndex) => imageIndex !== index);
+    });
   };
 
   const handleNext = () => {
@@ -356,7 +383,7 @@ export default function GroupBuyCreatePage() {
                 images={images}
                 fileRef={fileRef}
                 onSelectFile={handleSelectFile}
-                onRemove={(index) => setImages((prev) => prev.filter((_, i) => i !== index))}
+                onRemove={handleRemoveImage}
               />
 
               <div style={panelDividerStyle} />
@@ -629,7 +656,7 @@ function ImageUploadCard({
       <p style={sectionDescStyle}>첫 번째 이미지는 공구 목록에 대표 이미지로 보여요.</p>
 
       <div style={uploadSlotRowStyle}>
-        {Array.from({ length: 5 }).map((_, index) => {
+        {Array.from({ length: MAX_IMAGES }).map((_, index) => {
           const image = images[index];
           const isFirst = index === 0;
 
@@ -666,10 +693,10 @@ function ImageUploadCard({
         })}
       </div>
 
-      <input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.gif,.webp" multiple hidden onChange={onSelectFile} />
+      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden onChange={onSelectFile} />
       <div style={uploadGuideRowStyle}>
-        <p style={uploadGuideStyle}>첫 사진을 기준으로 목록 썸네일이 만들어져요.</p>
-        <span style={uploadCountBadgeStyle}>{images.length}/5</span>
+        <p style={uploadGuideStyle}>JPG, PNG, GIF, WEBP 이미지를 최대 5장 등록할 수 있어요.</p>
+        <span style={uploadCountBadgeStyle}>{images.length}/{MAX_IMAGES}</span>
       </div>
     </div>
   );
