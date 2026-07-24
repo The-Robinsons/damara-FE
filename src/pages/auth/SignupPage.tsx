@@ -25,13 +25,14 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const normalizedStudentId = studentId.replace(/\D/g, "").slice(0, 8);
+  const normalizedNickname = nickname.trim();
   const normalizedEmailLocalPart = emailLocalPart.trim();
   const email = `${normalizedEmailLocalPart}@mju.ac.kr`;
   const isStudentIdValid = /^\d{8}$/.test(normalizedStudentId);
   const isEmailLocalPartValid = /^[A-Za-z0-9._%+-]+$/.test(normalizedEmailLocalPart);
   const isPasswordValid = isValidPassword(password);
   const passwordsMatch = Boolean(confirmPassword) && password === confirmPassword;
-  const canSubmit = Boolean(nickname.trim() && isPasswordValid && passwordsMatch && isStudentIdValid && isEmailLocalPartValid);
+  const canSubmit = Boolean(normalizedNickname && isPasswordValid && passwordsMatch && isStudentIdValid && isEmailLocalPartValid);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -47,7 +48,7 @@ export default function SignupPage() {
   }, []);
 
   const handleRegister = async () => {
-    if (!nickname || !studentId || !emailLocalPart || !password || !confirmPassword) {
+    if (!normalizedNickname || !studentId || !emailLocalPart || !password || !confirmPassword) {
       setError("필수 항목을 모두 입력해 주세요.");
       return;
     }
@@ -75,7 +76,7 @@ export default function SignupPage() {
       await registerUser({
         email,
         passwordHash: password,
-        nickname,
+        nickname: normalizedNickname,
         studentId: normalizedStudentId,
       });
 
@@ -126,7 +127,17 @@ export default function SignupPage() {
             noValidate
           >
             <LineField icon={<User size={17} strokeWidth={2} aria-hidden />}>
-              <input className="damara-signup-input" type="text" autoComplete="name" aria-label="닉네임" value={nickname} onChange={(event) => updateValue(event, setNickname)} placeholder="닉네임" style={inputStyle} />
+              <input
+                className="damara-signup-input"
+                type="text"
+                autoComplete="name"
+                aria-label="닉네임"
+                value={nickname}
+                onChange={(event) => updateValue(event, setNickname)}
+                placeholder="닉네임"
+                maxLength={20}
+                style={inputStyle}
+              />
             </LineField>
 
             <FieldWithIndicator
