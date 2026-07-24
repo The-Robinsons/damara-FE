@@ -137,9 +137,9 @@ export default function MyGroupBuyListView({
 
         {loading ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <SkeletonGroupBuyRow />
-            <SkeletonGroupBuyRow />
-            <SkeletonGroupBuyRow />
+            <SkeletonGroupBuyRow index={0} />
+            <SkeletonGroupBuyRow index={1} />
+            <SkeletonGroupBuyRow index={2} />
           </div>
         ) : error ? (
           <ListEmpty

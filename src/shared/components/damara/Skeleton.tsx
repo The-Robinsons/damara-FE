@@ -1,9 +1,7 @@
-import React from "react";
-
 import { HOME_BORDER } from "../../constants/homeTheme";
 import { UI_R_CARD, UI_R_THUMB } from "../../constants/damaraUISystem";
 
-function Block({ w, h, r = 8 }: { w: string | number; h: number; r?: number }) {
+function Block({ w, h, r = 8, delay = 0 }: { w: string | number; h: number; r?: number; delay?: number }) {
   return (
     <div
       aria-hidden
@@ -12,50 +10,59 @@ function Block({ w, h, r = 8 }: { w: string | number; h: number; r?: number }) {
         width: w,
         height: h,
         borderRadius: r,
+        animationDelay: `${delay}ms`,
       }}
     />
   );
 }
 
-/** 전역 한 번만 주입 */
-let styleInjected = false;
-function ensureShimmerStyle() {
-  if (styleInjected || typeof document === "undefined") return;
-  styleInjected = true;
-  const s = document.createElement("style");
-  s.textContent = `@keyframes damara-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`;
-  document.head.appendChild(s);
-}
+/** 홈·마이 공구 목록의 실제 카드 구조를 따르는 스켈레톤 */
+export function SkeletonGroupBuyRow({ index = 0 }: { index?: number }) {
+  const delay = index * 90;
 
-/** 홈·리스트용 가로 카드 스켈레톤 */
-export function SkeletonGroupBuyRow() {
-  ensureShimmerStyle();
   return (
-    <div
+    <article
+      aria-busy="true"
+      aria-label="공동구매 목록을 불러오는 중"
       style={{
+        position: "relative",
+        minHeight: 128,
         display: "flex",
-        gap: 14,
-        padding: "18px 20px",
-        borderRadius: UI_R_CARD,
+        gap: 11,
+        padding: 12,
+        boxSizing: "border-box",
+        borderRadius: 22,
         border: `1px solid ${HOME_BORDER}`,
         backgroundColor: "#ffffff",
+        boxShadow: "0 6px 20px rgba(15, 23, 42, 0.035)",
       }}
     >
-      <Block w={72} h={72} r={UI_R_THUMB} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-        <Block w="70%" h={16} r={6} />
-        <Block w={40} h={22} r={11} />
-        <Block w="100%" h={12} r={4} />
-        <Block w="45%" h={14} r={4} />
-        <Block w="100%" h={6} r={999} />
-        <Block w={96} h={22} r={6} />
+      <Block w={68} h={68} r={UI_R_THUMB} delay={delay} />
+      <div style={{ minWidth: 0, flex: 1, paddingRight: 30, display: "flex", flexDirection: "column" }}>
+        <Block w="64%" h={17} r={6} delay={delay + 35} />
+        <div style={{ marginTop: 7 }}>
+          <Block w={54} h={19} r={999} delay={delay + 70} />
+        </div>
+        <div style={{ marginTop: 6 }}>
+          <Block w="88%" h={12} r={5} delay={delay + 105} />
+        </div>
+        <div style={{ marginTop: 6 }}>
+          <Block w={72} h={12} r={5} delay={delay + 140} />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 7 }}>
+          <Block w="100%" h={5} r={999} delay={delay + 175} />
+          <Block w={38} h={18} r={999} delay={delay + 210} />
+        </div>
+        <div style={{ marginTop: 7 }}>
+          <Block w={94} h={20} r={6} delay={delay + 245} />
+        </div>
       </div>
-    </div>
+      <Block w={24} h={24} r={999} delay={delay + 280} />
+    </article>
   );
 }
 
 export function SkeletonCardGridCell() {
-  ensureShimmerStyle();
   return (
     <div style={{ borderRadius: UI_R_CARD, border: `1px solid ${HOME_BORDER}`, overflow: "hidden", backgroundColor: "#fff" }}>
       <Block w="100%" h={140} r={0} />
@@ -69,7 +76,6 @@ export function SkeletonCardGridCell() {
 }
 
 export function SkeletonChatRow() {
-  ensureShimmerStyle();
   return (
     <div style={{ display: "flex", gap: 14, padding: "16px 20px", alignItems: "center" }}>
       <Block w={48} h={48} r={14} />
@@ -82,7 +88,6 @@ export function SkeletonChatRow() {
 }
 
 export function SkeletonDetailHero() {
-  ensureShimmerStyle();
   return (
     <div style={{ padding: "0 20px 20px" }}>
       <Block w="100%" h={220} r={UI_R_CARD} />

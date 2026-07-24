@@ -76,7 +76,7 @@ export default function HomePostList({
       <ul className="flex flex-col" style={{ gap: 12, padding: "12px 0 0" }}>
         {[0, 1, 2, 3].map((key) => (
           <li key={key}>
-            <SkeletonGroupBuyRow />
+            <SkeletonGroupBuyRow index={key} />
           </li>
         ))}
       </ul>
