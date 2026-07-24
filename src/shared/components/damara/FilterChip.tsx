@@ -22,7 +22,8 @@ export default function FilterChip({
     <button
       {...props}
       type={props.type ?? "button"}
-      className={[UI_IX_BUTTON, !active ? UI_IX_HOVER_GREY50 : "", className].filter(Boolean).join(" ")}
+      data-active={active || undefined}
+      className={["damara-filter-chip", UI_IX_BUTTON, !active ? UI_IX_HOVER_GREY50 : "", className].filter(Boolean).join(" ")}
       style={{
         flexShrink: 0,
         minWidth: 0,
@@ -44,6 +45,7 @@ export default function FilterChip({
           ? "inset 0 1px 1px rgba(255,255,255,0.34), inset 0 -3px 7px rgba(18,87,190,0.16), 0 6px 14px rgba(49,130,246,0.18)"
           : "inset 0 1px 1px rgba(255,255,255,0.58)",
         cursor: "pointer",
+        transition: "background-color 180ms ease-out, border-color 180ms ease-out, color 180ms ease-out, box-shadow 180ms ease-out, transform 160ms ease-out",
         ...style,
       }}
     >
