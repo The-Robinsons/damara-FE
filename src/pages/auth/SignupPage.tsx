@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type React from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, IdCard, Lock, Mail, User } from "lucide-react";
+import { CircleCheck, CircleAlert, Eye, EyeOff, IdCard, Lock, Mail, User } from "lucide-react";
 import { toast } from "sonner";
 
 import damaraLogo from "../../assets/damara-mark.png";
@@ -13,13 +13,19 @@ export default function SignupPage() {
   const nav = useNavigate();
   const [nickname, setNickname] = useState("");
   const [studentId, setStudentId] = useState("");
-  const [email, setEmail] = useState("");
+  const [emailLocalPart, setEmailLocalPart] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const normalizedStudentId = studentId.replace(/\D/g, "").slice(0, 8);
+  const normalizedEmailLocalPart = emailLocalPart.trim();
+  const email = `${normalizedEmailLocalPart}@mju.ac.kr`;
+  const isStudentIdValid = /^\d{8}$/.test(normalizedStudentId);
+  const isEmailLocalPartValid = /^[A-Za-z0-9._%+-]+$/.test(normalizedEmailLocalPart);
+  const canSubmit = Boolean(nickname.trim() && password && confirmPassword && isStudentIdValid && isEmailLocalPartValid);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -35,12 +41,16 @@ export default function SignupPage() {
   }, []);
 
   const handleRegister = async () => {
-    if (!nickname || !studentId || !email || !password || !confirmPassword) {
+    if (!nickname || !studentId || !emailLocalPart || !password || !confirmPassword) {
       setError("필수 항목을 모두 입력해 주세요.");
       return;
     }
-    if (!email.includes("@")) {
-      setError("올바른 이메일 형식을 입력해 주세요.");
+    if (!isStudentIdValid) {
+      setError("학번은 숫자 8자리로 입력해 주세요.");
+      return;
+    }
+    if (!isEmailLocalPartValid) {
+      setError("명지대학교 이메일 아이디 형식을 확인해 주세요.");
       return;
     }
     if (password !== confirmPassword) {
@@ -56,11 +66,11 @@ export default function SignupPage() {
         email,
         passwordHash: password,
         nickname,
-        studentId,
+        studentId: normalizedStudentId,
       });
 
       try {
-        const loginResponse = await loginUser(studentId, password);
+        const loginResponse = await loginUser(normalizedStudentId, password);
         const userData = loginResponse.data;
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
         localStorage.setItem(STORAGE_KEYS.USER_ID, userData.id);
@@ -109,13 +119,54 @@ export default function SignupPage() {
               <input className="damara-signup-input" type="text" autoComplete="name" aria-label="닉네임" value={nickname} onChange={(event) => updateValue(event, setNickname)} placeholder="닉네임" style={inputStyle} />
             </LineField>
 
-            <LineField icon={<IdCard size={17} strokeWidth={2} aria-hidden />}>
-              <input className="damara-signup-input" type="text" autoComplete="username" aria-label="학번" value={studentId} onChange={(event) => updateValue(event, setStudentId)} placeholder="학번" style={inputStyle} />
-            </LineField>
+            <FieldWithIndicator
+              icon={<IdCard size={17} strokeWidth={2} aria-hidden />}
+              neutralIcon={IdCard}
+              message={isStudentIdValid ? "8자리 학번을 확인했어요." : `숫자 8자리로 입력해 주세요. (${normalizedStudentId.length}/8)`}
+              status={studentId ? (isStudentIdValid ? "valid" : "invalid") : "neutral"}
+            >
+              <input
+                className="damara-signup-input"
+                type="text"
+                inputMode="numeric"
+                autoComplete="username"
+                aria-label="학번 8자리"
+                aria-invalid={studentId ? !isStudentIdValid : undefined}
+                value={studentId}
+                onChange={(event) => {
+                  setStudentId(event.target.value.replace(/\D/g, "").slice(0, 8));
+                  setError("");
+                }}
+                placeholder="학번 8자리"
+                maxLength={8}
+                style={inputStyle}
+              />
+            </FieldWithIndicator>
 
-            <LineField icon={<Mail size={17} strokeWidth={2} aria-hidden />}>
-              <input className="damara-signup-input" type="email" autoComplete="email" aria-label="학교 이메일" value={email} onChange={(event) => updateValue(event, setEmail)} placeholder="학교 이메일" style={inputStyle} />
-            </LineField>
+            <FieldWithIndicator
+              icon={<Mail size={17} strokeWidth={2} aria-hidden />}
+              neutralIcon={Mail}
+              message={isEmailLocalPartValid ? "명지대학교 이메일 형식을 확인했어요." : "명지대학교 이메일만 사용할 수 있어요."}
+              status={emailLocalPart ? (isEmailLocalPartValid ? "valid" : "invalid") : "neutral"}
+            >
+              <input
+                className="damara-signup-input"
+                type="text"
+                autoComplete="email"
+                aria-label="명지대학교 이메일 아이디"
+                aria-invalid={emailLocalPart ? !isEmailLocalPartValid : undefined}
+                value={emailLocalPart}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  const suffix = "@mju.ac.kr";
+                  setEmailLocalPart(value.toLowerCase().endsWith(suffix) ? value.slice(0, -suffix.length) : value);
+                  setError("");
+                }}
+                placeholder="이메일 아이디"
+                style={inputStyle}
+              />
+              <span aria-hidden style={emailSuffixStyle}>@mju.ac.kr</span>
+            </FieldWithIndicator>
 
             <LineField icon={<Lock size={17} strokeWidth={2} aria-hidden />}>
               <input className="damara-signup-input" type={showPassword ? "text" : "password"} autoComplete="new-password" aria-label="비밀번호" value={password} onChange={(event) => updateValue(event, setPassword)} placeholder="비밀번호" style={inputStyle} />
@@ -127,7 +178,7 @@ export default function SignupPage() {
               <EyeButton active={showConfirm} onClick={() => setShowConfirm((value) => !value)} label="비밀번호 확인" />
             </LineField>
 
-            <button type="submit" disabled={isLoading} className="damara-signup-submit" style={submitStyle}>
+            <button type="submit" disabled={isLoading || !canSubmit} className="damara-signup-submit" style={submitStyle}>
               {isLoading ? "처리 중..." : "회원가입"}
             </button>
           </form>
@@ -154,6 +205,32 @@ function LineField({ icon, children }: { icon: React.ReactNode; children: React.
     <div className="damara-signup-field" style={fieldStyle}>
       <span style={fieldIconStyle}>{icon}</span>
       {children}
+    </div>
+  );
+}
+
+function FieldWithIndicator({
+  icon,
+  neutralIcon: NeutralIcon,
+  children,
+  message,
+  status,
+}: {
+  icon: React.ReactNode;
+  neutralIcon: React.ElementType;
+  children: React.ReactNode;
+  message: string;
+  status: "neutral" | "valid" | "invalid";
+}) {
+  const Icon = status === "valid" ? CircleCheck : status === "invalid" ? CircleAlert : NeutralIcon;
+
+  return (
+    <div style={fieldGroupStyle}>
+      <LineField icon={icon}>{children}</LineField>
+      <p style={{ ...indicatorStyle, color: status === "valid" ? "#2272eb" : status === "invalid" ? "#dc2626" : "#657084" }}>
+        <Icon size={13} strokeWidth={2.2} aria-hidden />
+        {message}
+      </p>
     </div>
   );
 }
@@ -276,6 +353,23 @@ const fieldStyle: React.CSSProperties = {
   transition: "160ms ease-out",
 };
 
+const fieldGroupStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 5,
+};
+
+const indicatorStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 5,
+  minHeight: 16,
+  margin: "0 2px",
+  fontSize: 11,
+  fontWeight: 650,
+  lineHeight: "16px",
+};
+
 const fieldIconStyle: React.CSSProperties = {
   width: 20,
   height: 20,
@@ -296,6 +390,16 @@ const inputStyle: React.CSSProperties = {
   fontFamily: "Pretendard, Inter, system-ui, sans-serif",
   fontSize: 14,
   fontWeight: 650,
+};
+
+const emailSuffixStyle: React.CSSProperties = {
+  flexShrink: 0,
+  paddingLeft: 10,
+  borderLeft: "1px solid rgba(70, 111, 197, 0.16)",
+  color: "#3168dc",
+  fontSize: 13,
+  fontWeight: 800,
+  lineHeight: "20px",
 };
 
 const eyeButtonStyle: React.CSSProperties = {
