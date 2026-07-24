@@ -363,6 +363,7 @@ export default function GroupBuyCreatePage() {
 
   return (
     <div data-page="공구 등록" style={pageStyle}>
+      <style>{createMotionStyle}</style>
       <header style={headerStyle}>
         <button type="button" aria-label="뒤로가기" onClick={goBack} style={iconButtonStyle}>
           <ChevronLeft size={21} strokeWidth={2.25} color={grey900} aria-hidden />
@@ -374,6 +375,7 @@ export default function GroupBuyCreatePage() {
       <main style={mainStyle}>
         <StepProgress step={step} progress={progress} />
 
+        <div key={step} className="damara-create-step">
         {step === 1 ? (
           <section>
             <StepTitle title="어떤 상품을 함께 구매할까요?" desc="사진과 상품명만 먼저 입력해 주세요." />
@@ -510,6 +512,7 @@ export default function GroupBuyCreatePage() {
             </SurfaceCard>
           </section>
         ) : null}
+        </div>
       </main>
 
       <div style={ctaWrap}>
@@ -531,8 +534,8 @@ function CreateSubmitOverlay({ isEditMode }: { isEditMode: boolean }) {
     <div role="status" aria-live="polite" style={submitOverlayStyle}>
       <style>{createMotionStyle}</style>
       <div style={submitCardStyle}>
-        <span style={submitOrbStyle}>
-          <span style={submitOrbRingStyle} />
+        <span className="damara-submit-orb" style={submitOrbStyle}>
+          <span className="damara-submit-ring" style={submitOrbRingStyle} />
           <span style={submitOrbCoreStyle}>
             <Check size={27} strokeWidth={3} aria-hidden />
           </span>
@@ -540,7 +543,7 @@ function CreateSubmitOverlay({ isEditMode }: { isEditMode: boolean }) {
         <strong style={submitTitleStyle}>{isEditMode ? "공구를 수정하고 있어요" : "공구를 등록하고 있어요"}</strong>
         <p style={submitDescStyle}>입력한 내용을 정리하고 게시물 화면을 준비하는 중이에요.</p>
         <div style={submitProgressTrackStyle}>
-          <span style={submitProgressFillStyle} />
+          <span className="damara-submit-fill" style={submitProgressFillStyle} />
         </div>
       </div>
     </div>
@@ -562,7 +565,7 @@ function CreateSuccessPage({
     <div data-page="공구 등록 완료" style={successPageStyle}>
       <style>{createMotionStyle}</style>
       <main style={successMainStyle}>
-        <SurfaceCard padding="32px 24px 24px" style={successCardStyle}>
+        <SurfaceCard className="damara-success-card" padding="32px 24px 24px" style={successCardStyle}>
           <span style={successBadgeStyle}>
             <span style={successPulseStyle} />
             <Check size={34} strokeWidth={3.1} aria-hidden />
@@ -617,7 +620,7 @@ function StepProgress({ step, progress }: { step: number; progress: number }) {
         aria-valuenow={progress}
         style={progressTrackStyle}
       >
-        <span style={{ ...progressFillStyle, width: `${progress}%` }} />
+        <span className="damara-create-progress-fill" style={{ ...progressFillStyle, width: `${progress}%` }} />
       </div>
     </div>
   );
@@ -1608,6 +1611,10 @@ const ctaWrap: React.CSSProperties = {
 
 
 const createMotionStyle = `
+  @keyframes damara-create-step-enter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
   @keyframes damara-submit-orb {
     0%, 100% { transform: scale(1); filter: saturate(1); }
     45% { transform: scale(1.055); filter: saturate(1.08); }
@@ -1627,6 +1634,35 @@ const createMotionStyle = `
   @keyframes damara-success-pulse {
     0%, 100% { opacity: 0.42; transform: scale(0.92); }
     50% { opacity: 0.08; transform: scale(1.42); }
+  }
+  @keyframes damara-success-content-enter {
+    from { opacity: 0; transform: translateY(7px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .damara-create-step {
+    animation: damara-create-step-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .damara-create-progress-fill {
+    transition: width 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .damara-success-card > * {
+    animation: damara-success-content-enter 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .damara-success-card > *:nth-child(1) { animation-delay: 60ms; }
+  .damara-success-card > *:nth-child(2) { animation-delay: 105ms; }
+  .damara-success-card > *:nth-child(3) { animation-delay: 145ms; }
+  .damara-success-card > *:nth-child(4) { animation-delay: 185ms; }
+  .damara-success-card > *:nth-child(5) { animation-delay: 225ms; }
+  @media (prefers-reduced-motion: reduce) {
+    .damara-create-step,
+    .damara-success-card,
+    .damara-success-card *,
+    .damara-submit-orb,
+    .damara-submit-ring,
+    .damara-submit-fill {
+      animation: none !important;
+      transition: none !important;
+    }
   }
 `;
 
