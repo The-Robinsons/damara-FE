@@ -51,10 +51,12 @@ test("로그인은 숫자 8자리 학번만 API로 전송한다", async ({ page 
   await page.goto("/login");
   await page.getByLabel("학번 8자리").fill("20261234");
   await page.getByRole("textbox", { name: "비밀번호", exact: true }).fill("damara123");
+  await page.getByRole("button", { name: "학번 기억" }).click();
   await page.getByRole("button", { name: "로그인", exact: true }).click();
 
   await expect(page).toHaveURL("/home");
   expect(loginPayload).toEqual({ studentId: "20261234", password: "damara123" });
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("damaraRememberedStudentId"))).toBe("20261234");
 });
 
 test("공구 등록은 0원 가격으로 다음 단계로 이동하지 않는다", async ({ page }) => {
