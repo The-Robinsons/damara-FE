@@ -51,6 +51,8 @@ const CATEGORIES = [
 ];
 
 const STEP_HINTS = ["상품 정보 입력", "공구 방식 선택", "조건 입력", "수령 정보 입력", "최종 확인"];
+const MAX_PRICE = 10_000_000;
+const MAX_PARTICIPANTS = 100;
 
 function onlyDigits(value: string) {
   return value.replace(/[^\d]/g, "");
@@ -72,6 +74,12 @@ function toDateInputValue(value?: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
   return date.toISOString().slice(0, 10);
+}
+
+function getTodayInputValue() {
+  const now = new Date();
+  const timezoneOffset = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 10);
 }
 
 function toPickupTimeRange(value: string) {
@@ -143,6 +151,9 @@ export default function GroupBuyCreatePage() {
   const categoryLabel = CATEGORIES.find((item) => item.value === category)?.label ?? "생활용품";
 
   const isEditMode = Boolean(editId);
+  const today = getTodayInputValue();
+  const priceValue = Number(onlyDigits(price));
+  const participantValue = Number(onlyDigits(people));
 
   useEffect(() => {
     if (!editId) return;
@@ -182,12 +193,20 @@ export default function GroupBuyCreatePage() {
     };
   }, [editId]);
 
-  const canGoNext = () => {
-    if (step === 1) return productName.trim() && title.trim();
-    if (step === 2) return tradeType && category;
-    if (step === 3) return Number(onlyDigits(price)) > 0 && Number(onlyDigits(people)) > 0;
-    if (step === 4) return location.trim() && deadline.trim() && pickupDate.trim();
-    return true;
+  const getStepValidationError = (targetStep: number) => {
+    if (targetStep === 1 && (!productName.trim() || !title.trim())) return "상품명과 공구 제목을 입력해 주세요.";
+    if (targetStep === 2 && (!tradeType || !category)) return "공구 방식과 카테고리를 선택해 주세요.";
+    if (targetStep === 3) {
+      if (priceValue <= 0 || participantValue <= 0) return "가격과 모집 인원을 1 이상으로 입력해 주세요.";
+      if (priceValue > MAX_PRICE) return "1인당 가격은 1,000만 원 이하로 입력해 주세요.";
+      if (participantValue > MAX_PARTICIPANTS) return "모집 인원은 100명 이하로 입력해 주세요.";
+    }
+    if (targetStep === 4) {
+      if (!location.trim() || !deadline || !pickupDate) return "수령 장소와 날짜를 모두 입력해 주세요.";
+      if (!isEditMode && deadline < today) return "마감일은 오늘 이후로 선택해 주세요.";
+      if (pickupDate < deadline) return "수령 예정일은 마감일과 같거나 이후여야 해요.";
+    }
+    return null;
   };
 
   const handleSelectFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -216,8 +235,9 @@ export default function GroupBuyCreatePage() {
   };
 
   const handleNext = () => {
-    if (!canGoNext()) {
-      toast.error("필수 정보를 입력해 주세요.");
+    const validationError = getStepValidationError(step);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
     setStep((prev) => Math.min(5, prev + 1));
@@ -230,8 +250,11 @@ export default function GroupBuyCreatePage() {
       nav("/login");
       return;
     }
-    if (!productName.trim() || !title.trim() || !price || !people || !location.trim() || !deadline || !pickupDate) {
-      toast.error("필수 정보를 다시 확인해 주세요.");
+    const validationError = [1, 2, 3, 4]
+      .map((targetStep) => getStepValidationError(targetStep))
+      .find(Boolean);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
     if (images.some((image) => !image.url)) {
@@ -247,8 +270,8 @@ export default function GroupBuyCreatePage() {
         title,
         productName,
         content: description || title,
-        price: Number(onlyDigits(price)),
-        minParticipants: Number(onlyDigits(people)),
+        price: priceValue,
+        minParticipants: participantValue,
         deadline: toDeadlineIso(deadline),
         pickupType: "custom",
         pickupLocation: location,
@@ -410,9 +433,9 @@ export default function GroupBuyCreatePage() {
             <SurfaceCard as="div" padding={0} style={{ marginTop: 16, overflow: "hidden" }}>
               <LabeledInput label="수령 장소" value={location} onChange={setLocation} placeholder="예: 명지대 정문 앞" />
               <Divider />
-              <DateInput label="마감일" value={deadline} onChange={setDeadline} />
+              <DateInput label="마감일" value={deadline} onChange={setDeadline} min={isEditMode ? undefined : today} />
               <Divider />
-              <DateInput label="수령 예정일" value={pickupDate} onChange={setPickupDate} />
+              <DateInput label="수령 예정일" value={pickupDate} onChange={setPickupDate} min={deadline || today} />
               <Divider />
               <LabeledInput label="예상 수령 시간" value={pickupTime} onChange={setPickupTime} placeholder="예: 오후 12시 ~ 오후 6시" plain />
             </SurfaceCard>
@@ -763,11 +786,11 @@ function LabeledInput({
   );
 }
 
-function DateInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+function DateInput({ label, value, onChange, min }: { label: string; value: string; onChange: (value: string) => void; min?: string }) {
   return (
     <label style={fieldPlainStyle}>
       <span style={fieldLabelStyle}>{label}</span>
-      <input type="date" value={value} onChange={(e) => onChange(e.target.value)} style={fieldInputStyle} />
+      <input type="date" value={value} min={min} onChange={(e) => onChange(e.target.value)} style={fieldInputStyle} />
     </label>
   );
 }
