@@ -2722,11 +2722,43 @@ header {
   will-change: opacity, transform;
 }
 
+@keyframes damara-heart-pop {
+  0% { transform: scale(0.84); }
+  58% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+
+.damara-favorite-heart-pop {
+  transform-origin: center;
+  animation: damara-heart-pop 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.damara-filter-chip[data-active] {
+  animation: damara-filter-chip-select 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes damara-filter-chip-select {
+  0% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
+.damara-progress-fill {
+  transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: width;
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-list-item] {
     opacity: 1;
     animation: none !important;
     transform: none !important;
     filter: none !important;
+  }
+
+  .damara-favorite-heart-pop,
+  .damara-filter-chip[data-active],
+  .damara-progress-fill {
+    animation: none !important;
+    transition: none !important;
   }
 }
