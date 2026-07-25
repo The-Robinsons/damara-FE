@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { getNotice, getNotices } from "../../features/user/api/serviceApi";
 import type { ApiNotice } from "../../shared/api/swaggerTypes";
 import SectionHeader from "../../shared/components/damara/SectionHeader";
+import StatusBadge from "../../shared/components/damara/StatusBadge";
 import SurfaceCard from "../../shared/components/damara/SurfaceCard";
 import {
   BRAND_PRIMARY,
@@ -115,10 +116,9 @@ function NoticeCard({ notice, onClick }: { notice: ApiNotice; onClick: () => voi
 
 function NoticeBadge({ notice }: { notice: ApiNotice }) {
   return (
-    <span style={noticeBadgeStyle}>
-      {notice.isPinned ? <Pin size={10} strokeWidth={2.4} aria-hidden /> : null}
+    <StatusBadge size="md" icon={notice.isPinned ? <Pin size={10} strokeWidth={2.4} aria-hidden /> : undefined}>
       {notice.category || NOTICE_TYPE_LABELS[notice.type] || notice.type}
-    </span>
+    </StatusBadge>
   );
 }
 
@@ -145,10 +145,9 @@ function NoticeDetail({ notice, loading, onClose }: { notice: ApiNotice; loading
         </header>
 
         <main style={detailBodyStyle}>
-          <span style={detailBadgeStyle}>
-            <ShieldCheck size={14} strokeWidth={2.1} aria-hidden />
+          <StatusBadge size="md" icon={<ShieldCheck size={14} strokeWidth={2.1} aria-hidden />} style={{ padding: "5px 9px" }}>
             {notice.category || NOTICE_TYPE_LABELS[notice.type] || notice.type}
-          </span>
+          </StatusBadge>
           <h1 style={detailTitleStyle}>{notice.title}</h1>
           <div style={detailDateStyle}>
             <CalendarDays size={14} strokeWidth={2} aria-hidden />
@@ -212,7 +211,6 @@ const noticeCardStyle: React.CSSProperties = {
 };
 
 const noticeTopRowStyle: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 };
-const noticeBadgeStyle: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 3, minHeight: 20, padding: "0 7px", borderRadius: 999, background: "rgba(49,130,246,0.1)", color: blue500, fontSize: 10, fontWeight: 850 };
 const dateStyle: React.CSSProperties = { color: grey400, fontSize: 10.5, fontWeight: 700 };
 const noticeTitleStyle: React.CSSProperties = { display: "block", marginTop: 10, color: grey900, fontSize: 14, lineHeight: "20px", fontWeight: 850, letterSpacing: "-0.02em" };
 const noticeSummaryStyle: React.CSSProperties = { margin: "5px 0 0", color: grey500, fontSize: 11.5, lineHeight: "17px", fontWeight: 600, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" };
@@ -227,7 +225,6 @@ const detailHeaderStyle: React.CSSProperties = { height: 56, display: "grid", gr
 const headerIconButtonStyle: React.CSSProperties = { width: 36, height: 36, border: 0, borderRadius: 999, background: "transparent", color: grey900, display: "grid", placeItems: "center", cursor: "pointer" };
 const detailHeaderTitleStyle: React.CSSProperties = { textAlign: "center", color: grey900, fontSize: 16.5, fontWeight: 850 };
 const detailBodyStyle: React.CSSProperties = { padding: "27px 22px" };
-const detailBadgeStyle: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 9px", borderRadius: 999, color: blue500, background: blue50, fontSize: 11, fontWeight: 850 };
 const detailTitleStyle: React.CSSProperties = { margin: "14px 0 0", color: grey900, fontSize: 22, lineHeight: "31px", fontWeight: 900, letterSpacing: "-0.035em" };
 const detailDateStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 5, marginTop: 11, color: grey500, fontSize: 11.5, fontWeight: 650 };
 const detailDividerStyle: React.CSSProperties = { height: 1, margin: "23px 0 19px", background: grey200 };

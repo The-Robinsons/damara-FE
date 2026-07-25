@@ -5,13 +5,11 @@ import { ImageIcon, RotateCw, Search, Users } from "lucide-react";
 import { ROUTES } from "../../app/router/routes";
 import { getPosts } from "../../features/group-buy/api/groupBuyApi";
 import FavoriteHeartButton from "../../features/group-buy/components/FavoriteHeartButton";
+import AnimatedProgressFill from "../../shared/components/damara/AnimatedProgressFill";
 import EmptyState from "../../shared/components/damara/EmptyState";
+import StatusBadge from "../../shared/components/damara/StatusBadge";
 import { getImageUrl } from "../../shared/utils/imageUrl";
 import {
-  BADGE_INFO_BG,
-  BADGE_INFO_TEXT,
-  BADGE_URGENT_BG,
-  BADGE_URGENT_TEXT,
   BRAND_PRIMARY,
   HOME_BORDER,
   HOME_CANVAS,
@@ -310,9 +308,9 @@ function CategoryCard({ post, tint, index, onClick }: { post: ApiPost; tint: str
       style={{ borderRadius: 16, border: `1px solid rgba(229, 232, 235, 0.92)`, backgroundColor: "#fff", overflow: "hidden", cursor: "pointer", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.035)", animationDelay: `${Math.min(index, 7) * 90}ms` }}
     >
       <div className="relative" style={{ height: 124, background: `linear-gradient(145deg, ${tint} 0%, ${blue50} 100%)` }}>
-        <span style={{ position: "absolute", left: 8, top: 8, height: 19, padding: "0 8px", borderRadius: UI_R_BADGE, backgroundColor: closed ? BADGE_URGENT_BG : BADGE_INFO_BG, color: closed ? BADGE_URGENT_TEXT : BADGE_INFO_TEXT, fontSize: 9.5, fontWeight: UI_BADGE_FW, lineHeight: "19px", zIndex: 2 }}>
+        <StatusBadge tone={closed ? "warning" : "info"} size="sm" style={{ position: "absolute", left: 8, top: 8, zIndex: 2 }}>
           {closed ? "마감" : "모집중"}
-        </span>
+        </StatusBadge>
         <div style={{ position: "absolute", right: 6, top: 6, zIndex: 2 }} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} role="presentation">
           <FavoriteHeartButton
             postId={post.id}
@@ -372,7 +370,7 @@ function CategoryCard({ post, tint, index, onClick }: { post: ApiPost; tint: str
           </span>
         </div>
         <div style={{ height: 4, marginTop: 2, borderRadius: 999, background: grey100, overflow: "hidden" }}>
-          <div style={{ width: `${progress * 100}%`, height: "100%", borderRadius: 999, background: closed ? grey300 : BRAND_PRIMARY }} />
+          <AnimatedProgressFill value={progress * 100} style={{ borderRadius: 999, background: closed ? grey300 : BRAND_PRIMARY }} />
         </div>
       </div>
     </article>
