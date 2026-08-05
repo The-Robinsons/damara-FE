@@ -254,8 +254,30 @@ export interface ApiRegisterUserInput {
   passwordHash: string;
   nickname: string;
   studentId: string;
+  emailVerificationToken: string;
   department?: string;
   avatarUrl?: string;
+}
+
+export interface ApiSendEmailVerificationInput {
+  email: string;
+}
+
+export interface ApiSendEmailVerificationResponse {
+  message: "VERIFICATION_EMAIL_SENT" | string;
+  expiresInSeconds: number;
+  resendAfterSeconds: number;
+}
+
+export interface ApiVerifyEmailVerificationInput {
+  email: string;
+  code: string;
+}
+
+export interface ApiVerifyEmailVerificationResponse {
+  verified: boolean;
+  emailVerificationToken: string;
+  expiresInSeconds: number;
 }
 
 export interface ApiUpdateUserInput {

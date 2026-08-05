@@ -1,13 +1,39 @@
 import { useEffect, useState } from "react";
 import type React from "react";
 import { useNavigate } from "react-router-dom";
-import { CircleCheck, CircleAlert, Eye, EyeOff, IdCard, Lock, Mail, User } from "lucide-react";
+import { CircleCheck, CircleAlert, Clock3, Eye, EyeOff, IdCard, Lock, Mail, ShieldCheck, User } from "lucide-react";
 import { toast } from "sonner";
 
 import damaraLogo from "../../assets/damara-mark.png";
-import { loginUser, registerUser } from "../../features/auth/api/authApi";
+import {
+  loginUser,
+  registerUser,
+  sendEmailVerification,
+  verifyEmailVerification,
+} from "../../features/auth/api/authApi";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
-import { getAuthErrorMessage } from "../../shared/utils/apiError";
+import {
+  getApiErrorCode,
+  getAuthErrorMessage,
+  getEmailVerificationErrorMessage,
+} from "../../shared/utils/apiError";
+
+const VERIFICATION_RESTART_ERROR_CODES = new Set([
+  "EMAIL_VERIFICATION_REQUIRED",
+  "INVALID_EMAIL_VERIFICATION_TOKEN",
+  "EMAIL_VERIFICATION_EXPIRED",
+]);
+
+function getRemainingSeconds(expiresAt: number | null, now: number) {
+  if (!expiresAt) return 0;
+  return Math.max(0, Math.ceil((expiresAt - now) / 1000));
+}
+
+function formatCountdown(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
 
 function isValidPassword(value: string) {
   return value.length >= 8 && /[A-Za-z]/.test(value) && /\d/.test(value);
@@ -18,10 +44,19 @@ export default function SignupPage() {
   const [nickname, setNickname] = useState("");
   const [studentId, setStudentId] = useState("");
   const [emailLocalPart, setEmailLocalPart] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationRequested, setVerificationRequested] = useState(false);
+  const [emailVerificationToken, setEmailVerificationToken] = useState("");
+  const [codeExpiresAt, setCodeExpiresAt] = useState<number | null>(null);
+  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(null);
+  const [tokenExpiresAt, setTokenExpiresAt] = useState<number | null>(null);
+  const [clockMs, setClockMs] = useState(() => Date.now());
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const normalizedStudentId = studentId.replace(/\D/g, "").slice(0, 8);
@@ -32,7 +67,22 @@ export default function SignupPage() {
   const isEmailLocalPartValid = /^[A-Za-z0-9._%+-]+$/.test(normalizedEmailLocalPart);
   const isPasswordValid = isValidPassword(password);
   const passwordsMatch = Boolean(confirmPassword) && password === confirmPassword;
-  const canSubmit = Boolean(normalizedNickname && isPasswordValid && passwordsMatch && isStudentIdValid && isEmailLocalPartValid);
+  const codeRemainingSeconds = getRemainingSeconds(codeExpiresAt, clockMs);
+  const resendRemainingSeconds = getRemainingSeconds(resendAvailableAt, clockMs);
+  const tokenRemainingSeconds = getRemainingSeconds(tokenExpiresAt, clockMs);
+  const isEmailVerified = Boolean(emailVerificationToken && tokenRemainingSeconds > 0);
+  const isVerificationCodeValid = /^\d{6}$/.test(verificationCode);
+  const hasActiveTimer = Boolean(
+    codeRemainingSeconds || resendRemainingSeconds || tokenRemainingSeconds,
+  );
+  const canSubmit = Boolean(
+    normalizedNickname &&
+    isPasswordValid &&
+    passwordsMatch &&
+    isStudentIdValid &&
+    isEmailLocalPartValid &&
+    isEmailVerified,
+  );
 
   useEffect(() => {
     const html = document.documentElement;
@@ -47,6 +97,108 @@ export default function SignupPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!hasActiveTimer) return;
+    const timerId = window.setInterval(() => setClockMs(Date.now()), 1000);
+    return () => window.clearInterval(timerId);
+  }, [hasActiveTimer]);
+
+  useEffect(() => {
+    if (!emailVerificationToken || !tokenExpiresAt || tokenRemainingSeconds > 0) return;
+    setVerificationCode("");
+    setVerificationRequested(false);
+    setEmailVerificationToken("");
+    setCodeExpiresAt(null);
+    setResendAvailableAt(null);
+    setTokenExpiresAt(null);
+    setError("이메일 인증이 만료되었습니다. 다시 인증해 주세요.");
+  }, [emailVerificationToken, tokenExpiresAt, tokenRemainingSeconds]);
+
+  const resetEmailVerification = () => {
+    setVerificationCode("");
+    setVerificationRequested(false);
+    setEmailVerificationToken("");
+    setCodeExpiresAt(null);
+    setResendAvailableAt(null);
+    setTokenExpiresAt(null);
+    setClockMs(Date.now());
+  };
+
+  const handleSendVerification = async () => {
+    if (!isEmailLocalPartValid) {
+      setError("명지대학교 이메일 아이디 형식을 확인해 주세요.");
+      return;
+    }
+    if (isSendingCode || resendRemainingSeconds > 0 || isEmailVerified) return;
+
+    setIsSendingCode(true);
+    setError("");
+    try {
+      const response = await sendEmailVerification({ email });
+      const now = Date.now();
+      const expiresInSeconds = Math.max(1, Number(response.data.expiresInSeconds) || 300);
+      const resendAfterSeconds = Math.max(0, Number(response.data.resendAfterSeconds) || 0);
+
+      setVerificationCode("");
+      setVerificationRequested(true);
+      setEmailVerificationToken("");
+      setTokenExpiresAt(null);
+      setCodeExpiresAt(now + expiresInSeconds * 1000);
+      setResendAvailableAt(now + resendAfterSeconds * 1000);
+      setClockMs(now);
+      toast.success("명지대학교 이메일로 인증번호를 보냈어요.");
+    } catch (err) {
+      setError(getEmailVerificationErrorMessage(err));
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+
+  const handleVerifyEmail = async () => {
+    if (!isVerificationCodeValid) {
+      setError("인증번호 숫자 6자리를 입력해 주세요.");
+      return;
+    }
+    if (codeRemainingSeconds <= 0) {
+      setError("인증번호가 만료되었습니다. 다시 발급해 주세요.");
+      return;
+    }
+    if (isVerifyingCode || isEmailVerified) return;
+
+    setIsVerifyingCode(true);
+    setError("");
+    try {
+      const response = await verifyEmailVerification({
+        email,
+        code: verificationCode,
+      });
+      const { verified, emailVerificationToken: token, expiresInSeconds } = response.data;
+      if (!verified || !token) {
+        setError("인증번호가 올바르지 않습니다.");
+        return;
+      }
+
+      const now = Date.now();
+      setEmailVerificationToken(token);
+      setTokenExpiresAt(now + Math.max(1, Number(expiresInSeconds) || 900) * 1000);
+      setCodeExpiresAt(null);
+      setClockMs(now);
+      toast.success("이메일 인증이 완료되었어요.");
+    } catch (err) {
+      const errorCode = getApiErrorCode(err);
+      if (
+        errorCode === "VERIFICATION_CODE_EXPIRED" ||
+        errorCode === "VERIFICATION_ATTEMPTS_EXCEEDED"
+      ) {
+        setVerificationCode("");
+        setCodeExpiresAt(null);
+      }
+      setError(getEmailVerificationErrorMessage(err));
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  };
+
   const handleRegister = async () => {
     if (!normalizedNickname || !studentId || !emailLocalPart || !password || !confirmPassword) {
       setError("필수 항목을 모두 입력해 주세요.");
@@ -58,6 +210,10 @@ export default function SignupPage() {
     }
     if (!isEmailLocalPartValid) {
       setError("명지대학교 이메일 아이디 형식을 확인해 주세요.");
+      return;
+    }
+    if (!isEmailVerified || !emailVerificationToken) {
+      setError("이메일 인증을 완료해 주세요.");
       return;
     }
     if (!isPasswordValid) {
@@ -78,7 +234,10 @@ export default function SignupPage() {
         passwordHash: password,
         nickname: normalizedNickname,
         studentId: normalizedStudentId,
+        emailVerificationToken,
       });
+
+      resetEmailVerification();
 
       try {
         const loginResponse = await loginUser(normalizedStudentId, password);
@@ -94,6 +253,9 @@ export default function SignupPage() {
       }
     } catch (err) {
       console.error("회원가입 실패:", err);
+      if (VERIFICATION_RESTART_ERROR_CODES.has(getApiErrorCode(err))) {
+        resetEmailVerification();
+      }
       setError(getAuthErrorMessage(err, "register"));
     } finally {
       setIsLoading(false);
@@ -167,8 +329,22 @@ export default function SignupPage() {
             <FieldWithIndicator
               icon={<Mail size={17} strokeWidth={2} aria-hidden />}
               neutralIcon={Mail}
-              message={isEmailLocalPartValid ? "명지대학교 이메일 형식을 확인했어요." : "명지대학교 이메일만 사용할 수 있어요."}
-              status={emailLocalPart ? (isEmailLocalPartValid ? "valid" : "invalid") : "neutral"}
+              message={
+                isEmailVerified
+                  ? `이메일 인증 완료 · 회원가입까지 ${formatCountdown(tokenRemainingSeconds)}`
+                  : verificationRequested
+                    ? "입력한 이메일로 인증번호를 보냈어요."
+                    : isEmailLocalPartValid
+                      ? "인증번호를 받아 이메일을 확인해 주세요."
+                      : "명지대학교 이메일만 사용할 수 있어요."
+              }
+              status={
+                isEmailVerified
+                  ? "valid"
+                  : emailLocalPart && !isEmailLocalPartValid
+                    ? "invalid"
+                    : "neutral"
+              }
             >
               <input
                 className="damara-signup-input"
@@ -176,18 +352,103 @@ export default function SignupPage() {
                 autoComplete="email"
                 aria-label="명지대학교 이메일 아이디"
                 aria-invalid={emailLocalPart ? !isEmailLocalPartValid : undefined}
+                disabled={isEmailVerified || isSendingCode || isVerifyingCode}
                 value={emailLocalPart}
                 onChange={(event) => {
-                  const value = event.target.value;
+                  const value = event.target.value.toLowerCase();
                   const suffix = "@mju.ac.kr";
-                  setEmailLocalPart(value.toLowerCase().endsWith(suffix) ? value.slice(0, -suffix.length) : value);
+                  const nextValue = value.toLowerCase().endsWith(suffix)
+                    ? value.slice(0, -suffix.length)
+                    : value;
+                  if (nextValue !== emailLocalPart) resetEmailVerification();
+                  setEmailLocalPart(nextValue);
                   setError("");
                 }}
                 placeholder="이메일 아이디"
                 style={inputStyle}
               />
               <span aria-hidden style={emailSuffixStyle}>@mju.ac.kr</span>
+              <button
+                type="button"
+                className="damara-signup-verify-action"
+                aria-label={verificationRequested ? "이메일 인증번호 다시 받기" : "이메일 인증번호 받기"}
+                disabled={
+                  !isEmailLocalPartValid ||
+                  isSendingCode ||
+                  isVerifyingCode ||
+                  isEmailVerified ||
+                  resendRemainingSeconds > 0
+                }
+                onClick={() => void handleSendVerification()}
+                style={verificationActionStyle}
+              >
+                {isEmailVerified
+                  ? "인증 완료"
+                  : isSendingCode
+                    ? "전송 중"
+                    : verificationRequested && resendRemainingSeconds > 0
+                      ? `${resendRemainingSeconds}초`
+                      : verificationRequested
+                        ? "다시 받기"
+                        : "인증번호 받기"}
+              </button>
             </FieldWithIndicator>
+
+            {verificationRequested ? (
+              <FieldWithIndicator
+                icon={<ShieldCheck size={17} strokeWidth={2} aria-hidden />}
+                neutralIcon={Clock3}
+                message={
+                  isEmailVerified
+                    ? "명지대학교 이메일 인증이 완료되었어요."
+                    : codeRemainingSeconds > 0
+                      ? "메일로 받은 숫자 6자리를 입력해 주세요."
+                      : "인증번호가 만료되었어요. 다시 발급해 주세요."
+                }
+                status={
+                  isEmailVerified
+                    ? "valid"
+                    : codeRemainingSeconds <= 0 || (verificationCode && !isVerificationCodeValid)
+                      ? "invalid"
+                      : "neutral"
+                }
+              >
+                <input
+                  className="damara-signup-input"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  aria-label="이메일 인증번호 6자리"
+                  aria-invalid={verificationCode ? !isVerificationCodeValid : undefined}
+                  disabled={isEmailVerified || isVerifyingCode}
+                  value={verificationCode}
+                  onChange={(event) => {
+                    setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6));
+                    setError("");
+                  }}
+                  placeholder="인증번호 6자리"
+                  maxLength={6}
+                  style={inputStyle}
+                />
+                <span aria-live="polite" style={countdownStyle}>
+                  {isEmailVerified ? "완료" : formatCountdown(codeRemainingSeconds)}
+                </span>
+                <button
+                  type="button"
+                  className="damara-signup-verify-action"
+                  disabled={
+                    !isVerificationCodeValid ||
+                    codeRemainingSeconds <= 0 ||
+                    isVerifyingCode ||
+                    isEmailVerified
+                  }
+                  onClick={() => void handleVerifyEmail()}
+                  style={verificationActionStyle}
+                >
+                  {isEmailVerified ? "인증 완료" : isVerifyingCode ? "확인 중" : "인증 확인"}
+                </button>
+              </FieldWithIndicator>
+            ) : null}
 
             <FieldWithIndicator
               icon={<Lock size={17} strokeWidth={2} aria-hidden />}
@@ -209,7 +470,12 @@ export default function SignupPage() {
               <EyeButton active={showConfirm} onClick={() => setShowConfirm((value) => !value)} label="비밀번호 확인" />
             </FieldWithIndicator>
 
-            <button type="submit" disabled={isLoading || !canSubmit} className="damara-signup-submit" style={submitStyle}>
+            <button
+              type="submit"
+              disabled={isLoading || isSendingCode || isVerifyingCode || !canSubmit}
+              className="damara-signup-submit"
+              style={submitStyle}
+            >
               {isLoading ? "처리 중..." : "회원가입"}
             </button>
           </form>
@@ -279,6 +545,11 @@ const authStyle = `
     color: #98A1B2;
     opacity: 0.92;
   }
+  .damara-signup-input:disabled {
+    color: #526078;
+    cursor: not-allowed;
+    opacity: 1;
+  }
   .damara-signup-field:focus-within {
     border-color: rgba(57, 116, 244, 0.5) !important;
     box-shadow: 0 0 0 4px rgba(57, 116, 244, 0.08);
@@ -288,11 +559,19 @@ const authStyle = `
     transform: translateY(1px);
     filter: brightness(0.98);
   }
+  .damara-signup-verify-action:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  .damara-signup-verify-action:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
   .damara-signup-submit:disabled {
     cursor: wait;
     opacity: 0.62;
   }
   .damara-signup-plain:focus-visible,
+  .damara-signup-verify-action:focus-visible,
   .damara-signup-submit:focus-visible {
     outline: 2px solid rgba(57, 116, 244, 0.42);
     outline-offset: 3px;
@@ -306,18 +585,31 @@ const authStyle = `
       margin-bottom: 20px !important;
     }
   }
+  @media (max-width: 360px) {
+    .damara-signup-content {
+      padding-left: 18px !important;
+      padding-right: 18px !important;
+    }
+    .damara-signup-verify-action {
+      min-width: 62px !important;
+      padding-left: 7px !important;
+      padding-right: 7px !important;
+    }
+  }
 `;
 
 const pageStyle: React.CSSProperties = {
   width: "100%",
+  minHeight: "100dvh",
   height: "100dvh",
-  overflow: "hidden",
+  overflowX: "hidden",
+  overflowY: "auto",
   background: "radial-gradient(circle at 50% 8%, rgba(210, 226, 255, 0.78) 0%, transparent 42%), linear-gradient(148deg, #F8FAFF 0%, #F2F6FF 52%, #FFFFFF 100%)",
 };
 
 const mainStyle: React.CSSProperties = {
   width: "100%",
-  height: "100%",
+  minHeight: "100%",
   display: "flex",
   justifyContent: "center",
 };
@@ -431,6 +723,32 @@ const emailSuffixStyle: React.CSSProperties = {
   fontSize: 13,
   fontWeight: 800,
   lineHeight: "20px",
+};
+
+const verificationActionStyle: React.CSSProperties = {
+  minWidth: 68,
+  height: 32,
+  padding: "0 9px",
+  flexShrink: 0,
+  border: "1px solid rgba(49, 104, 220, 0.2)",
+  borderRadius: 10,
+  background: "rgba(231, 239, 255, 0.9)",
+  color: "#2864DD",
+  fontSize: 11,
+  fontWeight: 800,
+  whiteSpace: "nowrap",
+  cursor: "pointer",
+  transition: "transform 140ms ease, opacity 160ms ease, background-color 160ms ease",
+};
+
+const countdownStyle: React.CSSProperties = {
+  minWidth: 38,
+  flexShrink: 0,
+  color: "#DC5A5A",
+  fontSize: 11,
+  fontWeight: 800,
+  fontVariantNumeric: "tabular-nums",
+  textAlign: "right",
 };
 
 const eyeButtonStyle: React.CSSProperties = {
