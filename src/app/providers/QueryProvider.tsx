@@ -1,10 +1,20 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-/**
- * React Query를 도입할 때를 대비한 placeholder.
- * 현재는 @tanstack/react-query 미설치 상태이므로 children만 그대로 전달한다.
- * 추후 도입 시 QueryClientProvider로 children을 감싼다.
- */
 export default function QueryProvider({ children }: { children: ReactNode }) {
-  return <>{children}</>;
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 30_000,
+            retry: 1,
+            refetchOnWindowFocus: false,
+          },
+          mutations: { retry: false },
+        },
+      })
+  );
+
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
