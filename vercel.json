@@ -7,7 +7,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://be.damara.bluerack.org/api/:path*"
+      "destination": "https://be-damara.taewook.work/api/:path*"
     },
     {
       "source": "/((?!api|_next|assets|favicon.ico).*)",

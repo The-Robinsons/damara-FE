@@ -1,8 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getImageUrl } from "./imageUrl";
 
 describe("getImageUrl", () => {
+  beforeEach(() => {
+    vi.stubEnv("VITE_API_BASE", "");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("returns the local placeholder for empty or placeholder values", () => {
     expect(getImageUrl(undefined)).toBe("/placeholder.png");
     expect(getImageUrl("uploads/images/placeholder.png")).toBe("/placeholder.png");

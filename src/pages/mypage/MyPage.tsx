@@ -32,6 +32,7 @@ import { UI_PAGE_PAD_X, UI_TRANSITION } from "../../shared/constants/damaraUISys
 import SectionHeader from "../../shared/components/damara/SectionHeader";
 import SurfaceCard from "../../shared/components/damara/SurfaceCard";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
+import PendingReviewList from "../../features/reviews/components/PendingReviewList";
 
 type UserLite = {
   id?: string;
@@ -123,6 +124,7 @@ export default function MyPage() {
   const studentId = user?.studentId || "학번 정보 없음";
   const initial = nickname.slice(0, 1).toUpperCase();
   const trustGrade = Number(trust.trustGrade ?? 0).toFixed(1);
+  const currentUserId = localStorage.getItem(STORAGE_KEYS.USER_ID);
 
   const tradeItems: ActionItem[] = useMemo(
     () => [
@@ -211,6 +213,12 @@ export default function MyPage() {
             <span style={trustMiniPillStyle}>보기</span>
           </button>
         </SurfaceCard>
+
+        {currentUserId ? (
+          <Section title="평가 대기">
+            <PendingReviewList userId={currentUserId} onOpenPost={(postId) => nav(`/post/${postId}`)} />
+          </Section>
+        ) : null}
 
         <Section title="나의 공구">
           <SurfaceCard as="div" padding={0} style={activityPanelStyle}>
