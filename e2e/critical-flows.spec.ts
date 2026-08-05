@@ -2,6 +2,33 @@ import { expect, test } from "@playwright/test";
 
 test("회원가입은 명지대 이메일을 고정하고 정규화한 값을 전송한다", async ({ page }) => {
   let signupPayload: unknown;
+  let sendPayload: unknown;
+  let verifyPayload: unknown;
+
+  await page.route("**/api/auth/email-verifications/send", async (route) => {
+    sendPayload = route.request().postDataJSON();
+    await route.fulfill({
+      status: 202,
+      contentType: "application/json",
+      body: JSON.stringify({
+        message: "VERIFICATION_EMAIL_SENT",
+        expiresInSeconds: 300,
+        resendAfterSeconds: 60,
+      }),
+    });
+  });
+  await page.route("**/api/auth/email-verifications/verify", async (route) => {
+    verifyPayload = route.request().postDataJSON();
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        verified: true,
+        emailVerificationToken: "email-verification-token",
+        expiresInSeconds: 900,
+      }),
+    });
+  });
 
   await page.route("**/api/users", async (route) => {
     signupPayload = route.request().postDataJSON();
@@ -18,7 +45,20 @@ test("회원가입은 명지대 이메일을 고정하고 정규화한 값을 �
   await page.goto("/register");
   await page.getByLabel("닉네임").fill("  테스터  ");
   await page.getByLabel("학번 8자리").fill("20261234");
-  await page.getByLabel("명지대학교 이메일 아이디").fill("student");
+  const emailInput = page.getByLabel("명지대학교 이메일 아이디");
+  await emailInput.fill(" Student ");
+  await page.getByRole("button", { name: "이메일 인증번호 받기" }).click();
+
+  await expect(page.getByLabel("이메일 인증번호 6자리")).toBeVisible();
+  expect(sendPayload).toEqual({ email: "student@mju.ac.kr" });
+
+  await page.getByLabel("이메일 인증번호 6자리").fill("381204");
+  await page.getByRole("button", { name: "인증 확인" }).click();
+
+  await expect(emailInput).toBeDisabled();
+  await expect(page.getByText("명지대학교 이메일 인증이 완료되었어요.")).toBeVisible();
+  expect(verifyPayload).toEqual({ email: "student@mju.ac.kr", code: "381204" });
+
   await page.getByRole("textbox", { name: "비밀번호", exact: true }).fill("damara123");
   await page.getByRole("textbox", { name: "비밀번호 확인", exact: true }).fill("damara123");
 
@@ -32,8 +72,35 @@ test("회원가입은 명지대 이메일을 고정하고 정규화한 값을 �
       passwordHash: "damara123",
       nickname: "테스터",
       studentId: "20261234",
+      emailVerificationToken: "email-verification-token",
     },
   });
+});
+
+test("인증번호 발송 후 이메일을 바꾸면 인증 상태를 초기화한다", async ({ page }) => {
+  await page.route("**/api/auth/email-verifications/send", async (route) => {
+    await route.fulfill({
+      status: 202,
+      contentType: "application/json",
+      body: JSON.stringify({
+        message: "VERIFICATION_EMAIL_SENT",
+        expiresInSeconds: 300,
+        resendAfterSeconds: 60,
+      }),
+    });
+  });
+
+  await page.goto("/register");
+  const emailInput = page.getByLabel("명지대학교 이메일 아이디");
+  await emailInput.fill("student");
+  await page.getByRole("button", { name: "이메일 인증번호 받기" }).click();
+  await expect(page.getByLabel("이메일 인증번호 6자리")).toBeVisible();
+
+  await emailInput.fill("changed");
+
+  await expect(page.getByLabel("이메일 인증번호 6자리")).toBeHidden();
+  await expect(page.getByRole("button", { name: "이메일 인증번호 받기" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "회원가입" })).toBeDisabled();
 });
 
 test("로그인은 숫자 8자리 학번만 API로 전송한다", async ({ page }) => {
@@ -72,4 +139,72 @@ test("공구 등록은 0원 가격으로 다음 단계로 이동하지 않는다
   await page.getByRole("button", { name: "다음" }).click();
 
   await expect(page.getByText("가격과 모집 인원을 1 이상으로 입력해 주세요.")).toBeVisible();
+});
+
+test("완료된 거래에서 서버 허용 태그로 평가를 제출한다", async ({ page }) => {
+  let reviewPayload: unknown;
+  const userId = "11111111-1111-4111-8111-111111111111";
+  const authorId = "22222222-2222-4222-8222-222222222222";
+  const postId = "33333333-3333-4333-8333-333333333333";
+
+  await page.addInitScript(({ id }) => localStorage.setItem("userId", id), { id: userId });
+  await page.route(new RegExp(`/api/posts/${postId}(?:\\?.*)?$`), async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: postId,
+        authorId,
+        title: "완료된 공동구매",
+        content: "평가 테스트",
+        price: 1000,
+        minParticipants: 2,
+        currentQuantity: 2,
+        status: "completed",
+        deadline: "2026-08-01T00:00:00.000Z",
+        author: { nickname: "모집자" },
+      }),
+    });
+  });
+  await page.route(`**/api/posts/${postId}/participants**`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ participants: [] }) });
+  });
+  await page.route(`**/api/posts/${postId}/participate/${userId}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ isParticipant: true }) });
+  });
+  await page.route(`**/api/posts/${postId}/favorite/${userId}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ isFavorite: false }) });
+  });
+  await page.route(`**/api/users/${authorId}/trust-summary`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ trustGrade: 3.8 }) });
+  });
+  await page.route(`**/api/posts/${postId}/reviews/eligibility`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        postId,
+        targets: [{
+          reviewee: { id: authorId, nickname: "모집자" },
+          revieweeRole: "organizer",
+          allowedTags: { positive: ["ON_TIME", "KIND_COMMUNICATION"], neutral: [], negative: ["LATE_FOR_PICKUP"] },
+          status: "not_submitted",
+          reviewId: null,
+          expiresAt: "2026-08-08T00:00:00.000Z",
+        }],
+      }),
+    });
+  });
+  await page.route(`**/api/posts/${postId}/reviews`, async (route) => {
+    reviewPayload = route.request().postDataJSON();
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ id: "review-1", status: "pending" }) });
+  });
+
+  await page.goto(`/post/${postId}`);
+  await page.getByRole("button", { name: "작성", exact: true }).click();
+  await page.getByRole("button", { name: "시간 약속을 잘 지켜요" }).click();
+  await page.getByRole("button", { name: "평가 제출" }).click();
+
+  await expect(page.getByText("평가를 제출했어요.")).toBeVisible();
+  expect(reviewPayload).toEqual({ revieweeId: authorId, rating: "positive", tags: ["ON_TIME"] });
 });
