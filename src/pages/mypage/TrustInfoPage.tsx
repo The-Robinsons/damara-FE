@@ -8,6 +8,7 @@ import InfoBanner from "../../shared/components/damara/InfoBanner";
 import SurfaceCard from "../../shared/components/damara/SurfaceCard";
 import { blue500, grey500, grey900 } from "../../shared/constants/homeTheme";
 import { AccountServiceShell, bodyText } from "./AccountServiceShell";
+import ReviewSummaryCard from "../../features/reviews/components/ReviewSummaryCard";
 
 const DEFAULT_TRUST: ApiTrustSummaryResponse = {
   trustScore: 0,
@@ -23,6 +24,7 @@ const DEFAULT_TRUST: ApiTrustSummaryResponse = {
 };
 
 export default function TrustInfoPage() {
+  const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
   const [trust, setTrust] = useState(DEFAULT_TRUST);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -81,6 +83,8 @@ export default function TrustInfoPage() {
           ))}
         </div>
       ) : null}
+
+      {userId ? <div style={{ marginTop: 14 }}><ReviewSummaryCard userId={userId} /></div> : null}
     </AccountServiceShell>
   );
 }

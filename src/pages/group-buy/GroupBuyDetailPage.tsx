@@ -55,6 +55,9 @@ import type { ApiPost } from "../../shared/api/swaggerTypes";
 import ActionButton from "../../shared/components/damara/ActionButton";
 import SectionHeader from "../../shared/components/damara/SectionHeader";
 import SurfaceCard from "../../shared/components/damara/SurfaceCard";
+import TradeReviewSection from "../../features/reviews/components/TradeReviewSection";
+import TransactionProgressSection from "../../features/group-buy/components/TransactionProgressSection";
+import type { ApiParticipantStatus, ApiPostStatus } from "../../shared/api/swaggerTypes";
 
 
 type Participant = {
@@ -62,6 +65,7 @@ type Participant = {
   nickname?: string;
   avatarUrl?: string;
   trustGrade?: number;
+  participantStatus?: ApiParticipantStatus;
   user?: {
     nickname?: string;
     avatarUrl?: string | null;
@@ -333,7 +337,7 @@ export default function GroupBuyDetailPage() {
         <main style={mainStyle}>
           <section style={heroCardStyle}>
             <div style={heroImageStyle}>
-              <span style={statusBadgeStyle}>모집중</span>
+              <span style={statusBadgeStyle}>{formatPostStatus(post.status)}</span>
               {imageUrls[0] && !imageLoadFailed ? (
                 <img
                   data-damara-image
@@ -422,6 +426,24 @@ export default function GroupBuyDetailPage() {
             </div>
           </SurfaceCard>
 
+          {currentUserId && post.status ? (
+            <TransactionProgressSection
+              postId={id!}
+              postStatus={post.status}
+              currentUserId={currentUserId}
+              isOwner={isOwner}
+              participants={participants}
+              onPostStatusChanged={(status: ApiPostStatus) => setPost((currentPost) => currentPost ? { ...currentPost, status } : currentPost)}
+              onParticipantStatusChanged={(userId: string, participantStatus: ApiParticipantStatus) =>
+                setParticipants((currentParticipants) => currentParticipants.map((participant) => participant.userId === userId ? { ...participant, participantStatus } : participant))
+              }
+            />
+          ) : null}
+
+          {currentUserId ? (
+            <TradeReviewSection postId={id!} userId={currentUserId} enabled={post.status === "completed"} />
+          ) : null}
+
           <SurfaceCard padding={15}>
             <SectionHeader title="상품 소개" action={<PackageCheck size={18} color={blue600} strokeWidth={2.1} />} />
             <p style={contentTextStyle}>{content}</p>
@@ -454,7 +476,7 @@ export default function GroupBuyDetailPage() {
       <div style={bottomBarStyle}>
         {isOwner ? (
           <div style={ownerBottomNoticeStyle}>내가 작성한 공구입니다</div>
-        ) : (
+        ) : post?.status === "open" ? (
           <>
             <ActionButton variant="secondary" size="compact" onClick={handleChat} style={{ height: 46, borderColor: blue500, color: blue600 }}>
               <MessageCircle size={19} strokeWidth={2.15} aria-hidden />
@@ -463,6 +485,14 @@ export default function GroupBuyDetailPage() {
             <ActionButton size="compact" disabled={busy} onClick={handleParticipate} style={{ height: 46 }}>
               {isParticipant ? "참여취소" : "참여하기"}
             </ActionButton>
+          </>
+        ) : (
+          <>
+            <ActionButton variant="secondary" size="compact" onClick={handleChat} style={{ height: 46, borderColor: blue500, color: blue600 }}>
+              <MessageCircle size={19} strokeWidth={2.15} aria-hidden />
+              채팅
+            </ActionButton>
+            <div style={ownerBottomNoticeStyle}>{formatPostStatus(post?.status)}</div>
           </>
         )}
       </div>
@@ -492,6 +522,17 @@ function normalizeCategory(value: unknown) {
     freemarket: "프리마켓",
   };
   return categoryMap[String(value)] || String(value || "기타");
+}
+
+function formatPostStatus(status?: ApiPostStatus) {
+  const labels: Record<ApiPostStatus, string> = {
+    open: "모집 중",
+    closed: "모집 마감",
+    in_progress: "거래 진행",
+    completed: "거래 완료",
+    cancelled: "거래 취소",
+  };
+  return status ? labels[status] : "상태 확인 중";
 }
 
 function ProductMock() {
