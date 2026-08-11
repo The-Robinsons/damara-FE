@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import HomeBanner from "./components/HomeBanner";
 import HomeCategoryChips from "./components/HomeCategoryChips";
+import HomeFilterSheet from "./components/HomeFilterSheet";
 import HomePopularList from "./components/HomePopularList";
 import HomeSortTabs, { type SortKey } from "./components/HomeSortTabs";
 import HomePostList from "./components/HomePostList";
@@ -17,6 +18,7 @@ import { HOME_CANVAS } from "../../shared/constants/homeTheme";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import type { HomeCategoryId } from "./constants/homeCategoryChipsData";
 import type { HomePost } from "./types";
+import type { ApiPostStatus } from "../../shared/api/swaggerTypes";
 
 const CATEGORY_API_MAP: Partial<Record<HomeCategoryId, string>> = {
   food: "food",
@@ -38,6 +40,8 @@ export default function HomePage() {
   const nav = useNavigate();
   const [activeCategory, setActiveCategory] = useState<HomeCategoryId>("all");
   const [sortBy, setSortBy] = useState<SortKey>("latest");
+  const [statusFilter, setStatusFilter] = useState<ApiPostStatus>("open");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [posts, setPosts] = useState<HomePost[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -50,7 +54,7 @@ export default function HomePage() {
 
     try {
       const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
-      const res = await getPosts(30, 0, apiCategory, userId, sortBy, "open");
+      const res = await getPosts(30, 0, apiCategory, userId, sortBy, statusFilter);
       setPosts(getPostsPayload(res.data));
     } catch (error) {
       console.error("Failed to fetch home posts", error);
@@ -60,7 +64,7 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }, [apiCategory, sortBy]);
+  }, [apiCategory, sortBy, statusFilter]);
 
   useEffect(() => {
     fetchHomePosts();
@@ -76,7 +80,7 @@ export default function HomePage() {
       .slice(0, 6);
   }, [posts]);
 
-  const appliedFilterCount = activeCategory === "all" ? 0 : 1;
+  const appliedFilterCount = (activeCategory === "all" ? 0 : 1) + (statusFilter === "open" ? 0 : 1);
 
   return (
     <div
@@ -115,7 +119,7 @@ export default function HomePage() {
             totalCount={posts.length}
             appliedFilterCount={appliedFilterCount}
             onChange={setSortBy}
-            onFilterClick={() => toast.message("필터는 곧 연결할게요.")}
+            onFilterClick={() => setIsFilterOpen(true)}
           />
 
           <HomePostList
@@ -127,6 +131,12 @@ export default function HomePage() {
           />
         </SurfaceCard>
       </main>
+      <HomeFilterSheet
+        open={isFilterOpen}
+        status={statusFilter}
+        onApply={setStatusFilter}
+        onClose={() => setIsFilterOpen(false)}
+      />
       <HomeTutorialOverlay />
     </div>
   );
