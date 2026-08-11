@@ -142,7 +142,7 @@ export default function GroupBuyCreatePage() {
   const [productName, setProductName] = useState("");
   const [title, setTitle] = useState("");
   const [tradeType, setTradeType] = useState<TradeType>("PRE_RECRUIT");
-  const [category, setCategory] = useState("daily");
+  const [category, setCategory] = useState<string | null>(null);
   const [price, setPrice] = useState("");
   const [people, setPeople] = useState("");
   const [location, setLocation] = useState("");
@@ -155,7 +155,7 @@ export default function GroupBuyCreatePage() {
   const [createdPostId, setCreatedPostId] = useState<string | null>(null);
 
   const progress = useMemo(() => Math.round((step / 5) * 100), [step]);
-  const categoryLabel = CATEGORIES.find((item) => item.value === category)?.label ?? "생활용품";
+  const categoryLabel = CATEGORIES.find((item) => item.value === category)?.label ?? "미선택";
 
   const isEditMode = Boolean(editId);
   const today = getTodayInputValue();
@@ -174,7 +174,7 @@ export default function GroupBuyCreatePage() {
         setProductName(String(data.productName || data.title || ""));
         setTitle(String(data.title || ""));
         setTradeType(data.groupBuyType === "post_recruit" || data.groupBuyType === "post_purchase" ? "POST_PURCHASE" : "PRE_RECRUIT");
-        setCategory(String(data.category || "daily"));
+        setCategory(data.category ? String(data.category) : null);
         setPrice(String(Math.floor(Number(data.price || 0))));
         setPeople(String(data.minParticipants || ""));
         setLocation(String(data.pickupLocation || ""));
@@ -202,7 +202,7 @@ export default function GroupBuyCreatePage() {
 
   const getStepValidationError = (targetStep: number) => {
     if (targetStep === 1 && (!productName.trim() || !title.trim())) return "상품명과 공구 제목을 입력해 주세요.";
-    if (targetStep === 2 && (!tradeType || !category)) return "공구 방식과 카테고리를 선택해 주세요.";
+    if (targetStep === 2 && !tradeType) return "공구 방식을 선택해 주세요.";
     if (targetStep === 3) {
       if (priceValue <= 0 || participantValue <= 0) return "가격과 모집 인원을 1 이상으로 입력해 주세요.";
       if (priceValue > MAX_PRICE) return "1인당 가격은 1,000만 원 이하로 입력해 주세요.";
@@ -435,11 +435,11 @@ export default function GroupBuyCreatePage() {
                     active={category === item.value}
                     icon={item.icon}
                     label={item.label}
-                    onClick={() => setCategory(item.value)}
+                    onClick={() => setCategory((current) => current === item.value ? null : item.value)}
                   />
                 ))}
               </div>
-              <p style={categoryHelperStyle}>정확한 카테고리는 나중에 수정할 수 있어요.</p>
+              <p style={categoryHelperStyle}>선택한 항목을 한 번 더 누르면 해제할 수 있어요.</p>
             </div>
           </section>
         ) : null}
