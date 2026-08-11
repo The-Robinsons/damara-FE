@@ -141,6 +141,40 @@ test("공구 등록은 0원 가격으로 다음 단계로 이동하지 않는다
   await expect(page.getByText("가격과 모집 인원을 1 이상으로 입력해 주세요.")).toBeVisible();
 });
 
+test("홈의 같은 공구는 한 곳에서 관심을 바꾸면 즉시 동기화된다", async ({ page }) => {
+  const userId = "11111111-1111-4111-8111-111111111111";
+  const post = {
+    id: "post-1",
+    authorId: "author-1",
+    title: "동기화 테스트 공구",
+    content: "관심 상태 동기화",
+    price: 5900,
+    minParticipants: 3,
+    currentQuantity: 1,
+    status: "open",
+    deadline: "2099-01-10T00:00:00.000Z",
+    pickupLocation: "명지대 정문 앞",
+    isFavorite: false,
+  };
+
+  await page.addInitScript(({ id }) => localStorage.setItem("userId", id), { id: userId });
+  await page.route("**/api/posts?**", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [post], total: 1 }) });
+  });
+  await page.route(`**/api/posts/${post.id}/favorite`, async (route) => {
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ isFavorite: true }) });
+  });
+
+  await page.goto("/home");
+  const favoriteButtons = page.locator("[data-favorite-button][aria-label='관심 등록']");
+  await expect(favoriteButtons.first()).toBeVisible();
+  const buttonCount = await favoriteButtons.count();
+  expect(buttonCount).toBeGreaterThan(1);
+  await favoriteButtons.first().click();
+
+  await expect(page.locator("[data-favorite-button][aria-label='관심 해제']")).toHaveCount(buttonCount);
+});
+
 test("완료된 거래에서 서버 허용 태그로 평가를 제출한다", async ({ page }) => {
   let reviewPayload: unknown;
   const userId = "11111111-1111-4111-8111-111111111111";
