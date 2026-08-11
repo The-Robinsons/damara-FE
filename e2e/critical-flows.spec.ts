@@ -293,6 +293,20 @@ test("홈의 같은 공구는 한 곳에서 관심을 바꾸면 즉시 동기화
   await expect(page.locator("[data-favorite-button][aria-label='관심 해제']")).toHaveCount(buttonCount);
 });
 
+test("공구 작성 텍스트는 상품명 50자와 제목 30자를 넘기지 않는다", async ({ page }) => {
+  await page.goto("/create");
+  const productName = page.getByRole("textbox", { name: /^상품명/ });
+  const title = page.getByRole("textbox", { name: /^공구 제목/ });
+
+  await productName.fill("가".repeat(51));
+  await title.fill("나".repeat(31));
+
+  await expect(productName).toHaveValue("가".repeat(50));
+  await expect(title).toHaveValue("나".repeat(30));
+  await expect(page.getByText("50/50")).toBeVisible();
+  await expect(page.getByText("30/30")).toBeVisible();
+});
+
 test("완료된 거래에서 서버 허용 태그로 평가를 제출한다", async ({ page }) => {
   let reviewPayload: unknown;
   const userId = "11111111-1111-4111-8111-111111111111";
