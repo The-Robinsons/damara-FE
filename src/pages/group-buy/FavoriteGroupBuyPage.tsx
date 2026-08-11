@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { isAxiosError } from "axios";
 import { Heart } from "lucide-react";
 
@@ -7,40 +7,44 @@ import { getMyPosts } from "../../features/user/api/userApi";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import MyGroupBuyListView from "./MyGroupBuyListView";
 import { normalizeFavoritePosts, type GroupBuyListPost } from "./myGroupBuyPosts";
+import { subscribeFavoriteChanges } from "../../features/group-buy/model/favoriteState";
 
 export default function FavoriteGroupBuyPage() {
   const [posts, setPosts] = useState<GroupBuyListPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchFavoritePosts = async () => {
-      const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
-      if (!userId) {
-        setError("로그인이 필요해요.");
-        setLoading(false);
+  const fetchFavoritePosts = useCallback(async () => {
+    const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+    if (!userId) {
+      setError("로그인이 필요해요.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await getMyPosts(userId, { tab: "favorites" });
+      setPosts(normalizeFavoritePosts(res.data?.items));
+    } catch (err: unknown) {
+      console.error(err);
+      if (isAxiosError(err) && err.response?.status === 404) {
+        setPosts([]);
+        setError(null);
         return;
       }
-
-      try {
-        setLoading(true);
-        const res = await getMyPosts(userId, { tab: "favorites" });
-        setPosts(normalizeFavoritePosts(res.data?.items));
-      } catch (err: unknown) {
-        console.error(err);
-        if (isAxiosError(err) && err.response?.status === 404) {
-          setPosts([]);
-          setError(null);
-          return;
-        }
-        setError("관심목록을 불러오지 못했어요.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFavoritePosts();
+      setError("관심목록을 불러오지 못했어요.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void fetchFavoritePosts();
+    const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+    if (!userId) return;
+    return subscribeFavoriteChanges(userId, () => void fetchFavoritePosts());
+  }, [fetchFavoritePosts]);
 
   return (
     <MyGroupBuyListView
