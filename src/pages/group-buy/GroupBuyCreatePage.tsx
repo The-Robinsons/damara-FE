@@ -344,6 +344,23 @@ export default function GroupBuyCreatePage() {
     nav(-1);
   };
 
+  const openMethodGuide = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("guide", "method");
+    nav({ search: `?${nextParams.toString()}` });
+  };
+
+  const closeMethodGuide = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("guide");
+    const search = nextParams.toString();
+    nav({ search: search ? `?${search}` : "" }, { replace: true });
+  };
+
+  if (searchParams.get("guide") === "method") {
+    return <CreateMethodGuide onBack={closeMethodGuide} />;
+  }
+
   if (submitState === "success") {
     return (
       <CreateSuccessPage
@@ -424,7 +441,7 @@ export default function GroupBuyCreatePage() {
               />
             </div>
 
-            <StepNotice />
+            <StepNotice onClick={openMethodGuide} />
 
             <div style={categorySectionStyle}>
               <p style={categoryTitleStyle}>카테고리 <span style={categoryOptionalStyle}>(선택)</span></p>
@@ -863,9 +880,9 @@ function MethodOptionCard({
   );
 }
 
-function StepNotice() {
+function StepNotice({ onClick }: { onClick: () => void }) {
   return (
-    <div style={stepNoticeStyle}>
+    <button type="button" onClick={onClick} style={stepNoticeStyle}>
       <span style={noticeIconStyle}>
         <Lightbulb size={16} strokeWidth={2.25} aria-hidden />
       </span>
@@ -874,6 +891,40 @@ function StepNotice() {
         <span style={noticeDescStyle}>다음 단계에서도 방식을 바꿀 수 있어요.</span>
       </span>
       <ChevronRight size={18} color={grey400} strokeWidth={2.4} aria-hidden />
+    </button>
+  );
+}
+
+function CreateMethodGuide({ onBack }: { onBack: () => void }) {
+  return (
+    <div data-page="공구 방식 안내" style={pageStyle}>
+      <header style={headerStyle}>
+        <button type="button" aria-label="공구 작성으로 돌아가기" onClick={onBack} style={iconButtonStyle}>
+          <ChevronLeft size={21} strokeWidth={2.25} color={grey900} aria-hidden />
+        </button>
+        <h1 style={headerTitleStyle}>공구 방식 안내</h1>
+        <span />
+      </header>
+      <main style={mainStyle}>
+        <StepTitle title="어떤 방식으로 올릴지 알아볼까요?" desc="작성 중에도 다시 선택할 수 있어요." />
+        <div style={{ display: "grid", gap: 10, marginTop: 18 }}>
+          <SurfaceCard as="section" padding={16} style={{ borderColor: "rgba(49,130,246,0.2)", background: "#F7FBFF" }}>
+            <strong style={{ color: grey900, fontSize: 15, lineHeight: "22px" }}>같이 살 사람 모집</strong>
+            <p style={{ margin: "6px 0 0", color: grey600, fontSize: 12.5, lineHeight: "19px" }}>구매 전에 참여자를 모아요. 목표 인원이 모이면 함께 주문하고 수령을 조율해요.</p>
+          </SurfaceCard>
+          <SurfaceCard as="section" padding={16} style={{ borderColor: "rgba(54, 179, 126, 0.2)", background: "#F6FCF9" }}>
+            <strong style={{ color: grey900, fontSize: 15, lineHeight: "22px" }}>사둔 물건 나눔</strong>
+            <p style={{ margin: "6px 0 0", color: grey600, fontSize: 12.5, lineHeight: "19px" }}>이미 구매한 대용량 상품을 필요한 만큼 나눠요. 수령 일정과 위치를 분명하게 적어 주세요.</p>
+          </SurfaceCard>
+        </div>
+        <div style={{ ...locationTipStyle, marginTop: 16 }}>
+          <span style={tipIconStyle}><Lightbulb size={15} aria-hidden /></span>
+          <span style={{ color: grey600, fontSize: 12, lineHeight: "18px" }}>공구 방식은 등록 전까지 언제든 바꿀 수 있어요.</span>
+        </div>
+      </main>
+      <div style={ctaWrap}>
+        <ActionButton size="compact" onClick={onBack} style={{ gridColumn: "1 / -1" }}>작성으로 돌아가기</ActionButton>
+      </div>
     </div>
   );
 }
