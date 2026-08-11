@@ -110,7 +110,10 @@ export default function HomePopularList({ posts, onItemClick }: HomePopularListP
                 data-tutorial-target={idx === 0 ? "popular" : undefined}
                 role="button"
                 tabIndex={0}
-                onClick={() => onItemClick(post.id)}
+                onClick={(event) => {
+                  if ((event.target as HTMLElement).closest("[data-favorite-button]")) return;
+                  onItemClick(post.id);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();

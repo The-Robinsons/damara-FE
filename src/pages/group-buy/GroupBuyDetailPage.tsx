@@ -5,7 +5,6 @@ import {
   ChevronLeft,
   Clock,
   GraduationCap,
-  Heart,
   ImageIcon,
   LockKeyhole,
   MapPin,
@@ -20,19 +19,15 @@ import { toast } from "sonner";
 
 import damaraMark from "../../assets/damara-mark.png";
 import {
-  addFavorite,
   cancelParticipation,
-  checkFavorite,
   checkParticipation,
   deletePost,
   getParticipants,
   getPostDetail,
   participatePost,
-  removeFavorite,
 } from "../../features/group-buy/api/groupBuyApi";
 import { getChatRoomByPostId } from "../../features/chat/api/chatApi";
 import { getUserTrustSummary } from "../../features/user/api/userApi";
-import { readFavoriteFlag } from "../../features/group-buy/utils/favoriteResponse";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import {
   background,
@@ -57,6 +52,7 @@ import SectionHeader from "../../shared/components/damara/SectionHeader";
 import SurfaceCard from "../../shared/components/damara/SurfaceCard";
 import TradeReviewSection from "../../features/reviews/components/TradeReviewSection";
 import TransactionProgressSection from "../../features/group-buy/components/TransactionProgressSection";
+import FavoriteHeartButton from "../../features/group-buy/components/FavoriteHeartButton";
 import type { ApiParticipantStatus, ApiPostStatus } from "../../shared/api/swaggerTypes";
 
 
@@ -95,7 +91,6 @@ export default function GroupBuyDetailPage() {
   const [error, setError] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [isParticipant, setIsParticipant] = useState(false);
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -159,9 +154,6 @@ export default function GroupBuyDetailPage() {
     checkParticipation(id, currentUserId)
       .then((res) => setIsParticipant(Boolean(res.data?.isParticipant)))
       .catch(() => undefined);
-    checkFavorite(id, currentUserId)
-      .then((res) => setIsFavorite(readFavoriteFlag(res.data)))
-      .catch(() => undefined);
   }, [id, currentUserId]);
 
   const imageUrls = useMemo(
@@ -202,22 +194,6 @@ export default function GroupBuyDetailPage() {
         nickname: `참여자 ${index + 1}`,
         trustGrade: index === 0 ? 4.1 : 4.3,
       }));
-
-  const handleFavorite = async () => {
-    if (!id || !currentUserId) {
-      toast.error("로그인이 필요해요.");
-      return;
-    }
-    const next = !isFavorite;
-    setIsFavorite(next);
-    try {
-      if (next) await addFavorite(id, currentUserId);
-      else await removeFavorite(id, currentUserId);
-    } catch {
-      setIsFavorite(!next);
-      toast.error("관심 처리에 실패했어요.");
-    }
-  };
 
   const handleChat = async () => {
     if (!id || !currentUserId) {
@@ -311,9 +287,14 @@ export default function GroupBuyDetailPage() {
             ) : null}
           </div>
         ) : (
-          <button type="button" aria-label="관심 등록" onClick={handleFavorite} style={headerButtonStyle}>
-            <Heart size={21} strokeWidth={2.25} fill={isFavorite ? grey900 : "none"} aria-hidden />
-          </button>
+          id ? (
+            <FavoriteHeartButton
+              postId={id}
+              initialIsFavorite={post?.isFavorite}
+              style={{ ...headerButtonStyle, border: 0 }}
+              iconSize={21}
+            />
+          ) : <span style={headerButtonStyle} />
         )}
       </header>
 

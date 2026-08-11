@@ -3,6 +3,7 @@ import { isAxiosError } from "axios";
 
 import { addFavorite, checkFavorite, removeFavorite } from "../api/groupBuyApi";
 import { readFavoriteFlag } from "../utils/favoriteResponse";
+import { setFavoriteState, useFavoriteState } from "../model/favoriteState";
 import { DANGER } from "../../../shared/constants/homeTheme";
 import { STORAGE_KEYS } from "../../../shared/constants/storageKeys";
 import { UI_IX_BUTTON, UI_IX_HOVER_GREY50 } from "../../../shared/constants/damaraUISystem";
@@ -27,35 +28,28 @@ export default function FavoriteHeartButton({
 }: FavoriteHeartButtonProps) {
   const textureId = useId().replace(/:/g, "");
   const hasInitialFavorite = typeof initialIsFavorite === "boolean";
-  const [isFavorite, setIsFavorite] = useState(Boolean(initialIsFavorite));
   const [loading, setLoading] = useState(false);
   const [motionKey, setMotionKey] = useState(0);
   const userId = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEYS.USER_ID) || "" : "";
 
+  const isFavorite = useFavoriteState(postId, Boolean(initialIsFavorite), userId);
+
   useEffect(() => {
-    setIsFavorite(Boolean(initialIsFavorite));
-
-    if (hasInitialFavorite) {
-      return;
-    }
-
-    if (!userId || postId === "" || postId == null) {
-      return;
-    }
+    if (hasInitialFavorite || !userId || postId === "" || postId == null) return;
 
     let cancelled = false;
     checkFavorite(String(postId), userId)
       .then((res) => {
-        if (!cancelled) setIsFavorite(readFavoriteFlag(res.data));
+        if (!cancelled) setFavoriteState(postId, readFavoriteFlag(res.data), userId);
       })
       .catch(() => {
-        if (!cancelled) setIsFavorite(false);
+        if (!cancelled) setFavoriteState(postId, false, userId);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [postId, userId, initialIsFavorite, hasInitialFavorite]);
+  }, [postId, userId, hasInitialFavorite]);
 
   const handleClick = useCallback(
     async (e: React.MouseEvent) => {
@@ -69,7 +63,7 @@ export default function FavoriteHeartButton({
       if (loading || postId === "" || postId == null) return;
 
       const next = !isFavorite;
-      setIsFavorite(next);
+      setFavoriteState(postId, next, userId);
       setMotionKey((value) => value + 1);
       setLoading(true);
 
@@ -80,17 +74,17 @@ export default function FavoriteHeartButton({
         damaraToast.show(next ? damaraToastMessages.favoriteAdded : damaraToastMessages.favoriteRemoved);
       } catch (err: unknown) {
         if (next && isAxiosError(err) && err.response?.status === 400) {
-          setIsFavorite(true);
+          setFavoriteState(postId, true, userId);
           damaraToast.show(damaraToastMessages.favoriteAdded);
           return;
         }
         if (!next && isAxiosError(err) && err.response?.status === 404) {
-          setIsFavorite(false);
+          setFavoriteState(postId, false, userId);
           damaraToast.show(damaraToastMessages.favoriteRemoved);
           return;
         }
 
-        setIsFavorite(!next);
+        setFavoriteState(postId, !next, userId);
         damaraToast.error("찜 처리에 실패했어요.");
       } finally {
         setLoading(false);
@@ -102,6 +96,7 @@ export default function FavoriteHeartButton({
   return (
     <button
       type="button"
+      data-favorite-button
       onClick={handleClick}
       disabled={loading}
       aria-pressed={isFavorite}
