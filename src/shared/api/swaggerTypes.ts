@@ -386,7 +386,19 @@ export interface ApiFaq {
 export interface ApiPickupZone {
   id: string;
   name: string;
+  campus?: string | null;
+  campusLabel?: string | null;
+  building?: string | null;
+  floor?: string | null;
+  detailLocation?: string | null;
+  displayName?: string | null;
   description?: string | null;
   address?: string | null;
   isActive?: boolean;
+  sortOrder?: number | null;
+}
+
+export interface ApiPickupZoneListResponse {
+  items: ApiPickupZone[];
+  total: number;
 }
