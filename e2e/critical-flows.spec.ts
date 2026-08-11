@@ -141,6 +141,36 @@ test("공구 등록은 0원 가격으로 다음 단계로 이동하지 않는다
   await expect(page.getByText("가격과 모집 인원을 1 이상으로 입력해 주세요.")).toBeVisible();
 });
 
+test("공구 등록에서 선택한 카테고리를 다시 누르면 해제하고 null을 전송한다", async ({ page }) => {
+  let createPayload: unknown;
+  const userId = "11111111-1111-4111-8111-111111111111";
+
+  await page.addInitScript(({ id }) => localStorage.setItem("userId", id), { id: userId });
+  await page.route("**/api/posts", async (route) => {
+    createPayload = route.request().postDataJSON();
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ id: "post-1" }) });
+  });
+
+  await page.goto("/create");
+  await page.getByLabel("상품명").fill("공동구매 상품");
+  await page.getByLabel("공구 제목").fill("함께 구매해요");
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "먹거리" }).click();
+  await page.getByRole("button", { name: "먹거리" }).click();
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByLabel("1인당 가격").fill("5900");
+  await page.getByLabel("모집 인원").fill("3");
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByLabel("수령 장소").fill("명지대 정문 앞");
+  await page.getByLabel("마감일").fill("2099-01-10");
+  await page.getByLabel("수령 예정일").fill("2099-01-11");
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "등록하기" }).click();
+
+  await expect(page.getByText("공구가 등록됐어요")).toBeVisible();
+  expect(createPayload).toMatchObject({ post: { category: null } });
+});
+
 test("완료된 거래에서 서버 허용 태그로 평가를 제출한다", async ({ page }) => {
   let reviewPayload: unknown;
   const userId = "11111111-1111-4111-8111-111111111111";
