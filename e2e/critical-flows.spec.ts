@@ -141,6 +141,107 @@ test("공구 등록은 0원 가격으로 다음 단계로 이동하지 않는다
   await expect(page.getByText("가격과 모집 인원을 1 이상으로 입력해 주세요.")).toBeVisible();
 });
 
+test("공구 등록은 선택한 다마라존을 pickupZoneId로 전송한다", async ({ page }) => {
+  let createPayload: unknown;
+  const userId = "11111111-1111-4111-8111-111111111111";
+
+  await page.addInitScript(({ id }) => localStorage.setItem("userId", id), { id: userId });
+  await page.route("**/api/pickup-zones", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: [
+          {
+            id: "s2810",
+            name: "S2810",
+            displayName: "자연캠퍼스 S2810",
+            description: "S동 2층 S2810 앞",
+            isActive: true,
+            sortOrder: 10,
+          },
+          {
+            id: "dormitory-lobby",
+            name: "기숙사 로비",
+            displayName: "명지대 기숙사 로비",
+            description: "기숙사 1층 로비",
+            isActive: true,
+            sortOrder: 20,
+          },
+        ],
+        total: 2,
+      }),
+    });
+  });
+  await page.route("**/api/posts", async (route) => {
+    createPayload = route.request().postDataJSON();
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ id: "post-1" }) });
+  });
+
+  await page.goto("/create");
+  await page.getByLabel("상품명").fill("공동구매 상품");
+  await page.getByLabel("공구 제목").fill("함께 구매해요");
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByLabel("1인당 가격").fill("5900");
+  await page.getByLabel("모집 인원").fill("3");
+  await page.getByRole("button", { name: "다음" }).click();
+
+  await page.getByRole("button", { name: "명지대 기숙사 로비" }).click();
+  await page.getByLabel("마감일").fill("2099-01-10");
+  await page.getByLabel("수령 예정일").fill("2099-01-11");
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "등록하기" }).click();
+
+  await expect(page.getByText("공구가 등록됐어요")).toBeVisible();
+  expect(createPayload).toMatchObject({
+    post: {
+      pickupType: "damara_zone",
+      pickupZoneId: "dormitory-lobby",
+    },
+  });
+  expect(JSON.stringify(createPayload)).not.toContain("pickupLocation");
+});
+
+test("직접 입력 수령 장소는 pickupLocation으로 전송한다", async ({ page }) => {
+  let createPayload: unknown;
+  const userId = "11111111-1111-4111-8111-111111111111";
+
+  await page.addInitScript(({ id }) => localStorage.setItem("userId", id), { id: userId });
+  await page.route("**/api/pickup-zones", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [], total: 0 }) });
+  });
+  await page.route("**/api/posts", async (route) => {
+    createPayload = route.request().postDataJSON();
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ id: "post-1" }) });
+  });
+
+  await page.goto("/create");
+  await page.getByLabel("상품명").fill("공동구매 상품");
+  await page.getByLabel("공구 제목").fill("함께 구매해요");
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByLabel("1인당 가격").fill("5900");
+  await page.getByLabel("모집 인원").fill("3");
+  await page.getByRole("button", { name: "다음" }).click();
+
+  await page.getByRole("button", { name: "직접 입력" }).click();
+  await page.getByLabel("직접 입력 수령 장소").fill("명지대 정문 앞");
+  await page.getByLabel("마감일").fill("2099-01-10");
+  await page.getByLabel("수령 예정일").fill("2099-01-11");
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "등록하기" }).click();
+
+  await expect(page.getByText("공구가 등록됐어요")).toBeVisible();
+  expect(createPayload).toMatchObject({
+    post: {
+      pickupType: "custom",
+      pickupLocation: "명지대 정문 앞",
+    },
+  });
+  expect(JSON.stringify(createPayload)).not.toContain("pickupZoneId");
+});
+
 test("완료된 거래에서 서버 허용 태그로 평가를 제출한다", async ({ page }) => {
   let reviewPayload: unknown;
   const userId = "11111111-1111-4111-8111-111111111111";
