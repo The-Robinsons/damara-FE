@@ -61,8 +61,11 @@ export const createPost = (data: ApiCreatePostInput) =>
 export const updatePost = (id: string, data: ApiUpdatePostInput, userId?: string | null) =>
   axiosInstance.put(`/posts/${id}`, { post: data, ...(userId && { userId }) }, userId ? { headers: { "x-user-id": userId } } : undefined);
 
-export const deletePost = (id: string, userId?: string | null) =>
-  axiosInstance.delete(`/posts/${id}`, userId ? { params: { userId }, headers: { "x-user-id": userId } } : undefined);
+export const deletePost = (id: string, userId: string) =>
+  axiosInstance.delete(`/posts/${id}`, {
+    params: { userId },
+    headers: { "x-user-id": userId },
+  });
 
 export const getPostsByStudentId = (
   studentId: string,
@@ -74,10 +77,16 @@ export const getPostsByStudentId = (
   });
 
 export const participatePost = (postId: string, userId: string) =>
-  axiosInstance.post(`/posts/${postId}/participate`, { userId });
+  axiosInstance.post(
+    `/posts/${postId}/participate`,
+    { userId },
+    { headers: { "x-user-id": userId } }
+  );
 
 export const cancelParticipation = (postId: string, userId: string) =>
-  axiosInstance.delete(`/posts/${postId}/participate/${userId}`);
+  axiosInstance.delete(`/posts/${postId}/participate/${userId}`, {
+    headers: { "x-user-id": userId },
+  });
 
 export const checkParticipation = (postId: string, userId: string) =>
   axiosInstance.get(`/posts/${postId}/participate/${userId}`);
@@ -104,7 +113,12 @@ export const updatePostStatus = (
   postId: string,
   status: ApiPostStatus,
   authorId: string
-) => axiosInstance.patch(`/posts/${postId}/status`, { status, authorId });
+) =>
+  axiosInstance.patch(
+    `/posts/${postId}/status`,
+    { status, authorId },
+    { headers: { "x-user-id": authorId } }
+  );
 
 export const addFavorite = (postId: string, userId: string) =>
   axiosInstance.post(`/posts/${postId}/favorite`, { userId });
