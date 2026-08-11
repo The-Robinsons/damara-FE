@@ -130,13 +130,13 @@ test("공구 등록은 0원 가격으로 다음 단계로 이동하지 않는다
   await page.goto("/create");
   await page.getByLabel("상품명").fill("공동구매 상품");
   await page.getByLabel("공구 제목").fill("함께 구매해요");
-  await page.getByRole("button", { name: "다음" }).click();
-  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
 
   await expect(page.getByText("가격과 인원을 입력해 주세요")).toBeVisible();
   await page.getByLabel("1인당 가격").fill("0");
   await page.getByLabel("모집 인원").fill("3");
-  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
 
   await expect(page.getByText("가격과 모집 인원을 1 이상으로 입력해 주세요.")).toBeVisible();
 });
@@ -181,15 +181,15 @@ test("공구 등록은 선택한 다마라존을 pickupZoneId로 전송한다", 
   await page.goto("/create");
   await page.getByLabel("상품명").fill("공동구매 상품");
   await page.getByLabel("공구 제목").fill("함께 구매해요");
-  await page.getByRole("button", { name: "다음" }).click();
-  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByLabel("1인당 가격").fill("5900");
   await page.getByLabel("모집 인원").fill("3");
-  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByRole("button", { name: "명지대 기숙사 로비" }).click();
   await page.getByLabel("마감일").fill("2099-01-10");
   await page.getByLabel("수령 예정일").fill("2099-01-11");
-  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByRole("button", { name: "등록하기" }).click();
 
   await expect(page.getByText("공구가 등록됐어요")).toBeVisible();
@@ -218,17 +218,17 @@ test("직접 입력 수령 장소는 pickupLocation으로 전송한다", async (
   await page.goto("/create");
   await page.getByLabel("상품명").fill("공동구매 상품");
   await page.getByLabel("공구 제목").fill("함께 구매해요");
-  await page.getByRole("button", { name: "다음" }).click();
-  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByLabel("1인당 가격").fill("5900");
   await page.getByLabel("모집 인원").fill("3");
-  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
 
   await page.getByRole("button", { name: "직접 입력" }).click();
   await page.getByLabel("직접 입력 수령 장소").fill("명지대 정문 앞");
   await page.getByLabel("마감일").fill("2099-01-10");
   await page.getByLabel("수령 예정일").fill("2099-01-11");
-  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByRole("button", { name: "등록하기" }).click();
 
   await expect(page.getByText("공구가 등록됐어요")).toBeVisible();
@@ -311,7 +311,7 @@ test("공구 작성 방식 팁은 안내 화면을 열고 작성 단계로 돌�
   await page.goto("/create");
   await page.getByLabel("상품명").fill("공동구매 상품");
   await page.getByLabel("공구 제목").fill("함께 구매해요");
-  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByRole("button", { name: /나중에도 변경할 수 있어요/ }).click();
   await expect(page.getByRole("heading", { name: "공구 방식 안내" })).toBeVisible();
   await page.getByRole("button", { name: "작성으로 돌아가기", exact: true }).click();
