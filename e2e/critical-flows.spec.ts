@@ -141,6 +141,24 @@ test("공구 등록은 0원 가격으로 다음 단계로 이동하지 않는다
   await expect(page.getByText("가격과 모집 인원을 1 이상으로 입력해 주세요.")).toBeVisible();
 });
 
+test("홈 필터는 선택한 모집 상태로 목록을 다시 조회한다", async ({ page }) => {
+  const requestedStatuses: string[] = [];
+
+  await page.route("**/api/posts**", async (route) => {
+    const url = new URL(route.request().url());
+    requestedStatuses.push(url.searchParams.get("status") || "");
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [], total: 0 }) });
+  });
+
+  await page.goto("/home");
+  await expect(page.getByRole("button", { name: "필터" })).toBeVisible();
+  await page.getByRole("button", { name: "필터" }).click();
+  await page.getByRole("button", { name: "거래 완료" }).click();
+  await page.getByRole("button", { name: "적용하기" }).click();
+
+  await expect.poll(() => requestedStatuses).toContain("completed");
+});
+
 test("완료된 거래에서 서버 허용 태그로 평가를 제출한다", async ({ page }) => {
   let reviewPayload: unknown;
   const userId = "11111111-1111-4111-8111-111111111111";
