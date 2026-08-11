@@ -20,6 +20,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { createPost, getPostDetail, updatePost } from "../../features/group-buy/api/groupBuyApi";
+import { getPickupZones } from "../../features/group-buy/api/pickupZoneApi";
 import { getImageUploadErrorMessage, uploadImage } from "../../shared/api/uploadApi";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import { getCreatePostErrorFeedback } from "../../shared/utils/apiError";
@@ -36,12 +37,13 @@ import {
   grey900,
 } from "../../shared/constants/homeTheme";
 import { getImageUrl } from "../../shared/utils/imageUrl";
-import type { ApiPost } from "../../shared/api/swaggerTypes";
+import type { ApiPickupZone, ApiPost } from "../../shared/api/swaggerTypes";
 import ActionButton from "../../shared/components/damara/ActionButton";
 import SurfaceCard from "../../shared/components/damara/SurfaceCard";
 
 type TradeType = "PRE_RECRUIT" | "POST_PURCHASE";
 type SubmitState = "idle" | "submitting" | "success";
+type PickupType = "damara_zone" | "custom";
 
 const CATEGORIES = [
   { label: "생활용품", value: "daily", icon: Home },
@@ -146,6 +148,11 @@ export default function GroupBuyCreatePage() {
   const [price, setPrice] = useState("");
   const [people, setPeople] = useState("");
   const [location, setLocation] = useState("");
+  const [pickupType, setPickupType] = useState<PickupType>("damara_zone");
+  const [pickupZones, setPickupZones] = useState<ApiPickupZone[]>([]);
+  const [selectedPickupZoneId, setSelectedPickupZoneId] = useState("");
+  const [pickupZoneLoading, setPickupZoneLoading] = useState(true);
+  const [pickupZoneError, setPickupZoneError] = useState(false);
   const [pickupDate, setPickupDate] = useState("");
   const [deadline, setDeadline] = useState("");
   const [pickupTime, setPickupTime] = useState("");
@@ -161,6 +168,32 @@ export default function GroupBuyCreatePage() {
   const today = getTodayInputValue();
   const priceValue = Number(onlyDigits(price));
   const participantValue = Number(onlyDigits(people));
+  const selectedPickupZone = pickupZones.find((zone) => zone.id === selectedPickupZoneId);
+  const pickupLocationLabel = pickupType === "damara_zone"
+    ? selectedPickupZone?.displayName || selectedPickupZone?.name || location
+    : location;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getPickupZones()
+      .then(({ data }) => {
+        if (cancelled) return;
+        const activeZones = data.items.filter((zone) => zone.isActive !== false);
+        setPickupZones(activeZones);
+        setSelectedPickupZoneId((current) => current || activeZones[0]?.id || "");
+      })
+      .catch(() => {
+        if (!cancelled) setPickupZoneError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setPickupZoneLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!editId) return;
@@ -178,6 +211,8 @@ export default function GroupBuyCreatePage() {
         setPrice(String(Math.floor(Number(data.price || 0))));
         setPeople(String(data.minParticipants || ""));
         setLocation(String(data.pickupLocation || ""));
+        setPickupType(data.pickupType === "damara_zone" ? "damara_zone" : "custom");
+        setSelectedPickupZoneId(String(data.pickupZoneId || ""));
         setPickupDate(toDateInputValue(data.pickupDate));
         setDeadline(toDateInputValue(data.deadline));
         setPickupTime([data.pickupStartTime, data.pickupEndTime].filter(Boolean).join(" ~ "));
@@ -209,7 +244,10 @@ export default function GroupBuyCreatePage() {
       if (participantValue > MAX_PARTICIPANTS) return "모집 인원은 100명 이하로 입력해 주세요.";
     }
     if (targetStep === 4) {
-      if (!location.trim() || !deadline || !pickupDate) return "수령 장소와 날짜를 모두 입력해 주세요.";
+      const hasPickupLocation = pickupType === "damara_zone"
+        ? Boolean(selectedPickupZoneId && selectedPickupZone)
+        : Boolean(location.trim());
+      if (!hasPickupLocation || !deadline || !pickupDate) return "수령 장소와 날짜를 모두 입력해 주세요.";
       if (!isEditMode && deadline < today) return "마감일은 오늘 이후로 선택해 주세요.";
       if (pickupDate < deadline) return "수령 예정일은 마감일과 같거나 이후여야 해요.";
       if (!isValidPickupTime(pickupTime)) return "수령 시간은 예: 오후 12시 ~ 오후 6시 형식으로 입력해 주세요.";
@@ -300,8 +338,10 @@ export default function GroupBuyCreatePage() {
         price: priceValue,
         minParticipants: participantValue,
         deadline: toDeadlineIso(deadline),
-        pickupType: "custom",
-        pickupLocation: location,
+        pickupType,
+        ...(pickupType === "damara_zone"
+          ? { pickupZoneId: selectedPickupZoneId }
+          : { pickupLocation: location.trim() }),
         pickupDate,
         ...pickupTimes,
         groupBuyType: tradeType === "PRE_RECRUIT" ? "pre_recruit" : "post_recruit",
@@ -459,9 +499,18 @@ export default function GroupBuyCreatePage() {
         {step === 4 ? (
           <section>
             <StepTitle title="수령 정보를 알려주세요" desc="장소와 날짜는 나중에 채팅으로 조율할 수도 있어요." />
+            <PickupLocationSelector
+              pickupType={pickupType}
+              pickupZones={pickupZones}
+              selectedPickupZoneId={selectedPickupZoneId}
+              location={location}
+              loading={pickupZoneLoading}
+              hasError={pickupZoneError}
+              onPickupTypeChange={setPickupType}
+              onSelectZone={setSelectedPickupZoneId}
+              onLocationChange={setLocation}
+            />
             <SurfaceCard as="div" padding={0} style={{ marginTop: 16, overflow: "hidden" }}>
-              <LabeledInput label="수령 장소" value={location} onChange={setLocation} placeholder="예: 명지대 정문 앞" />
-              <Divider />
               <DateInput label="마감일" value={deadline} onChange={setDeadline} min={isEditMode ? undefined : today} />
               <Divider />
               <DateInput label="수령 예정일" value={pickupDate} onChange={setPickupDate} min={deadline || today} />
@@ -504,7 +553,7 @@ export default function GroupBuyCreatePage() {
               <Review label="카테고리" value={categoryLabel} />
               <Review label="가격" value={money(price) ? `${money(price)}원` : ""} />
               <Review label="모집 인원" value={people ? `${people}명` : ""} />
-              <Review label="수령 장소" value={location} />
+              <Review label="수령 장소" value={pickupLocationLabel} />
               <Review label="마감일" value={deadline} />
               <Review label="수령 예정일" value={pickupDate} />
               <Review label="수령 시간" value={pickupTime} />
@@ -785,6 +834,97 @@ function TextFieldWithMeta({
         </span>
       </span>
     </label>
+  );
+}
+
+function PickupLocationSelector({
+  pickupType,
+  pickupZones,
+  selectedPickupZoneId,
+  location,
+  loading,
+  hasError,
+  onPickupTypeChange,
+  onSelectZone,
+  onLocationChange,
+}: {
+  pickupType: PickupType;
+  pickupZones: ApiPickupZone[];
+  selectedPickupZoneId: string;
+  location: string;
+  loading: boolean;
+  hasError: boolean;
+  onPickupTypeChange: (value: PickupType) => void;
+  onSelectZone: (id: string) => void;
+  onLocationChange: (value: string) => void;
+}) {
+  const canSelectZone = !loading && pickupZones.length > 0;
+
+  return (
+    <div style={pickupSelectorStyle}>
+      <div style={pickupSelectorHeaderStyle}>
+        <span style={pickupSelectorLabelStyle}>수령 장소</span>
+        <RequiredBadge />
+      </div>
+      <div role="group" aria-label="수령 장소 입력 방식" style={pickupTypeTabsStyle}>
+        <button
+          type="button"
+          aria-pressed={pickupType === "damara_zone"}
+          disabled={!canSelectZone}
+          onClick={() => onPickupTypeChange("damara_zone")}
+          style={pickupType === "damara_zone" ? pickupTypeTabActiveStyle : pickupTypeTabStyle}
+        >
+          다마라존
+        </button>
+        <button
+          type="button"
+          aria-pressed={pickupType === "custom"}
+          onClick={() => onPickupTypeChange("custom")}
+          style={pickupType === "custom" ? pickupTypeTabActiveStyle : pickupTypeTabStyle}
+        >
+          직접 입력
+        </button>
+      </div>
+
+      {pickupType === "damara_zone" ? (
+        <div aria-live="polite" style={pickupZoneListStyle}>
+          {loading ? <p style={pickupZoneStatusStyle}>다마라존을 불러오는 중이에요.</p> : null}
+          {!loading && hasError ? <p style={pickupZoneErrorStyle}>다마라존을 불러오지 못했어요. 직접 입력으로 계속할 수 있어요.</p> : null}
+          {!loading && !hasError && pickupZones.map((zone) => {
+            const selected = zone.id === selectedPickupZoneId;
+            const zoneName = zone.displayName || zone.name;
+            return (
+              <button
+                key={zone.id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => onSelectZone(zone.id)}
+                style={selected ? pickupZoneOptionActiveStyle : pickupZoneOptionStyle}
+              >
+                <span style={selected ? pickupZoneIconActiveStyle : pickupZoneIconStyle}>
+                  {selected ? <Check size={15} strokeWidth={3} aria-hidden /> : <MapPin size={15} strokeWidth={2.35} aria-hidden />}
+                </span>
+                <span style={pickupZoneTextStyle}>
+                  <strong style={pickupZoneNameStyle}>{zoneName}</strong>
+                  {zone.description ? <span style={pickupZoneDescriptionStyle}>{zone.description}</span> : null}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <label style={customPickupInputStyle}>
+          <span style={fieldLabelStyle}>직접 입력</span>
+          <input
+            aria-label="직접 입력 수령 장소"
+            value={location}
+            onChange={(event) => onLocationChange(event.target.value)}
+            placeholder="예: 명지대 정문 앞"
+            style={fieldInputStyle}
+          />
+        </label>
+      )}
+    </div>
   );
 }
 
@@ -1544,6 +1684,144 @@ const fieldInputStyle: React.CSSProperties = {
   fontWeight: 750,
   lineHeight: "21px",
   background: "transparent",
+};
+
+const pickupSelectorStyle: React.CSSProperties = {
+  marginTop: 16,
+  padding: 14,
+  border: "1px solid rgba(229, 233, 239, 0.92)",
+  borderRadius: 16,
+  background: "#fff",
+  boxShadow: "0 6px 18px rgba(15, 23, 42, 0.035)",
+};
+
+const pickupSelectorHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 7,
+};
+
+const pickupSelectorLabelStyle: React.CSSProperties = {
+  color: grey900,
+  fontSize: 13,
+  fontWeight: 850,
+  lineHeight: "20px",
+};
+
+const pickupTypeTabsStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 4,
+  marginTop: 11,
+  padding: 4,
+  borderRadius: 12,
+  background: "#F3F6FA",
+};
+
+const pickupTypeTabStyle: React.CSSProperties = {
+  minHeight: 34,
+  border: 0,
+  borderRadius: 9,
+  background: "transparent",
+  color: grey500,
+  fontSize: 12,
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+const pickupTypeTabActiveStyle: React.CSSProperties = {
+  ...pickupTypeTabStyle,
+  background: "#fff",
+  color: blue600,
+  boxShadow: "0 2px 6px rgba(15, 23, 42, 0.08)",
+};
+
+const pickupZoneListStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 7,
+  marginTop: 10,
+};
+
+const pickupZoneOptionStyle: React.CSSProperties = {
+  width: "100%",
+  minHeight: 58,
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  padding: "10px 11px",
+  border: "1px solid #E7ECF2",
+  borderRadius: 12,
+  background: "#fff",
+  color: grey900,
+  textAlign: "left",
+  cursor: "pointer",
+};
+
+const pickupZoneOptionActiveStyle: React.CSSProperties = {
+  ...pickupZoneOptionStyle,
+  border: "1.5px solid rgba(49,130,246,0.55)",
+  background: "rgba(243, 248, 255, 0.9)",
+  boxShadow: "0 5px 12px rgba(49,130,246,0.08)",
+};
+
+const pickupZoneIconStyle: React.CSSProperties = {
+  width: 30,
+  height: 30,
+  display: "grid",
+  placeItems: "center",
+  flexShrink: 0,
+  borderRadius: 10,
+  color: grey500,
+  background: "#F3F6FA",
+};
+
+const pickupZoneIconActiveStyle: React.CSSProperties = {
+  ...pickupZoneIconStyle,
+  color: "#fff",
+  background: blue500,
+};
+
+const pickupZoneTextStyle: React.CSSProperties = {
+  minWidth: 0,
+  display: "grid",
+  gap: 2,
+};
+
+const pickupZoneNameStyle: React.CSSProperties = {
+  color: grey900,
+  fontSize: 12.5,
+  fontWeight: 800,
+  lineHeight: "18px",
+};
+
+const pickupZoneDescriptionStyle: React.CSSProperties = {
+  color: grey500,
+  fontSize: 10.5,
+  fontWeight: 550,
+  lineHeight: "15px",
+  overflowWrap: "anywhere",
+};
+
+const pickupZoneStatusStyle: React.CSSProperties = {
+  margin: "6px 0 2px",
+  color: grey500,
+  fontSize: 11.5,
+  fontWeight: 650,
+  lineHeight: "18px",
+};
+
+const pickupZoneErrorStyle: React.CSSProperties = {
+  ...pickupZoneStatusStyle,
+  color: grey600,
+};
+
+const customPickupInputStyle: React.CSSProperties = {
+  display: "block",
+  marginTop: 10,
+  padding: "11px 12px",
+  border: "1px solid #E7ECF2",
+  borderRadius: 12,
+  background: "#fff",
 };
 
 const locationTipStyle: React.CSSProperties = {
