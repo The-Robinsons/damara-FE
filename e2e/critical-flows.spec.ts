@@ -307,6 +307,19 @@ test("공구 작성 텍스트는 상품명 50자와 제목 30자를 넘기지 �
   await expect(page.getByText("30/30")).toBeVisible();
 });
 
+test("공구 작성 방식 팁은 안내 화면을 열고 작성 단계로 돌아온다", async ({ page }) => {
+  await page.goto("/create");
+  await page.getByLabel("상품명").fill("공동구매 상품");
+  await page.getByLabel("공구 제목").fill("함께 구매해요");
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: /나중에도 변경할 수 있어요/ }).click();
+  await expect(page.getByRole("heading", { name: "공구 방식 안내" })).toBeVisible();
+  await page.getByRole("button", { name: "작성으로 돌아가기", exact: true }).click();
+  await expect(page.getByText("공구 방식을 선택해 주세요")).toBeVisible();
+  await page.getByRole("button", { name: "이전" }).click();
+  await expect(page.getByRole("textbox", { name: /^상품명/ })).toHaveValue("공동구매 상품");
+});
+
 test("완료된 거래에서 서버 허용 태그로 평가를 제출한다", async ({ page }) => {
   let reviewPayload: unknown;
   const userId = "11111111-1111-4111-8111-111111111111";
