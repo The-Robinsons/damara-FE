@@ -54,6 +54,8 @@ const STEP_HINTS = ["상품 정보 입력", "공구 방식 선택", "조건 입�
 const MAX_IMAGES = 5;
 const MAX_PRICE = 10_000_000;
 const MAX_PARTICIPANTS = 100;
+const MAX_PRODUCT_NAME_LENGTH = 50;
+const MAX_TITLE_LENGTH = 30;
 
 function onlyDigits(value: string) {
   return value.replace(/[^\d]/g, "");
@@ -393,8 +395,8 @@ export default function GroupBuyCreatePage() {
               <BasicInfoCard
                 productName={productName}
                 title={title}
-                onProductNameChange={(value) => setProductName(value.slice(0, 50))}
-                onTitleChange={(value) => setTitle(value.slice(0, 30))}
+                onProductNameChange={(value) => setProductName(value.slice(0, MAX_PRODUCT_NAME_LENGTH))}
+                onTitleChange={(value) => setTitle(value.slice(0, MAX_TITLE_LENGTH))}
               />
             </SurfaceCard>
 
@@ -723,7 +725,7 @@ function BasicInfoCard({
         label="상품명"
         value={productName}
         placeholder="예: 도톰한 엠보싱 물티슈 100매"
-        maxLength={50}
+        maxLength={MAX_PRODUCT_NAME_LENGTH}
         onChange={onProductNameChange}
         onClear={() => onProductNameChange("")}
       />
@@ -732,7 +734,7 @@ function BasicInfoCard({
         label="공구 제목"
         value={title}
         placeholder="예: 물티슈 함께 구매해요"
-        maxLength={30}
+        maxLength={MAX_TITLE_LENGTH}
         onChange={onTitleChange}
         onClear={() => onTitleChange("")}
         helper="추천 제목이에요. 자유롭게 수정할 수 있어요."
