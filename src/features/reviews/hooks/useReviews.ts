@@ -5,9 +5,8 @@ import {
   getPendingReviews,
   getReviewEligibility,
   getReviewSummary,
-  updateReview,
 } from "../api/reviewApi";
-import type { SubmitReviewInput, UpdateReviewInput } from "../model/reviewTypes";
+import type { SubmitReviewInput } from "../model/reviewTypes";
 
 export const reviewKeys = {
   all: ["reviews"] as const,
@@ -49,20 +48,6 @@ export function useSubmitReview(postId: string, userId: string) {
         queryClient.invalidateQueries({ queryKey: reviewKeys.eligibility(postId, userId) }),
         queryClient.invalidateQueries({ queryKey: reviewKeys.pending(userId) }),
         queryClient.invalidateQueries({ queryKey: reviewKeys.summary(input.revieweeId) }),
-      ]);
-    },
-  });
-}
-
-export function useUpdateReview(postId: string, userId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ reviewId, input }: { reviewId: string; input: UpdateReviewInput }) =>
-      updateReview(reviewId, input, userId),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: reviewKeys.eligibility(postId, userId) }),
-        queryClient.invalidateQueries({ queryKey: reviewKeys.pending(userId) }),
       ]);
     },
   });

@@ -6,7 +6,7 @@ import ConfirmBottomSheet from "../../../shared/components/damara/ConfirmBottomS
 import InfoBanner from "../../../shared/components/damara/InfoBanner";
 import FilterChip from "../../../shared/components/damara/FilterChip";
 import { blue50, blue600, grey500, grey700, grey900 } from "../../../shared/constants/homeTheme";
-import { useSubmitReview, useUpdateReview } from "../hooks/useReviews";
+import { useSubmitReview } from "../hooks/useReviews";
 import { getReviewErrorMessage, getReviewTagLabel, RATING_OPTIONS } from "../model/reviewPresentation";
 import type { ReviewRating, ReviewTarget } from "../model/reviewTypes";
 
@@ -31,21 +31,20 @@ export default function ReviewEditorSheet({
   const [tags, setTags] = useState<string[]>([]);
   const [error, setError] = useState("");
   const submitReview = useSubmitReview(postId, userId);
-  const editReview = useUpdateReview(postId, userId);
 
   useEffect(() => {
     if (!open) return;
     setRating("positive");
     setTags([]);
     setError("");
-  }, [open, target?.reviewId]);
+  }, [open, target?.reviewee.id]);
 
   if (!target) return null;
 
   const allowedTags = target.allowedTags[rating] ?? [];
-  const isEditable = target.status === "not_submitted" || (target.status === "pending" && Boolean(target.reviewId));
+  const isEditable = target.status === "not_submitted";
   const valid = rating === "neutral" || (tags.length >= 1 && tags.length <= 5);
-  const pending = submitReview.isPending || editReview.isPending;
+  const pending = submitReview.isPending;
 
   const selectRating = (nextRating: ReviewRating) => {
     setRating(nextRating);
@@ -69,11 +68,7 @@ export default function ReviewEditorSheet({
     }
     const input = { rating, tags: rating === "neutral" ? [] : tags };
     try {
-      if (target.status === "pending" && target.reviewId) {
-        await editReview.mutateAsync({ reviewId: target.reviewId, input });
-      } else {
-        await submitReview.mutateAsync({ revieweeId: target.reviewee.id, ...input });
-      }
+      await submitReview.mutateAsync({ revieweeId: target.reviewee.id, ...input });
       onCompleted?.();
       onClose();
     } catch (requestError) {
@@ -86,7 +81,7 @@ export default function ReviewEditorSheet({
       open={open}
       title={`${target.reviewee.nickname}님은 어떠셨나요?`}
       description="평가는 작성자를 드러내지 않고 신뢰학점에 반영돼요."
-      confirmLabel={target.status === "pending" ? "평가 수정" : "평가 제출"}
+      confirmLabel="평가 제출"
       onConfirm={() => void handleSubmit()}
       onClose={onClose}
       loading={pending}

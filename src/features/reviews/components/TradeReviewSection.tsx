@@ -34,7 +34,7 @@ export default function TradeReviewSection({ postId, userId, enabled }: TradeRev
       ) : query.data?.targets.length ? (
         <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
           {query.data.targets.map((target) => (
-            <ReviewTargetRow key={target.reviewee.id} target={target} onEdit={() => setSelectedTarget(target)} />
+            <ReviewTargetRow key={target.reviewee.id} target={target} onCreate={() => setSelectedTarget(target)} />
           ))}
         </div>
       ) : (
@@ -49,15 +49,14 @@ export default function TradeReviewSection({ postId, userId, enabled }: TradeRev
         userId={userId}
         target={selectedTarget}
         onClose={() => setSelectedTarget(null)}
-        onCompleted={() => toast.success(selectedTarget?.status === "pending" ? "평가를 수정했어요." : "평가를 제출했어요.")}
+        onCompleted={() => toast.success("평가를 제출했어요.")}
       />
     </SurfaceCard>
   );
 }
 
-function ReviewTargetRow({ target, onEdit }: { target: ReviewTarget; onEdit: () => void }) {
+function ReviewTargetRow({ target, onCreate }: { target: ReviewTarget; onCreate: () => void }) {
   const canCreate = target.status === "not_submitted";
-  const canEdit = target.status === "pending" && Boolean(target.reviewId);
   const Icon = canCreate ? PencilLine : target.status === "pending" ? Clock3 : target.status === "published" ? CheckCircle2 : LockKeyhole;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 64, padding: "10px 11px", borderRadius: 8, border: `1px solid ${grey200}`, background: "#fff" }}>
@@ -70,12 +69,12 @@ function ReviewTargetRow({ target, onEdit }: { target: ReviewTarget; onEdit: () 
           {getReviewRoleLabel(target.revieweeRole)} · {getReviewStatusLabel(target.status)}
         </span>
       </span>
-      {canCreate || canEdit ? (
-        <ActionButton size="compact" variant={canCreate ? "primary" : "secondary"} onClick={onEdit} style={{ height: 36, padding: "0 12px" }}>
-          {canCreate ? "작성" : "수정"}
+      {canCreate ? (
+        <ActionButton size="compact" variant="primary" onClick={onCreate} style={{ height: 36, padding: "0 12px" }}>
+          작성
         </ActionButton>
       ) : (
-        <span style={{ color: grey700, fontSize: 11, fontWeight: 800 }}>{target.status === "published" ? "공개됨" : "종료"}</span>
+        <span style={{ color: grey700, fontSize: 11, fontWeight: 800 }}>{target.status === "pending" ? "제출 완료" : target.status === "published" ? "공개됨" : "종료"}</span>
       )}
     </div>
   );
