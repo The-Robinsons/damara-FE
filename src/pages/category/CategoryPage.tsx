@@ -161,7 +161,7 @@ export default function CategoryPage() {
       try {
         const selectedFilter = FILTERS.find((item) => item.id === filter);
         const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
-        const res = await getPosts(50, 0, selectedFilter?.apiCategory, userId);
+        const res = await getPosts(50, 0, selectedFilter?.apiCategory, userId, undefined, "open");
         setPosts(extractPosts(res.data));
       } catch (err) {
         console.error(err);
@@ -185,6 +185,7 @@ export default function CategoryPage() {
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return posts.filter((post) => {
+      if (isClosed(post)) return false;
       if (!matchesCategory(post, filter)) return false;
       if (!q) return true;
       return [post.title, post.content, post.pickupLocation, post.category]
