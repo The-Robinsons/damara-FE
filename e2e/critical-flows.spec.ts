@@ -387,3 +387,87 @@ test("완료된 거래에서 서버 허용 태그로 평가를 제출한다", as
   await expect(page.getByText("평가를 제출했어요.")).toBeVisible();
   expect(reviewPayload).toEqual({ revieweeId: authorId, rating: "positive", tags: ["ON_TIME"] });
 });
+
+test("게시글과 참여자 거래 단계는 축소된 흐름으로 독립 변경된다", async ({ page }) => {
+  let postStatusPayload: unknown;
+  let participantStatusPayload: unknown;
+  const ownerId = "11111111-1111-4111-8111-111111111111";
+  const participantId = "22222222-2222-4222-8222-222222222222";
+  const postId = "33333333-3333-4333-8333-333333333333";
+
+  await page.addInitScript(({ id }) => localStorage.setItem("userId", id), { id: ownerId });
+  await page.route(new RegExp(`/api/posts/${postId}(?:\\?.*)?$`), async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: postId,
+        authorId: ownerId,
+        title: "단계 테스트 공동구매",
+        content: "독립 단계 테스트",
+        price: 1000,
+        minParticipants: 2,
+        currentQuantity: 2,
+        status: "closed",
+        deadline: "2026-08-30T00:00:00.000Z",
+        isOwner: true,
+        author: { nickname: "모집자" },
+      }),
+    });
+  });
+  await page.route(`**/api/posts/${postId}/status`, async (route) => {
+    postStatusPayload = route.request().postDataJSON();
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "completed" }) });
+  });
+  await page.route(`**/api/posts/${postId}/participants**`, async (route) => {
+    if (route.request().method() === "PATCH") {
+      participantStatusPayload = route.request().postDataJSON();
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ participantStatus: "pickup_ready" }) });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        participants: [{
+          userId: participantId,
+          nickname: "참여자",
+          participantStatus: "payment_pending",
+          participantStatusLabel: "참여 확정",
+          participantStatusStep: 2,
+          participantStatusTotalSteps: 4,
+          nextStatus: "pickup_ready",
+          nextActionLabel: "입금 확인하기",
+          nextActionActor: "organizer",
+        }],
+      }),
+    });
+  });
+  await page.route(`**/api/posts/${postId}/participate/${ownerId}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ isParticipant: false }) });
+  });
+  await page.route(`**/api/posts/${postId}/favorite/${ownerId}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ isFavorite: false }) });
+  });
+  await page.route(`**/api/users/${ownerId}/trust-summary`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ trustGrade: 4.0 }) });
+  });
+  await page.route(`**/api/posts/${postId}/reviews/eligibility`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ postId, targets: [] }) });
+  });
+
+  await page.goto(`/post/${postId}`);
+
+  await expect(page.getByText("게시글과 참여자 단계는 따로 움직여요.")).toBeVisible();
+  await expect(page.getByText("게시글 전체 단계 · 2/3")).toBeVisible();
+  await expect(page.getByText("참여 확정 · 2/4")).toBeVisible();
+  await expect(page.getByText("거래 진행", { exact: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "입금 확인하기" }).click();
+  await expect(page.getByText("입금 확인 · 3/4")).toBeVisible();
+  expect(participantStatusPayload).toEqual({ participantStatus: "pickup_ready" });
+
+  await page.getByRole("button", { name: "거래 완료하기" }).click();
+  await expect(page.getByText("게시글 전체 단계 · 3/3")).toBeVisible();
+  expect(postStatusPayload).toEqual({ status: "completed" });
+});
