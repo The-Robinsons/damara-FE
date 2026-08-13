@@ -898,6 +898,7 @@ function PickupLocationSelector({
           {!loading && !hasError && pickupZones.map((zone) => {
             const selected = zone.id === selectedPickupZoneId;
             const zoneName = zone.displayName || zone.name;
+            const zoneSubtitle = zone.campusLabel || zone.description;
             return (
               <button
                 key={zone.id}
@@ -911,7 +912,7 @@ function PickupLocationSelector({
                 </span>
                 <span style={pickupZoneTextStyle}>
                   <strong style={pickupZoneNameStyle}>{zoneName}</strong>
-                  {zone.description ? <span style={pickupZoneDescriptionStyle}>{zone.description}</span> : null}
+                  {zoneSubtitle ? <span style={pickupZoneDescriptionStyle}>{zoneSubtitle}</span> : null}
                 </span>
               </button>
             );
