@@ -33,7 +33,7 @@ function getResponseValue(data: unknown, key: "error" | "message") {
 
 export function getApiErrorCode(error: unknown): string {
   if (!axios.isAxiosError(error) || !error.response) return "";
-  return getResponseValue(error.response.data, "error");
+  return getResponseValue(error.response.data, "error") || getResponseValue(error.response.data, "message");
 }
 
 export function getEmailVerificationErrorMessage(error: unknown): string {

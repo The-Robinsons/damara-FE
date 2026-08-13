@@ -103,6 +103,23 @@ test("인증번호 발송 후 이메일을 바꾸면 인증 상태를 초기화�
   await expect(page.getByRole("button", { name: "회원가입" })).toBeDisabled();
 });
 
+test("이미 가입된 이메일은 인증번호 발송 단계에서 안내한다", async ({ page }) => {
+  await page.route("**/api/auth/email-verifications/send", async (route) => {
+    await route.fulfill({
+      status: 409,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "EMAIL_ALREADY_EXISTS", message: "EMAIL_ALREADY_EXISTS" }),
+    });
+  });
+
+  await page.goto("/register");
+  await page.getByLabel("명지대학교 이메일 아이디").fill("already-registered");
+  await page.getByRole("button", { name: "이메일 인증번호 받기" }).click();
+
+  await expect(page.getByText("이미 가입된 이메일입니다.")).toBeVisible();
+  await expect(page.getByLabel("이메일 인증번호 6자리")).toHaveCount(0);
+});
+
 test("로그인은 숫자 8자리 학번만 API로 전송한다", async ({ page }) => {
   let loginPayload: unknown;
 
