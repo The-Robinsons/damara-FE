@@ -1,5 +1,6 @@
 import axiosInstance from "../../../shared/api/axiosInstance";
 import type { ApiSendMessageInput } from "../../../shared/api/swaggerTypes";
+import type { ChatReportInput } from "../model/chatReport";
 
 export const createChatRoom = (postId: string) =>
   axiosInstance.post(`/chat/rooms`, {
@@ -48,3 +49,8 @@ export const getUnreadCount = (chatRoomId: string, userId: string) =>
 
 export const deleteMessage = (messageId: string) =>
   axiosInstance.delete(`/chat/messages/${messageId}`);
+
+export const submitChatReport = (chatRoomId: string, input: ChatReportInput, userId: string) =>
+  axiosInstance.post(`/chat/rooms/${chatRoomId}/reports`, input, {
+    headers: { "x-user-id": userId },
+  });

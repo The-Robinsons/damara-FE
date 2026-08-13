@@ -53,7 +53,7 @@ import SurfaceCard from "../../shared/components/damara/SurfaceCard";
 import TradeReviewSection from "../../features/reviews/components/TradeReviewSection";
 import TransactionProgressSection from "../../features/group-buy/components/TransactionProgressSection";
 import FavoriteHeartButton from "../../features/group-buy/components/FavoriteHeartButton";
-import type { ApiParticipantStatus, ApiPostStatus } from "../../shared/api/swaggerTypes";
+import type { ApiParticipantNextActor, ApiParticipantStatus, ApiPostStatus } from "../../shared/api/swaggerTypes";
 
 
 type Participant = {
@@ -62,6 +62,12 @@ type Participant = {
   avatarUrl?: string;
   trustGrade?: number;
   participantStatus?: ApiParticipantStatus;
+  participantStatusLabel?: string;
+  participantStatusStep?: number;
+  participantStatusTotalSteps?: number;
+  nextStatus?: ApiParticipantStatus | null;
+  nextActionLabel?: string | null;
+  nextActionActor?: ApiParticipantNextActor | null;
   user?: {
     nickname?: string;
     avatarUrl?: string | null;
@@ -416,7 +422,16 @@ export default function GroupBuyDetailPage() {
               participants={participants}
               onPostStatusChanged={(status: ApiPostStatus) => setPost((currentPost) => currentPost ? { ...currentPost, status } : currentPost)}
               onParticipantStatusChanged={(userId: string, participantStatus: ApiParticipantStatus) =>
-                setParticipants((currentParticipants) => currentParticipants.map((participant) => participant.userId === userId ? { ...participant, participantStatus } : participant))
+                setParticipants((currentParticipants) => currentParticipants.map((participant) => participant.userId === userId ? {
+                  ...participant,
+                  participantStatus,
+                  participantStatusLabel: undefined,
+                  participantStatusStep: undefined,
+                  participantStatusTotalSteps: undefined,
+                  nextStatus: undefined,
+                  nextActionLabel: undefined,
+                  nextActionActor: undefined,
+                } : participant))
               }
             />
           ) : null}
@@ -509,7 +524,6 @@ function formatPostStatus(status?: ApiPostStatus) {
   const labels: Record<ApiPostStatus, string> = {
     open: "모집 중",
     closed: "모집 마감",
-    in_progress: "거래 진행",
     completed: "거래 완료",
     cancelled: "거래 취소",
   };

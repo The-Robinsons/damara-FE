@@ -40,7 +40,7 @@ export interface GroupBuyCardProps {
   currentPeople: number;
   maxPeople: number;
   location: string;
-  status: "open" | "closed" | "in_progress" | "completed" | "recruiting";
+  status: "open" | "closed" | "completed" | "recruiting";
   onClick?: () => void;
   groupBuyType?: GroupBuyType | string | null;
   deadline?: string | null;

@@ -8,7 +8,6 @@ import type { ApiPostStatus } from "../../../shared/api/swaggerTypes";
 const STATUS_OPTIONS: { value: ApiPostStatus; label: string }[] = [
   { value: "open", label: "모집중" },
   { value: "closed", label: "모집 마감" },
-  { value: "in_progress", label: "거래 진행" },
   { value: "completed", label: "거래 완료" },
   { value: "cancelled", label: "취소됨" },
 ];

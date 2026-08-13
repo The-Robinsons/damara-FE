@@ -1,4 +1,4 @@
-export type ApiPostStatus = "open" | "closed" | "in_progress" | "completed" | "cancelled";
+export type ApiPostStatus = "open" | "closed" | "completed" | "cancelled";
 
 export type ApiPostCategory =
   | "food"
@@ -20,6 +20,7 @@ export type ApiParticipantStatus =
   | "received"
   | "cancelled"
   | "no_show";
+export type ApiParticipantNextActor = "organizer" | "participant";
 export type ApiPostExceptionStatus = "open" | "resolved" | "dismissed";
 export type ApiPostExceptionSeverity = "info" | "warning" | "critical";
 

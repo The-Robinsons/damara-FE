@@ -27,6 +27,8 @@ import { toast } from "sonner";
 
 import { ROUTES } from "../../app/router/routes";
 import { getMessages, getUserChatRooms, markAllMessagesAsRead, sendMessage } from "../../features/chat/api/chatApi";
+import ChatReportSheet from "../../features/chat/components/ChatReportSheet";
+import type { ChatReportTarget } from "../../features/chat/model/chatReport";
 import { checkParticipation, searchPostsByProductName } from "../../features/group-buy/api/groupBuyApi";
 import type { ApiPostProductSearchResponse } from "../../shared/api/swaggerTypes";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
@@ -80,6 +82,7 @@ type ChatPreview = {
   unreadCount: number;
   thumbType: "box" | "bar" | "snack" | "bottle" | "note" | "avatar";
   imageUrl?: string;
+  reportTargets: ChatReportTarget[];
 };
 
 type DetailMessage = {
@@ -224,6 +227,28 @@ function mapPostStatusToRoomStatus(post: ApiRecord): RoomStatus {
   return deadlineLabel === "오늘 마감" || deadlineLabel === "D-1" ? "closing" : "ongoing";
 }
 
+function getReportTargets(room: ApiRecord, post: ApiRecord): ChatReportTarget[] {
+  const candidates = [
+    ...(Array.isArray(room.participants) ? room.participants : []),
+    ...(Array.isArray(post.participants) ? post.participants : []),
+  ];
+  const targets = new Map<string, ChatReportTarget>();
+
+  candidates.forEach((candidate) => {
+    const participant = asRecord(candidate);
+    const user = asRecord(participant.user);
+    const userId = String(participant.userId ?? participant.id ?? user.id ?? "");
+    if (!userId) return;
+    targets.set(userId, {
+      userId,
+      nickname: asString(participant.nickname) || asString(user.nickname) || "채팅 참여자",
+      avatarUrl: asString(participant.avatarUrl) || asString(user.avatarUrl) || null,
+    });
+  });
+
+  return [...targets.values()];
+}
+
 function mapRoomToPreview(room: ApiRecord): ChatPreview {
   const post = asRecord(room.post);
   const lastMessage = asRecord(room.lastMessage);
@@ -245,6 +270,7 @@ function mapRoomToPreview(room: ApiRecord): ChatPreview {
     unreadCount: Number(room.unreadCount ?? 0),
     thumbType: "box",
     imageUrl: rawImage ? getImageUrl(rawImage) : undefined,
+    reportTargets: getReportTargets(room, post),
   };
 }
 
@@ -454,12 +480,31 @@ function ChatDetailOverlay({ chat, currentUserId, onClose }: { chat: ChatPreview
   const [isParticipant, setIsParticipant] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const messageListRef = useRef<HTMLElement | null>(null);
   const mountedRef = useRef(true);
   const metaParts = chat.locationLabel.split(" · ");
   const detailLocation = metaParts[0] || "장소 미정";
   const detailParticipant = metaParts[1] || "참여 정보 없음";
   const detailDeadline = metaParts[2] || "마감일 미정";
+  const reportTargets = useMemo(() => {
+    const candidates: ChatReportTarget[] = [
+      ...chat.reportTargets,
+      ...messages
+        .filter((message) => message.senderId && message.senderId !== currentUserId)
+        .map((message) => ({ userId: message.senderId!, nickname: message.senderLabel })),
+      ...(chat.authorId ? [{ userId: chat.authorId, nickname: "모집자" }] : []),
+    ];
+    const uniqueTargets = new Map<string, ChatReportTarget>();
+    candidates.forEach((target) => {
+      if (!target.userId || target.userId === currentUserId) return;
+      const current = uniqueTargets.get(target.userId);
+      if (!current || current.nickname === "모집자" || current.nickname === "채팅 참여자") {
+        uniqueTargets.set(target.userId, target);
+      }
+    });
+    return [...uniqueTargets.values()];
+  }, [chat.authorId, chat.reportTargets, currentUserId, messages]);
   const moveToPost = () => {
     if (!chat.postId) return;
     onClose();
@@ -467,7 +512,15 @@ function ChatDetailOverlay({ chat, currentUserId, onClose }: { chat: ChatPreview
   };
   const reportChat = () => {
     setShowMenu(false);
-    toast.message("신고하기 기능은 곧 연결돼요.");
+    if (!currentUserId) {
+      toast.error("로그인 후 신고할 수 있어요.");
+      return;
+    }
+    if (!chat.id || typeof chat.id === "number" || reportTargets.length === 0) {
+      toast.error("신고할 사용자를 찾을 수 없어요.");
+      return;
+    }
+    setShowReport(true);
   };
   const leaveChat = () => {
     setShowMenu(false);
@@ -690,6 +743,15 @@ function ChatDetailOverlay({ chat, currentUserId, onClose }: { chat: ChatPreview
             <SendHorizontal size={15} strokeWidth={2.1} />
           </button>
         </form>
+
+        <ChatReportSheet
+          open={showReport}
+          chatRoomId={String(chat.id)}
+          currentUserId={currentUserId}
+          targets={reportTargets}
+          onClose={() => setShowReport(false)}
+          onSubmitted={() => toast.success("신고가 접수됐어요. 운영팀이 확인할게요.")}
+        />
       </div>
     </div>,
     document.body

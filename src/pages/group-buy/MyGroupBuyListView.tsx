@@ -198,11 +198,11 @@ function Metric({
 }
 
 function isOpenPost(status: unknown): boolean {
-  return status == null || ["open", "recruiting", "in_progress", "RECRUITING", "AVAILABLE"].includes(String(status));
+  return status == null || ["open", "recruiting", "RECRUITING", "AVAILABLE"].includes(String(status));
 }
 
 function isDonePost(status: unknown): boolean {
-  return ["closed", "completed", "cancelled", "RECRUIT_FULL", "SOLD_OUT", "COMPLETED"].includes(status as string);
+  return ["closed", "in_progress", "completed", "cancelled", "RECRUIT_FULL", "SOLD_OUT", "PURCHASING", "DISTRIBUTING", "COMPLETED"].includes(status as string);
 }
 
 function ListEmpty({

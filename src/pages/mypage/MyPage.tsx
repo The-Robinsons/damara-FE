@@ -139,7 +139,7 @@ export default function MyPage() {
       },
       {
         title: "참여한 공구",
-        desc: "거래 진행 현황",
+        desc: "거래 단계 현황",
         Icon: Users,
         iconBg: blue50,
         iconColor: BRAND_PRIMARY_TEXT,
