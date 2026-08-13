@@ -5,12 +5,12 @@ import {
   getEmailVerificationErrorMessage,
 } from "./apiError";
 
-function createApiError(error: string, status = 400) {
+function createApiError(error: string, status = 400, message?: string) {
   return {
     isAxiosError: true,
     response: {
       status,
-      data: { error },
+      data: { error, ...(message ? { message } : {}) },
     },
   };
 }
@@ -40,6 +40,12 @@ describe("getEmailVerificationErrorMessage", () => {
   it("maps verification HTTP status when the backend omits an error code", () => {
     expect(getEmailVerificationErrorMessage(createApiError("", 429))).toBe("잠시 후 다시 요청해 주세요.");
     expect(getEmailVerificationErrorMessage(createApiError("", 502))).toBe("인증 메일 발송에 실패했습니다.");
+  });
+
+  it("uses an error code provided in the response message", () => {
+    expect(
+      getEmailVerificationErrorMessage(createApiError("", 409, "EMAIL_ALREADY_EXISTS")),
+    ).toBe("이미 가입된 이메일입니다.");
   });
 });
 
