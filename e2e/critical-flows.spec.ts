@@ -126,6 +126,23 @@ test("로그인은 숫자 8자리 학번만 API로 전송한다", async ({ page 
   await expect.poll(() => page.evaluate(() => localStorage.getItem("damaraRememberedStudentId"))).toBe("20261234");
 });
 
+test("로그인과 회원가입 비밀번호는 20자까지만 입력된다", async ({ page }) => {
+  const overlongPassword = "a12345678901234567890";
+
+  await page.goto("/login");
+  const loginPassword = page.getByRole("textbox", { name: "비밀번호", exact: true });
+  await loginPassword.fill(overlongPassword);
+  await expect(loginPassword).toHaveValue(overlongPassword.slice(0, 20));
+
+  await page.goto("/register");
+  const signupPassword = page.getByRole("textbox", { name: "비밀번호", exact: true });
+  const confirmPassword = page.getByRole("textbox", { name: "비밀번호 확인", exact: true });
+  await signupPassword.fill(overlongPassword);
+  await confirmPassword.fill(overlongPassword);
+  await expect(signupPassword).toHaveValue(overlongPassword.slice(0, 20));
+  await expect(confirmPassword).toHaveValue(overlongPassword.slice(0, 20));
+});
+
 test("공구 등록은 0원 가격으로 다음 단계로 이동하지 않는다", async ({ page }) => {
   await page.goto("/create");
   await page.getByLabel("상품명").fill("공동구매 상품");
