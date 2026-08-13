@@ -183,6 +183,16 @@ test("로그인과 회원가입 비밀번호는 20자까지만 입력된다", as
   await expect(confirmPassword).toHaveValue(overlongPassword.slice(0, 20));
 });
 
+test("닉네임이 2자 미만이면 글자 수 안내를 표시한다", async ({ page }) => {
+  await page.goto("/register");
+  const nicknameInput = page.getByLabel("닉네임");
+  await nicknameInput.fill("가");
+
+  await expect(nicknameInput).toHaveAttribute("aria-invalid", "true");
+  await expect(page.getByText("닉네임 글자 수가 너무 적어요. 2자 이상 입력해 주세요.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "회원가입" })).toBeDisabled();
+});
+
 test("공구 등록은 0원 가격으로 다음 단계로 이동하지 않는다", async ({ page }) => {
   await page.goto("/create");
   await page.getByLabel("상품명").fill("공동구매 상품");
