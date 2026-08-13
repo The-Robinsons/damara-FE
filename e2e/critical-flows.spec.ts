@@ -321,6 +321,47 @@ test("직접 입력 수령 장소는 pickupLocation으로 전송한다", async (
   expect(JSON.stringify(createPayload)).not.toContain("pickupZoneId");
 });
 
+test("카테고리 목록은 모집중 게시글만 조회하고 표시한다", async ({ page }) => {
+  let requestedStatus: string | null = null;
+
+  await page.route("**/api/posts?**", async (route) => {
+    requestedStatus = new URL(route.request().url()).searchParams.get("status");
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: [
+          {
+            id: "open-post",
+            title: "모집중 게시글",
+            price: 1000,
+            minParticipants: 2,
+            currentQuantity: 0,
+            status: "open",
+            category: "beauty",
+          },
+          {
+            id: "closed-post",
+            title: "마감 게시글",
+            price: 1000,
+            minParticipants: 2,
+            currentQuantity: 1,
+            status: "closed",
+            category: "beauty",
+          },
+        ],
+        total: 2,
+      }),
+    });
+  });
+
+  await page.goto("/category?cat=beauty");
+
+  await expect(page.getByText("모집중 게시글")).toBeVisible();
+  await expect(page.getByText("마감 게시글")).toHaveCount(0);
+  expect(requestedStatus).toBe("open");
+});
+
 test("홈 필터는 선택한 모집 상태로 목록을 다시 조회한다", async ({ page }) => {
   const requestedStatuses: string[] = [];
 
