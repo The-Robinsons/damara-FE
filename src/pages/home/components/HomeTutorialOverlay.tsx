@@ -125,15 +125,18 @@ export default function HomeTutorialOverlay() {
 
   const step = STEPS[stepIndex];
   const isLast = stepIndex === STEPS.length - 1;
+  const currentUserId = localStorage.getItem(STORAGE_KEYS.USER_ID);
 
   useEffect(() => {
     const shouldShowOnce = sessionStorage.getItem(STORAGE_KEYS.SHOW_HOME_TUTORIAL_ONCE) === "true";
-    if (shouldShowOnce) {
+    const hasSeenTutorial = localStorage.getItem(STORAGE_KEYS.HOME_TUTORIAL_SEEN) === currentUserId;
+    if (shouldShowOnce && currentUserId && !hasSeenTutorial) {
       sessionStorage.removeItem(STORAGE_KEYS.SHOW_HOME_TUTORIAL_ONCE);
       const id = window.setTimeout(() => setVisible(true), 650);
       return () => window.clearTimeout(id);
     }
-  }, []);
+    sessionStorage.removeItem(STORAGE_KEYS.SHOW_HOME_TUTORIAL_ONCE);
+  }, [currentUserId]);
 
   const measureTarget = useCallback(() => {
     if (!visible) return;
@@ -173,8 +176,11 @@ export default function HomeTutorialOverlay() {
   }, [measureTarget]);
 
   const close = useCallback(() => {
+    if (currentUserId) {
+      localStorage.setItem(STORAGE_KEYS.HOME_TUTORIAL_SEEN, currentUserId);
+    }
     setVisible(false);
-  }, []);
+  }, [currentUserId]);
 
   const next = () => {
     if (isLast) {

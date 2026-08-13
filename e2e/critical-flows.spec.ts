@@ -126,6 +126,29 @@ test("로그인은 숫자 8자리 학번만 API로 전송한다", async ({ page 
   await expect.poll(() => page.evaluate(() => localStorage.getItem("damaraRememberedStudentId"))).toBe("20261234");
 });
 
+test("온보딩을 본 사용자는 다시 로그인해도 홈 온보딩이 열리지 않는다", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("damaraHomeTutorialSeen", "user-3");
+    sessionStorage.removeItem("damaraShowHomeTutorialOnce");
+  });
+  await page.route("**/api/users/login", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ id: "user-3", nickname: "온보딩 완료 사용자" }),
+    });
+  });
+
+  await page.goto("/login");
+  await page.getByLabel("학번 8자리").fill("20261234");
+  await page.getByRole("textbox", { name: "비밀번호", exact: true }).fill("damara123");
+  await page.getByRole("button", { name: "로그인", exact: true }).click();
+
+  await expect(page).toHaveURL("/home");
+  await page.waitForTimeout(750);
+  await expect(page.getByRole("button", { name: "시작하기", exact: true })).toHaveCount(0);
+});
+
 test("공구 등록은 0원 가격으로 다음 단계로 이동하지 않는다", async ({ page }) => {
   await page.goto("/create");
   await page.getByLabel("상품명").fill("공동구매 상품");
