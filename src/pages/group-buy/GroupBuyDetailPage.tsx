@@ -427,6 +427,7 @@ export default function GroupBuyDetailPage() {
                   participantStatus,
                   participantStatusLabel: undefined,
                   participantStatusStep: undefined,
+                  participantStatusTotalSteps: undefined,
                   nextStatus: undefined,
                   nextActionLabel: undefined,
                   nextActionActor: undefined,

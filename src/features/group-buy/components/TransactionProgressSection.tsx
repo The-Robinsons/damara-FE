@@ -150,8 +150,8 @@ export default function TransactionProgressSection({
             const nextStatus = participant.nextStatus ?? PARTICIPANT_NEXT_STATUS[status];
             const nextActor = participant.nextActionActor ?? (nextStatus === "received" ? "participant" : "organizer");
             const isSelf = participant.userId === currentUserId;
-            const canAdvance = Boolean(nextStatus && ((isOwner && nextActor === "organizer") || (isSelf && nextActor === "participant")));
-            const key = `participant-${participant.userId}`;
+            const canAdvance = Boolean(participant.userId && nextStatus && ((isOwner && nextActor === "organizer") || (isSelf && nextActor === "participant")));
+            const key = participant.userId ? `participant-${participant.userId}` : `participant-${index}`;
             const step = participant.participantStatusStep ?? PARTICIPANT_STATUS_STEPS[status];
             const totalSteps = participant.participantStatusTotalSteps ?? 4;
             const statusLabel = participant.participantStatusLabel ?? PARTICIPANT_STATUS_LABELS[status];
