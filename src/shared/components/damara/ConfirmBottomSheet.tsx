@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useId } from "react";
 import { X } from "lucide-react";
 
 import { BRAND_PRIMARY, grey700, grey900, HOME_BORDER, OVERLAY_DIM } from "../../constants/homeTheme";
@@ -37,6 +37,7 @@ interface ConfirmBottomSheetProps {
   onConfirm: () => void;
   onClose: () => void;
   confirmDanger?: boolean;
+  confirmDisabled?: boolean;
   loading?: boolean;
   /** 제목·설명 아래, 버튼 위 */
   children?: React.ReactNode;
@@ -57,12 +58,15 @@ export default function ConfirmBottomSheet({
   onConfirm,
   onClose,
   confirmDanger,
+  confirmDisabled,
   loading,
   children,
   cancelVariant = "text",
   showCloseButton,
   scrollable,
 }: ConfirmBottomSheetProps) {
+  const titleId = useId();
+
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
@@ -133,12 +137,13 @@ export default function ConfirmBottomSheet({
       <div
         role="dialog"
         aria-modal="true"
+        aria-labelledby={titleId}
         style={dialogStyle}
         onMouseDown={(e) => e.stopPropagation()}
       >
         {showCloseButton ? (
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-            <h2 style={{ ...TITLE_STYLE, flex: 1, minWidth: 0 }}>{title}</h2>
+            <h2 id={titleId} style={{ ...TITLE_STYLE, flex: 1, minWidth: 0 }}>{title}</h2>
             <button
               type="button"
               onClick={onClose}
@@ -160,7 +165,7 @@ export default function ConfirmBottomSheet({
             </button>
           </div>
         ) : (
-          <h2 style={TITLE_STYLE}>{title}</h2>
+          <h2 id={titleId} style={TITLE_STYLE}>{title}</h2>
         )}
 
         {description ? <p style={DESCRIPTION_STYLE}>{description}</p> : null}
@@ -170,7 +175,7 @@ export default function ConfirmBottomSheet({
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 22 }}>
           <button
             type="button"
-            disabled={loading}
+            disabled={loading || confirmDisabled}
             onClick={onConfirm}
             style={{
               width: "100%",
@@ -181,8 +186,8 @@ export default function ConfirmBottomSheet({
               color: "#ffffff",
               fontSize: 16,
               fontWeight: 600,
-              cursor: loading ? "wait" : "pointer",
-              opacity: loading ? 0.7 : 1,
+              cursor: loading ? "wait" : confirmDisabled ? "not-allowed" : "pointer",
+              opacity: loading || confirmDisabled ? 0.55 : 1,
             }}
           >
             {confirmLabel}
