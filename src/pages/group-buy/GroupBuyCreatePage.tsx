@@ -59,6 +59,7 @@ const MAX_PRICE = 10_000_000;
 const MAX_PARTICIPANTS = 100;
 const MAX_PRODUCT_NAME_LENGTH = 50;
 const MAX_TITLE_LENGTH = 30;
+const MAX_PICKUP_LOCATION_LENGTH = 50;
 
 function onlyDigits(value: string) {
   return value.replace(/[^\d]/g, "");
@@ -191,7 +192,7 @@ export default function GroupBuyCreatePage() {
         setCategory(data.category ? String(data.category) : null);
         setPrice(String(Math.floor(Number(data.price || 0))));
         setPeople(String(data.minParticipants || ""));
-        setLocation(String(data.pickupLocation || ""));
+        setLocation(String(data.pickupLocation || "").slice(0, MAX_PICKUP_LOCATION_LENGTH));
         setPickupType(data.pickupType === "damara_zone" ? "damara_zone" : "custom");
         setSelectedPickupZoneId(String(data.pickupZoneId || ""));
         setPickupDate(toDateInputValue(data.pickupDate));
@@ -507,7 +508,7 @@ export default function GroupBuyCreatePage() {
               hasError={pickupZoneError}
               onPickupTypeChange={setPickupType}
               onSelectZone={setSelectedPickupZoneId}
-              onLocationChange={setLocation}
+              onLocationChange={(value) => setLocation(value.slice(0, MAX_PICKUP_LOCATION_LENGTH))}
             />
             <SurfaceCard as="div" padding={0} style={{ marginTop: 16, overflow: "hidden" }}>
               <DateInput label="마감일" value={deadline} onChange={setDeadline} min={isEditMode ? undefined : today} />
@@ -922,10 +923,12 @@ function PickupLocationSelector({
           <input
             aria-label="직접 입력 수령 장소"
             value={location}
+            maxLength={MAX_PICKUP_LOCATION_LENGTH}
             onChange={(event) => onLocationChange(event.target.value)}
             placeholder="예: 명지대 정문 앞"
             style={fieldInputStyle}
           />
+          <span aria-live="polite" style={customPickupCountStyle}>{location.length}/{MAX_PICKUP_LOCATION_LENGTH}</span>
         </label>
       )}
     </div>
@@ -1926,6 +1929,16 @@ const customPickupInputStyle: React.CSSProperties = {
   border: "1px solid #E7ECF2",
   borderRadius: 12,
   background: "#fff",
+};
+
+const customPickupCountStyle: React.CSSProperties = {
+  display: "block",
+  marginTop: 6,
+  color: grey500,
+  fontSize: 10.5,
+  fontWeight: 650,
+  lineHeight: "15px",
+  textAlign: "right",
 };
 
 const locationTipStyle: React.CSSProperties = {
