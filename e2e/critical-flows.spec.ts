@@ -471,3 +471,67 @@ test("게시글과 참여자 거래 단계는 축소된 흐름으로 독립 변�
   await expect(page.getByText("게시글 전체 단계 · 3/3")).toBeVisible();
   expect(postStatusPayload).toEqual({ status: "completed" });
 });
+
+test("채팅 참여자를 카테고리 또는 상세 내용으로 신고한다", async ({ page }) => {
+  let reportPayload: unknown;
+  let reportHeader: string | undefined;
+  const currentUserId = "11111111-1111-4111-8111-111111111111";
+  const reportedUserId = "22222222-2222-4222-8222-222222222222";
+  const roomId = "33333333-3333-4333-8333-333333333333";
+  const postId = "44444444-4444-4444-8444-444444444444";
+
+  await page.addInitScript(({ id }) => localStorage.setItem("userId", id), { id: currentUserId });
+  await page.route(`**/api/chat/rooms/user/${currentUserId}**`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: [{
+          id: roomId,
+          postId,
+          post: { id: postId, authorId: reportedUserId, title: "신고 테스트 공구", status: "open" },
+          participants: [
+            { userId: currentUserId, nickname: "나" },
+            { userId: reportedUserId, nickname: "신고 대상" },
+          ],
+          unreadCount: 0,
+        }],
+      }),
+    });
+  });
+  await page.route(`**/api/chat/rooms/${roomId}/messages**`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ messages: [] }) });
+  });
+  await page.route(`**/api/chat/rooms/${roomId}/read-all`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+  });
+  await page.route(`**/api/posts/${postId}/participate/${currentUserId}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ isParticipant: true }) });
+  });
+  await page.route(`**/api/chat/rooms/${roomId}/reports`, async (route) => {
+    reportPayload = route.request().postDataJSON();
+    reportHeader = await route.request().headerValue("x-user-id") ?? undefined;
+    await route.fulfill({ status: 202, contentType: "application/json", body: JSON.stringify({ message: "CHAT_REPORT_ACCEPTED", reportId: "55555555-5555-4555-8555-555555555555" }) });
+  });
+
+  await page.goto("/chat");
+  await page.getByRole("button", { name: /신고 테스트 공구/ }).click();
+  await page.getByRole("button", { name: "더보기" }).click();
+  await page.getByRole("button", { name: "신고하기" }).click();
+
+  await expect(page.getByRole("dialog", { name: "신고할 사용자 선택" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /신고 대상/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^나$/ })).toHaveCount(0);
+  await page.getByRole("button", { name: /신고 대상/ }).click();
+  await page.getByRole("button", { name: "다음" }).click();
+
+  const submitButton = page.getByRole("button", { name: "신고 제출" });
+  await expect(submitButton).toBeDisabled();
+  await page.getByRole("button", { name: "욕설·비방" }).click();
+  await expect(submitButton).toBeEnabled();
+  await submitButton.click();
+
+  await expect(page.getByText("신고가 접수됐어요. 운영팀이 확인할게요.")).toBeVisible();
+  expect(reportPayload).toEqual({ reportedUserId, category: "ABUSIVE_LANGUAGE" });
+  expect(reportHeader).toBe(currentUserId);
+});
