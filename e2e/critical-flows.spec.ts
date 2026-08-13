@@ -210,6 +210,8 @@ test("공구 등록은 선택한 다마라존을 pickupZoneId로 전송한다", 
 test("직접 입력 수령 장소는 pickupLocation으로 전송한다", async ({ page }) => {
   let createPayload: unknown;
   const userId = "11111111-1111-4111-8111-111111111111";
+  const longPickupLocation = "가".repeat(51);
+  const limitedPickupLocation = "가".repeat(50);
 
   await page.addInitScript(({ id }) => localStorage.setItem("userId", id), { id: userId });
   await page.route("**/api/pickup-zones", async (route) => {
@@ -230,7 +232,9 @@ test("직접 입력 수령 장소는 pickupLocation으로 전송한다", async (
   await page.getByRole("button", { name: "다음", exact: true }).click();
 
   await page.getByRole("button", { name: "직접 입력" }).click();
-  await page.getByLabel("직접 입력 수령 장소").fill("명지대 정문 앞");
+  await page.getByLabel("직접 입력 수령 장소").fill(longPickupLocation);
+  await expect(page.getByLabel("직접 입력 수령 장소")).toHaveValue(limitedPickupLocation);
+  await expect(page.getByText("50/50")).toBeVisible();
   await page.getByLabel("마감일").fill("2099-01-10");
   await page.getByLabel("수령 예정일").fill("2099-01-11");
   await page.getByRole("button", { name: "다음", exact: true }).click();
@@ -240,7 +244,7 @@ test("직접 입력 수령 장소는 pickupLocation으로 전송한다", async (
   expect(createPayload).toMatchObject({
     post: {
       pickupType: "custom",
-      pickupLocation: "명지대 정문 앞",
+      pickupLocation: limitedPickupLocation,
     },
   });
   expect(JSON.stringify(createPayload)).not.toContain("pickupZoneId");
