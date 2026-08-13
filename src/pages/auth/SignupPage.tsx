@@ -23,6 +23,7 @@ const VERIFICATION_RESTART_ERROR_CODES = new Set([
   "INVALID_EMAIL_VERIFICATION_TOKEN",
   "EMAIL_VERIFICATION_EXPIRED",
 ]);
+const PASSWORD_MAX_LENGTH = 20;
 
 function getRemainingSeconds(expiresAt: number | null, now: number) {
   if (!expiresAt) return 0;
@@ -36,7 +37,7 @@ function formatCountdown(totalSeconds: number) {
 }
 
 function isValidPassword(value: string) {
-  return value.length >= 8 && /[A-Za-z]/.test(value) && /\d/.test(value);
+  return value.length >= 8 && value.length <= PASSWORD_MAX_LENGTH && /[A-Za-z]/.test(value) && /\d/.test(value);
 }
 
 export default function SignupPage() {
@@ -217,7 +218,7 @@ export default function SignupPage() {
       return;
     }
     if (!isPasswordValid) {
-      setError("비밀번호는 영문과 숫자를 포함해 8자 이상으로 입력해 주세요.");
+      setError("비밀번호는 영문과 숫자를 포함해 8~20자로 입력해 주세요.");
       return;
     }
     if (password !== confirmPassword) {
@@ -456,10 +457,10 @@ export default function SignupPage() {
             <FieldWithIndicator
               icon={<Lock size={17} strokeWidth={2} aria-hidden />}
               neutralIcon={Lock}
-              message={isPasswordValid ? "안전한 비밀번호 형식이에요." : "영문과 숫자를 포함해 8자 이상 입력해 주세요."}
+              message={isPasswordValid ? "안전한 비밀번호 형식이에요." : "영문과 숫자를 포함해 8~20자로 입력해 주세요."}
               status={password ? (isPasswordValid ? "valid" : "invalid") : "neutral"}
             >
-              <input className="damara-signup-input" type={showPassword ? "text" : "password"} autoComplete="new-password" aria-label="비밀번호" value={password} onChange={(event) => updateValue(event, setPassword)} placeholder="비밀번호" minLength={8} style={inputStyle} />
+              <input className="damara-signup-input" type={showPassword ? "text" : "password"} autoComplete="new-password" aria-label="비밀번호" value={password} onChange={(event) => updateValue(event, setPassword, PASSWORD_MAX_LENGTH)} placeholder="비밀번호" minLength={8} maxLength={PASSWORD_MAX_LENGTH} style={inputStyle} />
               <EyeButton active={showPassword} onClick={() => setShowPassword((value) => !value)} label="비밀번호" />
             </FieldWithIndicator>
 
@@ -469,7 +470,7 @@ export default function SignupPage() {
               message={passwordsMatch ? "비밀번호가 일치해요." : "비밀번호를 한 번 더 입력해 주세요."}
               status={confirmPassword ? (passwordsMatch ? "valid" : "invalid") : "neutral"}
             >
-              <input className="damara-signup-input" type={showConfirm ? "text" : "password"} autoComplete="new-password" aria-label="비밀번호 확인" value={confirmPassword} onChange={(event) => updateValue(event, setConfirmPassword)} placeholder="비밀번호 확인" style={inputStyle} />
+              <input className="damara-signup-input" type={showConfirm ? "text" : "password"} autoComplete="new-password" aria-label="비밀번호 확인" value={confirmPassword} onChange={(event) => updateValue(event, setConfirmPassword, PASSWORD_MAX_LENGTH)} placeholder="비밀번호 확인" maxLength={PASSWORD_MAX_LENGTH} style={inputStyle} />
               <EyeButton active={showConfirm} onClick={() => setShowConfirm((value) => !value)} label="비밀번호 확인" />
             </FieldWithIndicator>
 
@@ -494,8 +495,8 @@ export default function SignupPage() {
     </div>
   );
 
-  function updateValue(event: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string>>) {
-    setter(event.target.value);
+  function updateValue(event: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string>>, maxLength?: number) {
+    setter(maxLength ? event.target.value.slice(0, maxLength) : event.target.value);
     setError("");
   }
 }

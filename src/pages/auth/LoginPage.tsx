@@ -8,6 +8,8 @@ import { loginUser } from "../../features/auth/api/authApi";
 import { STORAGE_KEYS } from "../../shared/constants/storageKeys";
 import { getAuthErrorMessage } from "../../shared/utils/apiError";
 
+const PASSWORD_MAX_LENGTH = 20;
+
 function getRememberedStudentId() {
   if (typeof window === "undefined") return "";
   return localStorage.getItem(STORAGE_KEYS.REMEMBERED_STUDENT_ID)?.replace(/\D/g, "").slice(0, 8) ?? "";
@@ -129,10 +131,11 @@ export default function LoginPage() {
                 aria-label="비밀번호"
                 value={password}
                 onChange={(event) => {
-                  setPassword(event.target.value);
+                  setPassword(event.target.value.slice(0, PASSWORD_MAX_LENGTH));
                   setError("");
                 }}
                 placeholder="비밀번호"
+                maxLength={PASSWORD_MAX_LENGTH}
                 style={inputStyle}
               />
               <button
