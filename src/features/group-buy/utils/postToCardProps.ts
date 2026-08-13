@@ -16,9 +16,8 @@ function mapStatus(raw: string | undefined): GroupBuyCardProps["status"] {
   if (!raw) return "recruiting";
   const recruiting = ["open", "recruiting", "RECRUITING", "AVAILABLE"];
   if (recruiting.includes(raw)) return "recruiting";
-  if (raw === "closed" || raw === "RECRUIT_FULL" || raw === "SOLD_OUT") return "closed";
+  if (raw === "closed" || raw === "in_progress" || raw === "RECRUIT_FULL" || raw === "SOLD_OUT" || raw === "PURCHASING" || raw === "DISTRIBUTING") return "closed";
   if (raw === "completed" || raw === "COMPLETED") return "completed";
-  if (raw === "in_progress" || raw === "PURCHASING" || raw === "DISTRIBUTING") return "in_progress";
   return "open";
 }
 

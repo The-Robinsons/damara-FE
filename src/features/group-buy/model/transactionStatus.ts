@@ -10,17 +10,43 @@ export const PARTICIPANT_NEXT_STATUS: Partial<Record<ApiParticipantStatus, ApiPa
 
 export const PARTICIPANT_STATUS_LABELS: Record<ApiParticipantStatus, string> = {
   participating: "참여 중",
-  payment_pending: "입금 대기",
-  pickup_ready: "수령 대기",
+  payment_pending: "참여 확정",
+  pickup_ready: "입금 확인",
   received: "수령 완료",
   cancelled: "참여 취소",
   no_show: "미수령",
 };
 
+export const PARTICIPANT_STATUS_STEPS: Record<ApiParticipantStatus, number> = {
+  participating: 1,
+  payment_pending: 2,
+  pickup_ready: 3,
+  received: 4,
+  cancelled: 0,
+  no_show: 4,
+};
+
+export const PARTICIPANT_ACTION_LABELS: Partial<Record<ApiParticipantStatus, string>> = {
+  payment_pending: "참여 확정하기",
+  pickup_ready: "입금 확인하기",
+  received: "수령 완료하기",
+};
+
 export const POST_NEXT_STATUS: Partial<Record<ApiPostStatus, ApiPostStatus>> = {
   open: "closed",
-  closed: "in_progress",
-  in_progress: "completed",
+  closed: "completed",
+};
+
+export const POST_STATUS_META: Record<ApiPostStatus, { label: string; step: number; totalSteps: number }> = {
+  open: { label: "모집 중", step: 1, totalSteps: 3 },
+  closed: { label: "모집 마감", step: 2, totalSteps: 3 },
+  completed: { label: "거래 완료", step: 3, totalSteps: 3 },
+  cancelled: { label: "거래 취소", step: 0, totalSteps: 3 },
+};
+
+export const POST_ACTION_LABELS: Partial<Record<ApiPostStatus, string>> = {
+  closed: "모집 마감하기",
+  completed: "거래 완료하기",
 };
 
 export function getTransactionErrorMessage(error: unknown) {

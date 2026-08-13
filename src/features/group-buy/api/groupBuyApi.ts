@@ -102,7 +102,7 @@ export const updateParticipantStatus = (
 ) =>
   axiosInstance.patch(
     `/posts/${postId}/participants/${userId}/status`,
-    { participantStatus, actorUserId },
+    { participantStatus },
     { headers: { "x-user-id": actorUserId } }
   );
 
@@ -116,7 +116,7 @@ export const updatePostStatus = (
 ) =>
   axiosInstance.patch(
     `/posts/${postId}/status`,
-    { status, authorId },
+    { status },
     { headers: { "x-user-id": authorId } }
   );
 

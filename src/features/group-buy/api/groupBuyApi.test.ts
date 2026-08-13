@@ -59,7 +59,7 @@ describe("authenticated group buy API", () => {
 
     expect(patchMock).toHaveBeenCalledWith(
       "/posts/post-id/status",
-      { status: "closed", authorId: "author-id" },
+      { status: "closed" },
       { headers: { "x-user-id": "author-id" } }
     );
   });
@@ -69,7 +69,7 @@ describe("authenticated group buy API", () => {
 
     expect(patchMock).toHaveBeenCalledWith(
       "/posts/post-id/participants/participant-id/status",
-      { participantStatus: "payment_pending", actorUserId: "author-id" },
+      { participantStatus: "payment_pending" },
       { headers: { "x-user-id": "author-id" } }
     );
   });
