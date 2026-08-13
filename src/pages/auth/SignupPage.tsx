@@ -65,6 +65,7 @@ export default function SignupPage() {
   const normalizedEmailLocalPart = emailLocalPart.trim();
   const email = `${normalizedEmailLocalPart}@mju.ac.kr`;
   const isStudentIdValid = /^\d{8}$/.test(normalizedStudentId);
+  const isNicknameValid = normalizedNickname.length >= 2;
   const isEmailLocalPartValid = /^[A-Za-z0-9._%+-]+$/.test(normalizedEmailLocalPart);
   const isPasswordValid = isValidPassword(password);
   const passwordsMatch = Boolean(confirmPassword) && password === confirmPassword;
@@ -77,7 +78,7 @@ export default function SignupPage() {
     codeRemainingSeconds || resendRemainingSeconds || tokenRemainingSeconds,
   );
   const canSubmit = Boolean(
-    normalizedNickname &&
+    isNicknameValid &&
     isPasswordValid &&
     passwordsMatch &&
     isStudentIdValid &&
@@ -205,6 +206,10 @@ export default function SignupPage() {
       setError("필수 항목을 모두 입력해 주세요.");
       return;
     }
+    if (!isNicknameValid) {
+      setError("닉네임 글자 수가 너무 적어요. 2자 이상 입력해 주세요.");
+      return;
+    }
     if (!isStudentIdValid) {
       setError("학번은 숫자 8자리로 입력해 주세요.");
       return;
@@ -289,19 +294,29 @@ export default function SignupPage() {
             }}
             noValidate
           >
-            <LineField icon={<User size={17} strokeWidth={2} aria-hidden />}>
+            <FieldWithIndicator
+              icon={<User size={17} strokeWidth={2} aria-hidden />}
+              neutralIcon={User}
+              message={
+                isNicknameValid
+                  ? "사용 가능한 닉네임이에요."
+                  : "닉네임 글자 수가 너무 적어요. 2자 이상 입력해 주세요."
+              }
+              status={nickname ? (isNicknameValid ? "valid" : "invalid") : "neutral"}
+            >
               <input
                 className="damara-signup-input"
                 type="text"
                 autoComplete="name"
                 aria-label="닉네임"
+                aria-invalid={nickname ? !isNicknameValid : undefined}
                 value={nickname}
                 onChange={(event) => updateValue(event, setNickname)}
                 placeholder="닉네임"
                 maxLength={20}
                 style={inputStyle}
               />
-            </LineField>
+            </FieldWithIndicator>
 
             <FieldWithIndicator
               icon={<IdCard size={17} strokeWidth={2} aria-hidden />}
