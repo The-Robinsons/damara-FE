@@ -60,11 +60,18 @@ export default function TransactionProgressSection({
   const postMeta = POST_STATUS_META[postStatus] ?? POST_STATUS_META.closed;
   const currentParticipant = participants.find((person) => person.userId === currentUserId);
   const shouldShow = isOwner || Boolean(currentParticipant);
+  const requiresParticipantForCompletion = nextPostStatus === "completed";
+  const canChangePostStatus = !requiresParticipantForCompletion || participants.length > 0;
+  const completionBlockedMessage = "참여자가 한 명 이상 있어야 거래를 완료할 수 있어요.";
 
   if (!shouldShow || postStatus === "cancelled") return null;
 
   const changePostStatus = async () => {
     if (!nextPostStatus || busyKey) return;
+    if (!canChangePostStatus) {
+      setError(completionBlockedMessage);
+      return;
+    }
     try {
       setBusyKey("post");
       setError("");
@@ -117,12 +124,13 @@ export default function TransactionProgressSection({
             <strong style={{ display: "block", marginTop: 3, color: grey900, fontSize: 14 }}>{postMeta.label}</strong>
           </span>
           {isOwner && nextPostStatus ? (
-            <ActionButton size="compact" disabled={Boolean(busyKey)} onClick={() => void changePostStatus()} style={{ height: 36 }}>
+            <ActionButton size="compact" disabled={Boolean(busyKey) || !canChangePostStatus} onClick={() => void changePostStatus()} style={{ height: 36 }}>
               {POST_ACTION_LABELS[nextPostStatus] ?? POST_STATUS_META[nextPostStatus].label}
               <ArrowRight size={14} aria-hidden />
             </ActionButton>
           ) : null}
         </div>
+        {isOwner && !canChangePostStatus ? <span style={{ display: "block", marginTop: 8, color: grey500, fontSize: 11, fontWeight: 650 }}>{completionBlockedMessage}</span> : null}
 
         <div aria-label="게시글 진행 단계" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6, marginTop: 12 }}>
           {POST_STATUS_SEQUENCE.map((status) => {
