@@ -241,9 +241,9 @@ export default function GroupBuyCreatePage() {
     if (targetStep === 1 && (!productName.trim() || !title.trim())) return "상품명과 공구 제목을 입력해 주세요.";
     if (targetStep === 2 && !tradeType) return "공구 방식을 선택해 주세요.";
     if (targetStep === 3) {
-      if (priceValue <= 0 || participantValue <= 0) return "가격과 모집 인원을 1 이상으로 입력해 주세요.";
+      if (priceValue <= 0 || participantValue <= 0) return "가격과 총 참여 인원을 1 이상으로 입력해 주세요.";
       if (priceValue > MAX_PRICE) return "1인당 가격은 1,000만 원 이하로 입력해 주세요.";
-      if (participantValue > MAX_PARTICIPANTS) return "모집 인원은 100명 이하로 입력해 주세요.";
+      if (participantValue > MAX_PARTICIPANTS) return "총 참여 인원은 100명 이하로 입력해 주세요.";
     }
     if (targetStep === 4) {
       const hasPickupLocation = pickupType === "damara_zone"
@@ -509,9 +509,9 @@ export default function GroupBuyCreatePage() {
             <SurfaceCard as="div" padding={0} style={{ marginTop: 16, overflow: "hidden" }}>
               <LabeledInput label="1인당 가격" value={money(price)} onChange={(value) => setPrice(onlyDigits(value))} placeholder="예: 5,900" suffix="원" inputMode="numeric" />
               <Divider />
-              <LabeledInput label="모집 인원" value={onlyDigits(people)} onChange={(value) => setPeople(onlyDigits(value))} placeholder="예: 3" suffix="명" inputMode="numeric" plain />
+              <LabeledInput label="총 참여 인원 (모집자 포함)" value={onlyDigits(people)} onChange={(value) => setPeople(onlyDigits(value))} placeholder="예: 3" suffix="명" inputMode="numeric" plain />
             </SurfaceCard>
-            <InfoBox title="목표 인원이 모이면" desc="참여자에게 채팅으로 수령 안내를 진행하면 돼요." />
+            <InfoBox title="입력한 인원에는 모집자가 포함돼요" desc="총 3명이 함께 구매한다면 3명을 입력해 주세요. 목표 인원이 모이면 참여자에게 채팅으로 수령을 안내하면 돼요." />
           </section>
         ) : null}
 
@@ -571,7 +571,7 @@ export default function GroupBuyCreatePage() {
               <Review label="공구 방식" value={tradeType === "PRE_RECRUIT" ? "함께구매" : "나눔구매"} />
               <Review label="카테고리" value={categoryLabel} />
               <Review label="가격" value={money(price) ? `${money(price)}원` : ""} />
-              <Review label="모집 인원" value={people ? `${people}명` : ""} />
+              <Review label="총 참여 인원 (모집자 포함)" value={people ? `${people}명` : ""} />
               <Review label="수령 장소" value={pickupLocationLabel} />
               <Review label="마감일" value={deadline} />
               <Review label="수령 예정일" value={pickupDate} />

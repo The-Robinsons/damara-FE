@@ -43,7 +43,7 @@ export function getReviewRoleLabel(role: ReviewRole) {
 export function getReviewStatusLabel(status: ReviewStatus) {
   const labels: Record<ReviewStatus, string> = {
     not_submitted: "평가 작성",
-    pending: "제출 완료 · 수정 가능",
+    pending: "제출 완료",
     published: "평가 공개 완료",
     expired: "평가 기간 종료",
     hidden: "평가 비공개",
@@ -63,8 +63,6 @@ export function getReviewErrorMessage(error: unknown) {
     REVIEW_NOT_ELIGIBLE: "이 거래의 평가 대상이 아니에요.",
     REVIEW_ALREADY_SUBMITTED: "이미 제출한 평가예요.",
     REVIEW_NOT_FOUND: "평가 정보를 찾을 수 없어요.",
-    REVIEW_UPDATE_FORBIDDEN: "이 평가는 수정할 수 없어요.",
-    REVIEW_NOT_EDITABLE: "공개되었거나 기간이 지나 수정할 수 없어요.",
     POST_NOT_FOUND: "게시글을 찾을 수 없어요.",
     VALIDATION_ERROR: "평가 항목을 다시 확인해 주세요.",
   };

@@ -16,7 +16,6 @@ import {
   MoreVertical,
   Package,
   Package2,
-  Plus,
   SendHorizontal,
   Search,
   Store,
@@ -684,9 +683,6 @@ function ChatDetailOverlay({ chat, currentUserId, onClose }: { chat: ChatPreview
         </main>
 
         <form onSubmit={(event) => { event.preventDefault(); void handleSend(); }} style={{ minHeight: 66, padding: `10px ${UI_PAGE_PAD_X}px calc(10px + env(safe-area-inset-bottom, 0px))`, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(16px)", borderTop: "1px solid rgba(229, 232, 235, 0.72)", display: "flex", alignItems: "center", gap: 8, boxShadow: UI_SHADOW_SHEET }}>
-          <button type="button" onClick={() => toast.message("첨부는 곧 연결돼요.")} style={{ width: 40, height: 40, borderRadius: 14, border: "1px solid rgba(229, 232, 235, 0.92)", background: background, display: "grid", placeItems: "center", cursor: "pointer" }} aria-label="첨부">
-            <Plus size={20} color={C_TEXT_SUB} strokeWidth={2} />
-          </button>
           <label style={{ flex: 1, height: 42, borderRadius: 16, border: "1px solid rgba(229, 232, 235, 0.92)", backgroundColor: "#f7f9fc", padding: "0 14px", display: "flex", alignItems: "center" }}>
             <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="메시지를 입력해 주세요" className="placeholder:text-[#b0b8c1]" style={{ flex: 1, border: 0, outline: "none", background: "transparent", color: grey900, fontSize: 14, fontWeight: 500 }} />
           </label>

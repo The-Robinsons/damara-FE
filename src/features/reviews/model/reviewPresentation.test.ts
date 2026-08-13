@@ -20,13 +20,12 @@ describe("review presentation", () => {
 
   it("평가 상태별 문구를 구분한다", () => {
     expect(getReviewStatusLabel("not_submitted")).toBe("평가 작성");
-    expect(getReviewStatusLabel("pending")).toBe("제출 완료 · 수정 가능");
+    expect(getReviewStatusLabel("pending")).toBe("제출 완료");
     expect(getReviewStatusLabel("published")).toBe("평가 공개 완료");
     expect(getReviewStatusLabel("expired")).toBe("평가 기간 종료");
   });
 
   it("평가 API 오류를 사용자 문구로 변환한다", () => {
-    expect(getReviewErrorMessage(apiError("REVIEW_NOT_EDITABLE", 409))).toBe("공개되었거나 기간이 지나 수정할 수 없어요.");
     expect(getReviewErrorMessage(apiError("REVIEW_NOT_ELIGIBLE", 403))).toBe("이 거래의 평가 대상이 아니에요.");
   });
 });

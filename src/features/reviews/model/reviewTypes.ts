@@ -51,11 +51,6 @@ export interface SubmitReviewInput {
   tags: string[];
 }
 
-export interface UpdateReviewInput {
-  rating: ReviewRating;
-  tags: string[];
-}
-
 export interface ReviewResponse {
   id: string;
   postId: string;
