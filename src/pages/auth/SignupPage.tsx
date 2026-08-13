@@ -245,8 +245,11 @@ export default function SignupPage() {
         const userData = loginResponse.data;
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
         localStorage.setItem(STORAGE_KEYS.USER_ID, userData.id);
-        localStorage.removeItem(STORAGE_KEYS.HOME_TUTORIAL_SEEN);
-        sessionStorage.setItem(STORAGE_KEYS.SHOW_HOME_TUTORIAL_ONCE, "true");
+        if (localStorage.getItem(STORAGE_KEYS.HOME_TUTORIAL_SEEN) !== userData.id) {
+          sessionStorage.setItem(STORAGE_KEYS.SHOW_HOME_TUTORIAL_ONCE, "true");
+        } else {
+          sessionStorage.removeItem(STORAGE_KEYS.SHOW_HOME_TUTORIAL_ONCE);
+        }
         nav("/home");
       } catch {
         toast.success("회원가입이 완료되었어요. 로그인해 주세요.");
