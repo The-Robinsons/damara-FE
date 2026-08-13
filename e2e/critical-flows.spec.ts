@@ -189,6 +189,8 @@ test("공구 등록은 선택한 다마라존을 pickupZoneId로 전송한다", 
   await page.getByRole("button", { name: "명지대 기숙사 로비" }).click();
   await page.getByLabel("마감일").fill("2099-01-10");
   await page.getByLabel("수령 예정일").fill("2099-01-11");
+  await page.getByLabel("수령 시작 시간").fill("17:00");
+  await page.getByLabel("수령 종료 시간").fill("19:00");
   await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByRole("button", { name: "등록하기" }).click();
 
@@ -198,6 +200,8 @@ test("공구 등록은 선택한 다마라존을 pickupZoneId로 전송한다", 
       minParticipants: 3,
       pickupType: "damara_zone",
       pickupZoneId: "dormitory-lobby",
+      pickupStartTime: "17:00",
+      pickupEndTime: "19:00",
     },
   });
   expect(JSON.stringify(createPayload)).not.toContain("pickupLocation");

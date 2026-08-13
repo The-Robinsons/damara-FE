@@ -29,6 +29,7 @@ import {
   blue600,
   grey50,
   grey100,
+  grey200,
   grey400,
   grey500,
   grey600,
@@ -87,29 +88,6 @@ function getTodayInputValue() {
   return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 10);
 }
 
-function toPickupTimeRange(value: string) {
-  const matches = Array.from(value.matchAll(/(오전|오후)?\s*(\d{1,2})(?::(\d{2}))?\s*시?/g));
-  const to24Hour = (match?: RegExpMatchArray) => {
-    if (!match) return undefined;
-    const meridiem = match[1];
-    let hour = Number(match[2]);
-    const minute = match[3] || "00";
-    if (meridiem === "오후" && hour < 12) hour += 12;
-    if (meridiem === "오전" && hour === 12) hour = 0;
-    return `${String(hour).padStart(2, "0")}:${minute}`;
-  };
-  return {
-    pickupStartTime: to24Hour(matches[0]),
-    pickupEndTime: to24Hour(matches[1]),
-  };
-}
-
-function isValidPickupTime(value: string) {
-  if (!value.trim()) return true;
-  const { pickupStartTime, pickupEndTime } = toPickupTimeRange(value);
-  return Boolean(pickupStartTime && pickupEndTime);
-}
-
 function extractCreatedPostId(data: unknown): string | null {
   if (!data || typeof data !== "object") return null;
   const record = data as Record<string, unknown>;
@@ -157,7 +135,8 @@ export default function GroupBuyCreatePage() {
   const [pickupZoneError, setPickupZoneError] = useState(false);
   const [pickupDate, setPickupDate] = useState("");
   const [deadline, setDeadline] = useState("");
-  const [pickupTime, setPickupTime] = useState("");
+  const [pickupStartTime, setPickupStartTime] = useState("");
+  const [pickupEndTime, setPickupEndTime] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
@@ -217,7 +196,8 @@ export default function GroupBuyCreatePage() {
         setSelectedPickupZoneId(String(data.pickupZoneId || ""));
         setPickupDate(toDateInputValue(data.pickupDate));
         setDeadline(toDateInputValue(data.deadline));
-        setPickupTime([data.pickupStartTime, data.pickupEndTime].filter(Boolean).join(" ~ "));
+        setPickupStartTime(String(data.pickupStartTime || "").slice(0, 5));
+        setPickupEndTime(String(data.pickupEndTime || "").slice(0, 5));
         setDescription(String(data.content || ""));
         const loadedImages = Array.isArray(data.images)
           ? data.images
@@ -252,7 +232,8 @@ export default function GroupBuyCreatePage() {
       if (!hasPickupLocation || !deadline || !pickupDate) return "수령 장소와 날짜를 모두 입력해 주세요.";
       if (!isEditMode && deadline < today) return "마감일은 오늘 이후로 선택해 주세요.";
       if (pickupDate < deadline) return "수령 예정일은 마감일과 같거나 이후여야 해요.";
-      if (!isValidPickupTime(pickupTime)) return "수령 시간은 예: 오후 12시 ~ 오후 6시 형식으로 입력해 주세요.";
+      if (Boolean(pickupStartTime) !== Boolean(pickupEndTime)) return "수령 시작 시간과 종료 시간을 모두 입력해 주세요.";
+      if (pickupStartTime && pickupEndTime && pickupStartTime >= pickupEndTime) return "수령 종료 시간은 시작 시간보다 늦어야 해요.";
     }
     return null;
   };
@@ -332,7 +313,6 @@ export default function GroupBuyCreatePage() {
     try {
       setLoading(true);
       setSubmitState("submitting");
-      const pickupTimes = toPickupTimeRange(pickupTime);
       const payload = {
         title,
         productName,
@@ -345,7 +325,7 @@ export default function GroupBuyCreatePage() {
           ? { pickupZoneId: selectedPickupZoneId }
           : { pickupLocation: location.trim() }),
         pickupDate,
-        ...pickupTimes,
+        ...(pickupStartTime && pickupEndTime ? { pickupStartTime, pickupEndTime } : {}),
         groupBuyType: tradeType === "PRE_RECRUIT" ? "pre_recruit" : "post_recruit",
         groupBuyMode: "normal",
         authorId: userId,
@@ -534,7 +514,12 @@ export default function GroupBuyCreatePage() {
               <Divider />
               <DateInput label="수령 예정일" value={pickupDate} onChange={setPickupDate} min={deadline || today} />
               <Divider />
-              <LabeledInput label="예상 수령 시간" value={pickupTime} onChange={setPickupTime} placeholder="예: 오후 12시 ~ 오후 6시" plain />
+              <PickupTimeRangeInput
+                startTime={pickupStartTime}
+                endTime={pickupEndTime}
+                onStartTimeChange={setPickupStartTime}
+                onEndTimeChange={setPickupEndTime}
+              />
             </SurfaceCard>
             <div style={locationTipStyle}>
               <span style={tipIconStyle}>
@@ -575,7 +560,7 @@ export default function GroupBuyCreatePage() {
               <Review label="수령 장소" value={pickupLocationLabel} />
               <Review label="마감일" value={deadline} />
               <Review label="수령 예정일" value={pickupDate} />
-              <Review label="수령 시간" value={pickupTime} />
+              <Review label="수령 시간" value={pickupStartTime && pickupEndTime ? `${pickupStartTime} ~ ${pickupEndTime}` : "미정"} />
               <Review label="상세 설명" value={description} multiline />
             </SurfaceCard>
           </section>
@@ -981,6 +966,35 @@ function DateInput({ label, value, onChange, min }: { label: string; value: stri
       <span style={fieldLabelStyle}>{label}</span>
       <input type="date" value={value} min={min} onChange={(e) => onChange(e.target.value)} style={fieldInputStyle} />
     </label>
+  );
+}
+
+function PickupTimeRangeInput({
+  startTime,
+  endTime,
+  onStartTimeChange,
+  onEndTimeChange,
+}: {
+  startTime: string;
+  endTime: string;
+  onStartTimeChange: (value: string) => void;
+  onEndTimeChange: (value: string) => void;
+}) {
+  return (
+    <fieldset style={timeRangeFieldsetStyle}>
+      <legend style={fieldLabelStyle}>예상 수령 시간</legend>
+      <div style={timeRangeGridStyle}>
+        <label style={timeInputLabelStyle}>
+          <span style={timeInputCaptionStyle}>시작</span>
+          <input aria-label="수령 시작 시간" type="time" value={startTime} onChange={(event) => onStartTimeChange(event.target.value)} style={fieldInputStyle} />
+        </label>
+        <span aria-hidden style={timeRangeSeparatorStyle}>~</span>
+        <label style={timeInputLabelStyle}>
+          <span style={timeInputCaptionStyle}>종료</span>
+          <input aria-label="수령 종료 시간" type="time" value={endTime} onChange={(event) => onEndTimeChange(event.target.value)} style={fieldInputStyle} />
+        </label>
+      </div>
+    </fieldset>
   );
 }
 
@@ -1737,6 +1751,43 @@ const fieldInputStyle: React.CSSProperties = {
   fontWeight: 750,
   lineHeight: "21px",
   background: "transparent",
+};
+
+const timeRangeFieldsetStyle: React.CSSProperties = {
+  ...fieldPlainStyle,
+  margin: 0,
+  border: 0,
+};
+
+const timeRangeGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) 14px minmax(0, 1fr)",
+  alignItems: "end",
+  gap: 8,
+};
+
+const timeInputLabelStyle: React.CSSProperties = {
+  minWidth: 0,
+  padding: "8px 10px",
+  borderRadius: 10,
+  background: grey50,
+  border: `1px solid ${grey200}`,
+};
+
+const timeInputCaptionStyle: React.CSSProperties = {
+  display: "block",
+  marginBottom: 3,
+  color: grey500,
+  fontSize: 10.5,
+  fontWeight: 700,
+};
+
+const timeRangeSeparatorStyle: React.CSSProperties = {
+  paddingBottom: 11,
+  color: grey500,
+  fontSize: 13,
+  fontWeight: 800,
+  textAlign: "center",
 };
 
 const pickupSelectorStyle: React.CSSProperties = {
