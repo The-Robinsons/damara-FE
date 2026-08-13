@@ -645,6 +645,59 @@ test("참여자가 없는 모집글은 거래 완료 요청을 보낼 수 없다
   expect(postStatusRequestCount).toBe(0);
 });
 
+test("참여자가 없는 모집글은 모집 마감 요청을 보낼 수 없다", async ({ page }) => {
+  let postStatusRequestCount = 0;
+  const ownerId = "11111111-1111-4111-8111-111111111111";
+  const postId = "55555555-5555-4555-8555-555555555555";
+
+  await page.addInitScript(({ id }) => localStorage.setItem("userId", id), { id: ownerId });
+  await page.route(new RegExp(`/api/posts/${postId}(?:\\?.*)?$`), async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: postId,
+        authorId: ownerId,
+        title: "참여자 없는 모집글",
+        content: "모집 마감 차단 테스트",
+        price: 1000,
+        minParticipants: 1,
+        currentQuantity: 1,
+        status: "open",
+        deadline: "2026-08-30T00:00:00.000Z",
+        isOwner: true,
+        author: { nickname: "모집자" },
+      }),
+    });
+  });
+  await page.route(`**/api/posts/${postId}/status`, async (route) => {
+    postStatusRequestCount += 1;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "closed" }) });
+  });
+  await page.route(`**/api/posts/${postId}/participants**`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ participants: [] }) });
+  });
+  await page.route(`**/api/posts/${postId}/participate/${ownerId}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ isParticipant: false }) });
+  });
+  await page.route(`**/api/posts/${postId}/favorite/${ownerId}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ isFavorite: false }) });
+  });
+  await page.route(`**/api/users/${ownerId}/trust-summary`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ trustGrade: 4.0 }) });
+  });
+  await page.route(`**/api/posts/${postId}/reviews/eligibility`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ postId, targets: [] }) });
+  });
+
+  await page.goto(`/post/${postId}`);
+
+  await expect(page.getByText("모집 마감을 하시려면 참여자가 한 명 이상 필요합니다.")).toBeVisible();
+  await page.getByRole("button", { name: "모집 마감하기" }).click();
+  await expect(page.getByText("모집 마감을 하시려면 참여자가 한 명 이상 필요합니다.").last()).toBeVisible();
+  expect(postStatusRequestCount).toBe(0);
+});
+
 test("채팅 참여자를 카테고리 또는 상세 내용으로 신고한다", async ({ page }) => {
   let reportPayload: unknown;
   let reportHeader: string | undefined;
