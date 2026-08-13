@@ -223,6 +223,7 @@ test("공구 등록은 선택한 다마라존을 pickupZoneId로 전송한다", 
             id: "s2810",
             name: "S2810",
             displayName: "자연캠퍼스 S2810",
+            campusLabel: "자연캠퍼스",
             description: "S동 2층 S2810 앞",
             isActive: true,
             sortOrder: 10,
@@ -231,7 +232,8 @@ test("공구 등록은 선택한 다마라존을 pickupZoneId로 전송한다", 
             id: "dormitory-lobby",
             name: "기숙사 로비",
             displayName: "명지대 기숙사 로비",
-            description: "기숙사 1층 로비",
+            campusLabel: "인문캠퍼스",
+            description: "인문캠퍼스 기숙사 1층 로비 공식 접선지",
             isActive: true,
             sortOrder: 20,
           },
@@ -253,6 +255,8 @@ test("공구 등록은 선택한 다마라존을 pickupZoneId로 전송한다", 
   await page.getByLabel("1인당 가격").fill("5900");
   await page.getByLabel("모집 인원 (모집자 미포함)").fill("3");
   await page.getByRole("button", { name: "다음", exact: true }).click();
+  await expect(page.getByText("인문캠퍼스", { exact: true })).toBeVisible();
+  await expect(page.getByText("인문캠퍼스 기숙사 1층 로비 공식 접선지")).toHaveCount(0);
   await page.getByRole("button", { name: "명지대 기숙사 로비" }).click();
   await page.getByLabel("마감일").fill("2099-01-10");
   await page.getByLabel("수령 예정일").fill("2099-01-11");
